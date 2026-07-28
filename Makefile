@@ -1,13 +1,13 @@
 PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 
-.PHONY: setup pdf review-preface split verify-splits preface-assets init-review clean
+.PHONY: setup pdf review-preface preface-figures split verify-splits preface-assets init-review clean
 
 setup:
 	python3 -m venv .venv
 	.venv/bin/python -m pip install --upgrade pip
 	.venv/bin/python -m pip install -r requirements.txt
 
-pdf:
+pdf: preface-figures
 	mkdir -p build
 	@if command -v latexmk >/dev/null && command -v xelatex >/dev/null; then \
 		cd tex && latexmk -xelatex -interaction=nonstopmode -halt-on-error \
@@ -20,7 +20,7 @@ pdf:
 		exit 1; \
 	fi
 
-review-preface:
+review-preface: preface-figures
 	mkdir -p build output/pdf
 	@if command -v latexmk >/dev/null && command -v xelatex >/dev/null; then \
 		cd tex && latexmk -xelatex -interaction=nonstopmode -halt-on-error \
@@ -33,6 +33,25 @@ review-preface:
 		exit 1; \
 	fi
 	cp build/review-preface.pdf output/pdf/preface-review.pdf
+
+preface-figures:
+	$(PYTHON) scripts/verify_preface_dependency_figure.py
+	mkdir -p build/figures/preface figures/redrawn/preface
+	@if command -v xelatex >/dev/null; then \
+		SOURCE_DATE_EPOCH=1012521600 xelatex \
+			-interaction=nonstopmode -halt-on-error \
+			-output-directory=build/figures/preface \
+			figures/redrawn/preface/chapter-dependencies.tex; \
+	elif command -v tectonic >/dev/null; then \
+		SOURCE_DATE_EPOCH=1012521600 tectonic \
+			--outdir build/figures/preface \
+			figures/redrawn/preface/chapter-dependencies.tex; \
+	else \
+		echo "XeLaTeX or tectonic is required to build the redrawn figures"; \
+		exit 1; \
+	fi
+	cp build/figures/preface/chapter-dependencies.pdf \
+		figures/redrawn/preface/chapter-dependencies.pdf
 
 split:
 	$(PYTHON) scripts/split_pdf.py

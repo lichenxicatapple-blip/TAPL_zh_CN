@@ -1,0 +1,140 @@
+\documentclass{article}
+\usepackage{tikz}
+\usepackage[active,tightpage]{preview}
+\usetikzlibrary{arrows.meta}
+\PreviewEnvironment{tikzpicture}
+\setlength{\PreviewBorder}{2pt}
+\setlength{\textwidth}{500pt}
+
+\definecolor{TAPLDependencyPartial}{gray}{0.55}
+
+\pgfdeclarelayer{dependency edges}
+\pgfsetlayers{dependency edges,main}
+
+\begin{document}
+\begin{tikzpicture}[
+  x=0.031cm,
+  y=-0.034cm,
+  chapter/.style={
+    rectangle,
+    draw=black,
+    fill=white,
+    line width=0.55pt,
+    minimum width=8.2mm,
+    minimum height=5.5mm,
+    inner sep=0pt,
+    font=\small
+  },
+  dependency/.style={
+    draw=black,
+    line width=0.58pt,
+    line cap=round,
+    line join=round,
+    -{Latex[length=2.0mm,width=1.45mm]}
+  },
+  partial dependency/.style={
+    dependency,
+    draw=TAPLDependencyPartial
+  }
+]
+
+% Node positions follow Figure P-1 in the author's official frontmatter PDF.
+\node[chapter] (c1)  at ( 97, 87) {1};
+\node[chapter] (c2)  at (143, 87) {2};
+\node[chapter] (c3)  at (189, 87) {3};
+\node[chapter] (c4)  at (143,141) {4};
+\node[chapter] (c5)  at (189,141) {5};
+\node[chapter] (c8)  at (235,141) {8};
+\node[chapter] (c6)  at (187,195) {6};
+\node[chapter] (c9)  at (235,195) {9};
+\node[chapter] (c7)  at (143,249) {7};
+\node[chapter] (c10) at (118,303) {10};
+\node[chapter] (c11) at (233,249) {11};
+\node[chapter] (c13) at (164,303) {13};
+\node[chapter] (c16) at (137,357) {16};
+\node[chapter] (c14) at (210,303) {14};
+\node[chapter] (c18) at (183,357) {18};
+\node[chapter] (c12) at (279,249) {12};
+\node[chapter] (c15) at (256,303) {15};
+\node[chapter] (c25) at (229,357) {25};
+\node[chapter] (c17) at (116,411) {17};
+\node[chapter] (c23) at (407,249) {23};
+\node[chapter] (c22) at (302,303) {22};
+\node[chapter] (c19) at (275,357) {19};
+\node[chapter] (c28) at (243,411) {28};
+\node[chapter] (c24) at (386,303) {24};
+\node[chapter] (c20) at (321,357) {20};
+\node[chapter] (c26) at (405,357) {26};
+\node[chapter] (c21) at (327,411) {21};
+\node[chapter] (c27) at (346,465) {27};
+\node[chapter] (c29) at (227,519) {29};
+\node[chapter] (c30) at (273,519) {30};
+\node[chapter] (c31) at (348,519) {31};
+\node[chapter] (c32) at (394,519) {32};
+
+% Every edge points from a later chapter to an earlier prerequisite chapter.
+% Solid dependencies: 42 edges.
+\begin{pgfonlayer}{dependency edges}
+  \draw[dependency] (c3)  -- (c2);
+
+  \draw[dependency] (c4)  -- (c3);
+  \draw[dependency] (c5)  -- (c3);
+  \draw[dependency] (c8)  -- (c3);
+
+  \draw[dependency] (c7)  -- (c4);
+  \draw[dependency] (c6)  -- (c5);
+  \draw[dependency] (c9)  -- (c5);
+
+  \draw[dependency] (c7)  -- (c6);
+  \draw[dependency] (c10) -- (c7);
+  \draw[dependency] (c9)  -- (c8);
+  \draw[dependency] (c10) -- (c9);
+  \draw[dependency] (c11) -- (c9);
+  \draw[dependency] (c12) -- (c9);
+  \draw[dependency]
+    (c20) .. controls (365,315) and (330,220) .. (c9);
+  \draw[dependency] (c23) -- (c9);
+
+  \draw[dependency] (c17) -- (c10);
+  \draw[dependency] (c25) -- (c10);
+  \draw[dependency] (c13) -- (c11);
+  \draw[dependency] (c14) -- (c11);
+  \draw[dependency] (c15) -- (c11);
+  \draw[dependency] (c22) -- (c11);
+
+  \draw[dependency] (c18) -- (c13);
+  \draw[dependency] (c16) -- (c15);
+  \draw[dependency] (c18) -- (c15);
+  \draw[dependency] (c19) -- (c15);
+  \draw[dependency] (c21) -- (c15);
+  \draw[dependency] (c26) -- (c15);
+
+  \draw[dependency] (c17) -- (c16);
+  \draw[dependency] (c28) -- (c16);
+  \draw[dependency] (c27) -- (c18);
+  \draw[dependency] (c21) -- (c20);
+
+  \draw[dependency]
+    (c29) .. controls (470,500) and (485,340) .. (c23);
+  \draw[dependency] (c24) -- (c23);
+  \draw[dependency] (c26) -- (c23);
+  \draw[dependency] (c25) -- (c24);
+
+  \draw[dependency] (c27) -- (c26);
+  \draw[dependency] (c28) -- (c26);
+  \draw[dependency] (c31) -- (c26);
+
+  \draw[dependency] (c32) -- (c27);
+
+  \draw[dependency] (c30) -- (c29);
+  \draw[dependency] (c31) -- (c30);
+  \draw[dependency] (c32) -- (c31);
+
+  % Gray dependencies: only part of the later chapter depends on the target.
+  \draw[partial dependency] (c20) -- (c15);
+  \draw[partial dependency] (c26) -- (c24);
+  \draw[partial dependency] (c30) -- (c28);
+\end{pgfonlayer}
+
+\end{tikzpicture}
+\end{document}
