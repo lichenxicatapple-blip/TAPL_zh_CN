@@ -1,0 +1,31 @@
+\documentclass[
+  UTF8,
+  11pt,
+  openany,
+  scheme=chinese,
+  fontset=fandol
+]{ctexbook}
+
+\input{config/metadata}
+\input{config/packages}
+\input{config/commands}
+
+\begin{document}
+
+\frontmatter
+\input{frontmatter/titlepage}
+\tableofcontents
+\input{frontmatter/preface}
+
+\mainmatter
+\input{book-structure}
+
+\appendix
+\input{appendices/appendix-a}
+\input{appendices/appendix-b}
+
+\backmatter
+\input{backmatter/references}
+\input{backmatter/index}
+
+\end{document}

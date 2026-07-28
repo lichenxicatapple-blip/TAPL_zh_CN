@@ -1,0 +1,53 @@
+\usepackage[a4paper,margin=28mm,headheight=15pt]{geometry}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage{stmaryrd}
+\usepackage{mathpartir}
+
+\usepackage{listings}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\usepackage{hyperref}
+\usepackage{bookmark}
+\usepackage[nameinlink,noabbrev]{cleveref}
+
+\graphicspath{
+  {../figures/original/}
+  {../figures/redrawn/}
+}
+
+\definecolor{TAPLLink}{HTML}{1F4E79}
+\definecolor{TAPLCodeBackground}{HTML}{F5F5F5}
+\definecolor{TAPLTodo}{HTML}{A61B1B}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=TAPLLink,
+  citecolor=TAPLLink,
+  urlcolor=TAPLLink,
+  pdftitle={\TAPLProjectTitle},
+  pdfauthor={\TAPLOriginalAuthor},
+  pdfsubject={\TAPLOriginalTitle{} 中文翻译工程}
+}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  frame=single,
+  backgroundcolor=\color{TAPLCodeBackground},
+  breaklines=true
+}

@@ -1,0 +1,594 @@
+{
+  "source": {
+    "path": "Benjamin_C._Pierce-Types_and_Programming_Languages-The_MIT_Press(2002).pdf",
+    "sha256": "065390fa14bc289975935ee3aa6bf9f3b937f01f27c4d2fc02858355a6924560",
+    "pdf_pages": 625,
+    "bibliographic_identity": {
+      "title": "Types and Programming Languages",
+      "author": "Benjamin C. Pierce",
+      "publisher": "The MIT Press",
+      "year": 2002,
+      "isbn_10": "0-262-16209-1",
+      "isbn_13": "978-0-262-16209-8"
+    }
+  },
+  "page_numbering_note": "The local file is a CHM-to-PDF conversion. Its PDF pagination is not page-for-page with the original printed edition.",
+  "segments": [
+    {
+      "path": "source/split/frontmatter/00-web-table-of-contents_p001-p002.pdf",
+      "kind": "frontmatter",
+      "title": "CHM conversion table of contents",
+      "source_pdf_pages": {
+        "start": 1,
+        "end": 2,
+        "count": 2
+      },
+      "original_print_pages": "not applicable",
+      "sha256": "0236f61b9bb4b254bc4fbcc7e4fc3e36d554d4a2c12c3fd9446249700de27e59"
+    },
+    {
+      "path": "source/split/frontmatter/01-back-cover_p003.pdf",
+      "kind": "frontmatter",
+      "title": "Back cover",
+      "source_pdf_pages": {
+        "start": 3,
+        "end": 3,
+        "count": 1
+      },
+      "original_print_pages": "not applicable",
+      "sha256": "a734903402feb05abb6bba81cefc3973c4e1c05813c87006b7faf40d154cabc3"
+    },
+    {
+      "path": "source/split/frontmatter/02-title-and-copyright_p004.pdf",
+      "kind": "frontmatter",
+      "title": "Title and copyright",
+      "source_pdf_pages": {
+        "start": 4,
+        "end": 4,
+        "count": 1
+      },
+      "original_print_pages": "front matter; conversion is not page-for-page",
+      "sha256": "4ce4cd44cee1ca3ae2f515e2de71f4441413e5882c2a70f5814af4c197a4b41b"
+    },
+    {
+      "path": "source/split/frontmatter/03-preface_p005-p016.pdf",
+      "kind": "frontmatter",
+      "title": "Preface",
+      "source_pdf_pages": {
+        "start": 5,
+        "end": 16,
+        "count": 12
+      },
+      "original_print_pages": "xiii-xxi",
+      "sha256": "cd92b1cd1b4ea69e407c251db140a50bb3b790a1a37885df453ae26bbea821a6"
+    },
+    {
+      "path": "source/split/chapters/ch01-introduction_p017-p025.pdf",
+      "kind": "chapter",
+      "title": "Chapter 1: Introduction",
+      "source_pdf_pages": {
+        "start": 17,
+        "end": 25,
+        "count": 9
+      },
+      "original_print_pages": "1-14",
+      "sha256": "8908bd315c08d5cf298d8f96216270abab452820b7c6e8d619746bb07770f716"
+    },
+    {
+      "path": "source/split/chapters/ch02-mathematical-preliminaries_p026-p032.pdf",
+      "kind": "chapter",
+      "title": "Chapter 2: Mathematical Preliminaries",
+      "source_pdf_pages": {
+        "start": 26,
+        "end": 32,
+        "count": 7
+      },
+      "original_print_pages": "15-20",
+      "sha256": "c7f703eac51677f32d5cf25edc9cba0528b6d81da5f5d0c681bdb648e3eee8e1"
+    },
+    {
+      "path": "source/split/parts/part-01-untyped-systems_p033.pdf",
+      "kind": "part",
+      "title": "Part I: Untyped Systems",
+      "source_pdf_pages": {
+        "start": 33,
+        "end": 33,
+        "count": 1
+      },
+      "original_print_pages": "21-22",
+      "sha256": "827d75e486ef7b030f9b1120a538892f971e38ee3e243a2b0f6e58c70199131c"
+    },
+    {
+      "path": "source/split/chapters/ch03-untyped-arithmetic-expressions_p034-p051.pdf",
+      "kind": "chapter",
+      "title": "Chapter 3: Untyped Arithmetic Expressions",
+      "source_pdf_pages": {
+        "start": 34,
+        "end": 51,
+        "count": 18
+      },
+      "original_print_pages": "23-44",
+      "sha256": "ddbf02307a16bbb0d8861dc27ffe4491b6d320d8391b62292ba655846751dfea"
+    },
+    {
+      "path": "source/split/chapters/ch04-ml-arithmetic-expressions_p052-p057.pdf",
+      "kind": "chapter",
+      "title": "Chapter 4: An ML Implementation of Arithmetic Expressions",
+      "source_pdf_pages": {
+        "start": 52,
+        "end": 57,
+        "count": 6
+      },
+      "original_print_pages": "45-50",
+      "sha256": "8214e3cf53a1b8ddef8b7c80d750ccaae39d4fe0d4d4689074686fcf79ac8e55"
+    },
+    {
+      "path": "source/split/chapters/ch05-untyped-lambda-calculus_p058-p076.pdf",
+      "kind": "chapter",
+      "title": "Chapter 5: The Untyped Lambda-Calculus",
+      "source_pdf_pages": {
+        "start": 58,
+        "end": 76,
+        "count": 19
+      },
+      "original_print_pages": "51-74",
+      "sha256": "2e05d328e21c5b828d76b457d3fcafd63d1debb58042d83459138d4f4c235e96"
+    },
+    {
+      "path": "source/split/chapters/ch06-nameless-representation_p077-p082.pdf",
+      "kind": "chapter",
+      "title": "Chapter 6: Nameless Representation of Terms",
+      "source_pdf_pages": {
+        "start": 77,
+        "end": 82,
+        "count": 6
+      },
+      "original_print_pages": "75-82",
+      "sha256": "a31867977ede726d67ad95909036e319b40f66935f8e8fa005a774d51aea3d56"
+    },
+    {
+      "path": "source/split/chapters/ch07-ml-lambda-calculus_p083-p087.pdf",
+      "kind": "chapter",
+      "title": "Chapter 7: An ML Implementation of the Lambda-Calculus",
+      "source_pdf_pages": {
+        "start": 83,
+        "end": 87,
+        "count": 5
+      },
+      "original_print_pages": "83-88",
+      "sha256": "1f7fd3f166e8700c8cf2ae80929872094571ce0901fe953a878922bb956c0d54"
+    },
+    {
+      "path": "source/split/parts/part-02-simple-types_p088.pdf",
+      "kind": "part",
+      "title": "Part II: Simple Types",
+      "source_pdf_pages": {
+        "start": 88,
+        "end": 88,
+        "count": 1
+      },
+      "original_print_pages": "89-90",
+      "sha256": "5328b9cea90c65ebb495f6446d6a709b5d585d429436ce680bbfee06ee292682"
+    },
+    {
+      "path": "source/split/chapters/ch08-typed-arithmetic-expressions_p089-p097.pdf",
+      "kind": "chapter",
+      "title": "Chapter 8: Typed Arithmetic Expressions",
+      "source_pdf_pages": {
+        "start": 89,
+        "end": 97,
+        "count": 9
+      },
+      "original_print_pages": "91-98",
+      "sha256": "b932c6a1a9ba40605a92f9e7672dcd9947ccda30555f8c78cf51e07707b0dff0"
+    },
+    {
+      "path": "source/split/chapters/ch09-simply-typed-lambda-calculus_p098-p112.pdf",
+      "kind": "chapter",
+      "title": "Chapter 9: Simply Typed Lambda-Calculus",
+      "source_pdf_pages": {
+        "start": 98,
+        "end": 112,
+        "count": 15
+      },
+      "original_print_pages": "99-112",
+      "sha256": "f781de0d45b955db80db76d962c9c3f4935cc9f271b3d45d8124bad5f4bdc0c9"
+    },
+    {
+      "path": "source/split/chapters/ch10-ml-simple-types_p113-p116.pdf",
+      "kind": "chapter",
+      "title": "Chapter 10: An ML Implementation of Simple Types",
+      "source_pdf_pages": {
+        "start": 113,
+        "end": 116,
+        "count": 4
+      },
+      "original_print_pages": "113-116",
+      "sha256": "f0ea7fc896deeafb924787c8e950a0ebde03e9097663bacd52ffc3dbbd5bed64"
+    },
+    {
+      "path": "source/split/chapters/ch11-simple-extensions_p117-p143.pdf",
+      "kind": "chapter",
+      "title": "Chapter 11: Simple Extensions",
+      "source_pdf_pages": {
+        "start": 117,
+        "end": 143,
+        "count": 27
+      },
+      "original_print_pages": "117-148",
+      "sha256": "561032c9b9c599b3fc6361e70da040099ae35fd818532051b5fa5e84bd2ba7d1"
+    },
+    {
+      "path": "source/split/chapters/ch12-normalization_p144-p148.pdf",
+      "kind": "chapter",
+      "title": "Chapter 12: Normalization",
+      "source_pdf_pages": {
+        "start": 144,
+        "end": 148,
+        "count": 5
+      },
+      "original_print_pages": "149-152",
+      "sha256": "5649c948d7c75324d0cc8d47637c8e6f8c17db7bdbf886d7fda53397d5e4dc5f"
+    },
+    {
+      "path": "source/split/chapters/ch13-references_p149-p165.pdf",
+      "kind": "chapter",
+      "title": "Chapter 13: References",
+      "source_pdf_pages": {
+        "start": 149,
+        "end": 165,
+        "count": 17
+      },
+      "original_print_pages": "153-170",
+      "sha256": "607033c930a6455ab1913d35da559cb71c67d9845d86849f597212a310bc36a4"
+    },
+    {
+      "path": "source/split/chapters/ch14-exceptions_p166-p173.pdf",
+      "kind": "chapter",
+      "title": "Chapter 14: Exceptions",
+      "source_pdf_pages": {
+        "start": 166,
+        "end": 173,
+        "count": 8
+      },
+      "original_print_pages": "171-178",
+      "sha256": "05ef1ca947c018bde2233bee9b3a4675d7679b8ebaf117fcecde85365823bbc5"
+    },
+    {
+      "path": "source/split/parts/part-03-subtyping_p174.pdf",
+      "kind": "part",
+      "title": "Part III: Subtyping",
+      "source_pdf_pages": {
+        "start": 174,
+        "end": 174,
+        "count": 1
+      },
+      "original_print_pages": "179-180",
+      "sha256": "201f79bf9c36370fcb59cba8c2b9b6605bd6b8ca443f3334f2666839c3727dc4"
+    },
+    {
+      "path": "source/split/chapters/ch15-subtyping_p175-p199.pdf",
+      "kind": "chapter",
+      "title": "Chapter 15: Subtyping",
+      "source_pdf_pages": {
+        "start": 175,
+        "end": 199,
+        "count": 25
+      },
+      "original_print_pages": "181-208",
+      "sha256": "2797aa1712979462a7f537de1895ae0b6d3e9b99974d31ebdbe957c765e55129"
+    },
+    {
+      "path": "source/split/chapters/ch16-metatheory-of-subtyping_p200-p211.pdf",
+      "kind": "chapter",
+      "title": "Chapter 16: Metatheory of Subtyping",
+      "source_pdf_pages": {
+        "start": 200,
+        "end": 211,
+        "count": 12
+      },
+      "original_print_pages": "209-220",
+      "sha256": "5801b6d7795273997a48adc2ab831ac1c85dae4ef9d046aa2111cb65ed6e99cb"
+    },
+    {
+      "path": "source/split/chapters/ch17-ml-subtyping_p212-p215.pdf",
+      "kind": "chapter",
+      "title": "Chapter 17: An ML Implementation of Subtyping",
+      "source_pdf_pages": {
+        "start": 212,
+        "end": 215,
+        "count": 4
+      },
+      "original_print_pages": "221-224",
+      "sha256": "3f66434317d92dc675c0b691c1380a7928f3157dea9aeec5d6b5a315a8dc3328"
+    },
+    {
+      "path": "source/split/chapters/ch18-imperative-objects_p216-p238.pdf",
+      "kind": "chapter",
+      "title": "Chapter 18: Case Study: Imperative Objects",
+      "source_pdf_pages": {
+        "start": 216,
+        "end": 238,
+        "count": 23
+      },
+      "original_print_pages": "225-246",
+      "sha256": "fd2417376cb99824dab14f096246f154958fc6ee32a2a1889857acf062774f74"
+    },
+    {
+      "path": "source/split/chapters/ch19-featherweight-java_p239-p253.pdf",
+      "kind": "chapter",
+      "title": "Chapter 19: Case Study: Featherweight Java",
+      "source_pdf_pages": {
+        "start": 239,
+        "end": 253,
+        "count": 15
+      },
+      "original_print_pages": "247-264",
+      "sha256": "42ce37735cdd2ce765d92313da19f150d02411de9ae8db0ed1888bb9d28195fb"
+    },
+    {
+      "path": "source/split/parts/part-04-recursive-types_p254.pdf",
+      "kind": "part",
+      "title": "Part IV: Recursive Types",
+      "source_pdf_pages": {
+        "start": 254,
+        "end": 254,
+        "count": 1
+      },
+      "original_print_pages": "265-266",
+      "sha256": "4a848925a893109784d9e177296fbcccf026e50158d6c3a84e34dcf951e118d7"
+    },
+    {
+      "path": "source/split/chapters/ch20-recursive-types_p255-p266.pdf",
+      "kind": "chapter",
+      "title": "Chapter 20: Recursive Types",
+      "source_pdf_pages": {
+        "start": 255,
+        "end": 266,
+        "count": 12
+      },
+      "original_print_pages": "267-280",
+      "sha256": "1396e778101af51a5aed7dc6cdb6091bf91686aea89a1924bbb925746d38de7a"
+    },
+    {
+      "path": "source/split/chapters/ch21-metatheory-of-recursive-types_p267-p300.pdf",
+      "kind": "chapter",
+      "title": "Chapter 21: Metatheory of Recursive Types",
+      "source_pdf_pages": {
+        "start": 267,
+        "end": 300,
+        "count": 34
+      },
+      "original_print_pages": "281-314",
+      "sha256": "1d368d679e9162cf2f41416e5a845ea943eb74f182f039fe1a467f938c14e787"
+    },
+    {
+      "path": "source/split/parts/part-05-polymorphism_p301.pdf",
+      "kind": "part",
+      "title": "Part V: Polymorphism",
+      "source_pdf_pages": {
+        "start": 301,
+        "end": 301,
+        "count": 1
+      },
+      "original_print_pages": "315-316",
+      "sha256": "20629f0c46cdd581a005d25616d86648a2a9cb5c4f11c3454b3b029e75eae2be"
+    },
+    {
+      "path": "source/split/chapters/ch22-type-reconstruction_p302-p320.pdf",
+      "kind": "chapter",
+      "title": "Chapter 22: Type Reconstruction",
+      "source_pdf_pages": {
+        "start": 302,
+        "end": 320,
+        "count": 19
+      },
+      "original_print_pages": "317-338",
+      "sha256": "a55403b5b340e1b796f26e8ad72b9a00297b9a0d325be78bfc00d4c729583b6b"
+    },
+    {
+      "path": "source/split/chapters/ch23-universal-types_p321-p343.pdf",
+      "kind": "chapter",
+      "title": "Chapter 23: Universal Types",
+      "source_pdf_pages": {
+        "start": 321,
+        "end": 343,
+        "count": 23
+      },
+      "original_print_pages": "339-362",
+      "sha256": "384d006783433ceb1adc78d7ff069c904f7b43e8fda8da52c74db684a5f8b58a"
+    },
+    {
+      "path": "source/split/chapters/ch24-existential-types_p344-p357.pdf",
+      "kind": "chapter",
+      "title": "Chapter 24: Existential Types",
+      "source_pdf_pages": {
+        "start": 344,
+        "end": 357,
+        "count": 14
+      },
+      "original_print_pages": "363-380",
+      "sha256": "c46aa96657ce2c89510ec3f2d1b6b99b872cf653a1d15398f3e79e5252b0d519"
+    },
+    {
+      "path": "source/split/chapters/ch25-ml-system-f_p358-p365.pdf",
+      "kind": "chapter",
+      "title": "Chapter 25: An ML Implementation of System F",
+      "source_pdf_pages": {
+        "start": 358,
+        "end": 365,
+        "count": 8
+      },
+      "original_print_pages": "381-388",
+      "sha256": "037b78ebe4aaacbe97e911252108d7525927a10307a85a2b7b1e876a1d48e94b"
+    },
+    {
+      "path": "source/split/chapters/ch26-bounded-quantification_p366-p383.pdf",
+      "kind": "chapter",
+      "title": "Chapter 26: Bounded Quantification",
+      "source_pdf_pages": {
+        "start": 366,
+        "end": 383,
+        "count": 18
+      },
+      "original_print_pages": "389-410",
+      "sha256": "ef145717be213294e534c4837e3830eabfa631cc404dc7fb55109351fe7ce3cf"
+    },
+    {
+      "path": "source/split/chapters/ch27-imperative-objects-redux_p384-p388.pdf",
+      "kind": "chapter",
+      "title": "Chapter 27: Case Study: Imperative Objects, Redux",
+      "source_pdf_pages": {
+        "start": 384,
+        "end": 388,
+        "count": 5
+      },
+      "original_print_pages": "411-416",
+      "sha256": "5f3baf6cc84ed654897c66f04d37e1b54ccf3639c7bba3d611d8aca05b45cba9"
+    },
+    {
+      "path": "source/split/chapters/ch28-metatheory-of-bounded-quantification_p389-p407.pdf",
+      "kind": "chapter",
+      "title": "Chapter 28: Metatheory of Bounded Quantification",
+      "source_pdf_pages": {
+        "start": 389,
+        "end": 407,
+        "count": 19
+      },
+      "original_print_pages": "417-436",
+      "sha256": "2546e00ab1c3eb8352a19f22ccb414e61a810100bed772eaa1c3b391e8be783c"
+    },
+    {
+      "path": "source/split/parts/part-06-higher-order-systems_p408.pdf",
+      "kind": "part",
+      "title": "Part VI: Higher-Order Systems",
+      "source_pdf_pages": {
+        "start": 408,
+        "end": 408,
+        "count": 1
+      },
+      "original_print_pages": "437-438",
+      "sha256": "be895c769e20c56b0880622871b9809fea275f813796d5f063c87632b83bbe1a"
+    },
+    {
+      "path": "source/split/chapters/ch29-type-operators-and-kinding_p409-p416.pdf",
+      "kind": "chapter",
+      "title": "Chapter 29: Type Operators and Kinding",
+      "source_pdf_pages": {
+        "start": 409,
+        "end": 416,
+        "count": 8
+      },
+      "original_print_pages": "439-448",
+      "sha256": "a0b3721ab1d0cbae8751a27b9c81f741d91ba8c3a3dd31221e974534b944fd76"
+    },
+    {
+      "path": "source/split/chapters/ch30-higher-order-polymorphism_p417-p430.pdf",
+      "kind": "chapter",
+      "title": "Chapter 30: Higher-Order Polymorphism",
+      "source_pdf_pages": {
+        "start": 417,
+        "end": 430,
+        "count": 14
+      },
+      "original_print_pages": "449-466",
+      "sha256": "c32a77e784197d29bb8811367e9a34d10f932b2ce2e3246ef04d73b2763c0981"
+    },
+    {
+      "path": "source/split/chapters/ch31-higher-order-subtyping_p431-p437.pdf",
+      "kind": "chapter",
+      "title": "Chapter 31: Higher-Order Subtyping",
+      "source_pdf_pages": {
+        "start": 431,
+        "end": 437,
+        "count": 7
+      },
+      "original_print_pages": "467-474",
+      "sha256": "7dd1d9511032d02aa0de232a1a078acd64ab9e7699bdff21f4dafe8c72b60339"
+    },
+    {
+      "path": "source/split/chapters/ch32-purely-functional-objects_p438-p453.pdf",
+      "kind": "chapter",
+      "title": "Chapter 32: Case Study: Purely Functional Objects",
+      "source_pdf_pages": {
+        "start": 438,
+        "end": 453,
+        "count": 16
+      },
+      "original_print_pages": "475-490",
+      "sha256": "1d6efb01e02f548626ff48d76b8c7fcefda96e48f081ae3c57a0c8dd265db4b8"
+    },
+    {
+      "path": "source/split/parts/part-07-appendices_p454.pdf",
+      "kind": "part",
+      "title": "Appendices divider (the conversion labels this Part VII)",
+      "source_pdf_pages": {
+        "start": 454,
+        "end": 454,
+        "count": 1
+      },
+      "original_print_pages": "491-492",
+      "sha256": "d58137f576d277a62c093d56fbb8af5b6f4d1e88b01e76d29ce79d9151d91ef5"
+    },
+    {
+      "path": "source/split/appendices/appendix-a-solutions_p455-p524.pdf",
+      "kind": "appendix",
+      "title": "Appendix A: Solutions to Selected Exercises",
+      "source_pdf_pages": {
+        "start": 455,
+        "end": 524,
+        "count": 70
+      },
+      "original_print_pages": "493-564",
+      "sha256": "2b91fdd5b1347f2cb9a0f4c9c785dd0d236d9115641b1281f470ec92f6939996"
+    },
+    {
+      "path": "source/split/appendices/appendix-b-notation_p525-p526.pdf",
+      "kind": "appendix",
+      "title": "Appendix B: Notational Conventions",
+      "source_pdf_pages": {
+        "start": 525,
+        "end": 526,
+        "count": 2
+      },
+      "original_print_pages": "565-566",
+      "sha256": "7f27e5bf7c195e0d5f83e3e333f6803a409d64c58e642e8cafd3b1c523fbb379"
+    },
+    {
+      "path": "source/split/backmatter/references_p527-p569.pdf",
+      "kind": "backmatter",
+      "title": "References",
+      "source_pdf_pages": {
+        "start": 527,
+        "end": 569,
+        "count": 43
+      },
+      "original_print_pages": "567-604",
+      "sha256": "43385df6cd9eb028ec8d601ffcc1be87386ab5b6374c92563b9c68c6005d7e68"
+    },
+    {
+      "path": "source/split/backmatter/index_p570-p621.pdf",
+      "kind": "backmatter",
+      "title": "Index",
+      "source_pdf_pages": {
+        "start": 570,
+        "end": 621,
+        "count": 52
+      },
+      "original_print_pages": "605-623",
+      "sha256": "b03ac30f55dad64d1e6989d8dbbca1cb5715c3851b17a66743bad016422bb79b"
+    },
+    {
+      "path": "source/split/backmatter/list-of-figures_p622-p625.pdf",
+      "kind": "backmatter",
+      "title": "List of Figures (conversion-generated)",
+      "source_pdf_pages": {
+        "start": 622,
+        "end": 625,
+        "count": 4
+      },
+      "original_print_pages": "not present as a numbered section in the official contents",
+      "sha256": "c66101f1475732d86df4ea631054996b98d386524389ee223877e7de2c4d13a9"
+    }
+  ]
+}

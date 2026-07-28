@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Temporary work
+/tmp/
+
+# Original and reproducibly generated source PDFs
+/Benjamin_C._Pierce-Types_and_Programming_Languages-The_MIT_Press(2002).pdf
+/source/split/**/*.pdf
+
+# LaTeX build directory and auxiliary files
+/build/
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.idx
+*.ilg
+*.ind
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.xdv
