@@ -1,12 +1,24 @@
-PYTHON ?= python3
+PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 
-.PHONY: pdf split verify-splits init-review clean
+.PHONY: setup pdf split verify-splits preface-assets init-review clean
+
+setup:
+	python3 -m venv .venv
+	.venv/bin/python -m pip install --upgrade pip
+	.venv/bin/python -m pip install -r requirements.txt
 
 pdf:
-	@command -v latexmk >/dev/null || { echo "latexmk is required"; exit 1; }
-	@command -v xelatex >/dev/null || { echo "xelatex is required"; exit 1; }
 	mkdir -p build
-	cd tex && latexmk -xelatex -interaction=nonstopmode -halt-on-error -outdir=../build main.tex
+	@if command -v latexmk >/dev/null && command -v xelatex >/dev/null; then \
+		cd tex && latexmk -xelatex -interaction=nonstopmode -halt-on-error \
+			-outdir=../build main.tex; \
+	elif command -v tectonic >/dev/null; then \
+		cd tex && tectonic --keep-logs --keep-intermediates \
+			--outdir ../build main.tex; \
+	else \
+		echo "A XeLaTeX toolchain (latexmk + xelatex) or tectonic is required"; \
+		exit 1; \
+	fi
 
 split:
 	$(PYTHON) scripts/split_pdf.py
@@ -14,10 +26,19 @@ split:
 verify-splits:
 	$(PYTHON) scripts/split_pdf.py --verify-only
 
+preface-assets:
+	$(PYTHON) scripts/extract_preface_assets.py
+
 init-review:
-	@test -n "$(CHAPTER)" || { echo "CHAPTER is required"; exit 1; }
 	@test -n "$(TARGET)" || { echo "TARGET is required"; exit 1; }
-	$(PYTHON) scripts/init_review.py --chapter "$(CHAPTER)" --target "$(TARGET)"
+	@if test -n "$(UNIT)"; then \
+		$(PYTHON) scripts/init_review.py --unit "$(UNIT)" --target "$(TARGET)"; \
+	elif test -n "$(CHAPTER)"; then \
+		$(PYTHON) scripts/init_review.py --chapter "$(CHAPTER)" --target "$(TARGET)"; \
+	else \
+		echo "UNIT or CHAPTER is required"; \
+		exit 1; \
+	fi
 
 clean:
 	@if command -v latexmk >/dev/null; then \

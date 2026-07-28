@@ -1,7 +1,343 @@
 % Preface
 % Local source: ../source/split/frontmatter/03-preface_p005-p016.pdf
 % Original print pages: xiii--xxi
-% Status: 未开始
-%
-% \chapter*{<前言标题>}
-% \addcontentsline{toc}{chapter}{<前言标题>}
+% Status: 待独立初审
+
+\begingroup
+\renewcommand{\thefigure}{P-\arabic{figure}}
+\setcounter{figure}{0}
+
+\chapter*{前言}
+\phantomsection
+\addcontentsline{toc}{chapter}{前言}
+\markboth{前言}{前言}
+
+类型系统研究，以及从类型论视角开展的程序语言研究，已经成为一个充满活力
+的领域，在软件工程、语言设计、高性能编译器实现和安全等方面有着重要应用。
+本书全面介绍这一领域的基本定义、主要结果和核心技术。
+
+\section*{读者对象}
+
+本书主要面向两类读者：一类是专攻程序语言和类型论的研究生与研究人员；
+另一类是来自计算机科学各个方向、希望了解程序语言理论核心概念的研究生和
+基础扎实的本科生。对于前一类读者，本书将系统梳理整个领域，其深度
+足以使读者随后直接研读研究文献；对于后一类读者，本书提供了大量入门材料，
+以及丰富的示例、练习和案例研究。本书既可以作为程序语言入门研究生课程的
+主教材，也可以用于高级专题研讨课。
+
+\section*{目标}
+
+本书的首要目标是覆盖一系列核心主题，包括基本的操作语义及相关证明技术、
+无类型 lambda 演算、简单类型系统、全称多态与存在多态、类型重构、
+子类型化、有界量化、递归类型和类型算子；此外还会较为简略地讨论许多其他
+主题。
+
+第二个主要目标是注重实用。本书集中讨论类型系统在程序语言中的应用，为此
+舍弃了一些在更偏数学的带类型 lambda 演算教材中很可能会出现的主题，例如
+指称语义。全书底层的计算模型采用按值调用的 lambda 演算；它与当今大多数
+程序语言相契合，也很容易扩展引用和异常等命令式构造。对于每一种语言特性，
+我们主要关心的是：考虑这一特性的实际动机；证明包含这一特性的语言具有
+安全性所需的技术；以及它所引出的实现问题，尤其是类型检查算法的设计与
+分析。
+
+另一个目标是尊重本领域的多样性。本书覆盖了许多单独的主题和若干已经得到
+充分理解的组合，但并不试图把所有内容统一到一个系统之中。对于其中一些
+主题的子集，人们已经给出了统一的表述；例如，纯类型系统可以用统一的记法
+优雅而紧凑地处理多种“箭头类型”。然而，整个领域的发展仍然太快，尚不足以
+得到完整的系统化整理。
+
+无论用于课堂教学还是自学，本书都力求便于使用。书中为大多数练习给出了
+完整解答。核心定义被组织成自包含的图，便于查阅。概念与系统之间的依赖关系
+也尽可能明确地标示出来。此外，本书还配有详尽的参考文献和索引。
+
+最后一项组织原则是诚实。除少数仅顺带提及的系统外，本书讨论的所有系统都
+有实现。每章都配有类型检查器和解释器，用来对示例进行机械检查。这些实现
+可以从本书网站获得，可用于编程练习、扩展实验和规模更大的课程项目。
+
+为了实现上述目标，本书不得不放弃另外一些同样可取的性质。其中最重要的是
+覆盖面的完备性。想在一本书里调查程序语言和类型系统的整个领域大概是不可能
+的——对于教材而言尤其如此。本书着重细致地展开核心概念，同时提供了大量
+通向研究文献的线索，供读者继续深入学习。第二个非目标是类型检查算法的实际
+效率：本书并不是一本讲解工业级编译器或类型检查器实现的著作。
+
+\section*{结构}
+
+本书第一部分讨论无类型系统。我们先在一种极其简单的数值与布尔值语言中
+介绍抽象语法、归纳定义与证明、推导规则和操作语义等基本概念，再针对
+无类型 lambda 演算重复这一过程。第二部分讨论简单类型 lambda 演算，以及
+积、和、记录、变体、引用和异常等多种基本语言特性。其中有一章先讨论带类型
+的算术表达式，以较为平缓的方式引入类型安全性这一核心思想；另有一章为
+选读内容，使用 Tait 方法证明简单类型 lambda 演算的规范化性质。第三部分
+讨论子类型化这一基本机制，其中包括对元理论的详细研究和两个篇幅较长的案例
+研究。第四部分讨论递归类型，涵盖较简单的同构递归形式和更为棘手的等递归
+形式。本部分两章中的第二章在余归纳这一数学框架下，研究一个包含等递归类型
+和子类型化的系统的元理论。第五部分转向多态：先讨论 ML 风格的类型重构，
+再讨论 \SystemF{} 中能力更强的非直谓多态、存在量化及其与抽象数据类型的
+联系，最后讨论在带有有界量化的系统中如何组合多态与子类型化。第六部分讨论
+类型算子：第一章介绍基本概念；第二章展开 \SystemFomega{} 及其元理论；
+第三章把类型算子与有界量化结合起来，得到 \SystemFomegasub{}；最后一章
+以一个收束全书的案例研究作结。
+
+各章之间的主要依赖关系如\cref{fig:preface-dependencies}所示。灰色箭头
+表示后面的章节中只有一部分依赖前面的章节。
+
+\begin{figure}[p]
+  \centering
+  \includegraphics[
+    height=0.72\textheight,
+    keepaspectratio
+  ]{preface/chapter-dependencies.png}
+  \caption{章节依赖关系}
+  \label{fig:preface-dependencies}
+\end{figure}
+
+本书对每项语言特性的讨论都遵循一个共同模式：首先给出阐明动机的示例；
+然后给出形式化定义；接着证明类型安全性等基本性质；随后（通常另设一章）
+深入研究元理论，导出类型检查算法，并证明算法的可靠性、完备性和终止性；
+最后（同样另设一章）把这些算法具体实现为 OCaml（Objective Caml）程序。
+
+贯穿全书的一类重要示例来自对面向对象程序设计特性的分析与设计。四个案例
+研究章节分别详细展开了不同的方法：一种关于传统命令式对象和类的简单模型
+（\chapref{18}）；基于 Java 的核心演算（\chapref{19}）；利用有界量化
+对命令式对象所作的更精细刻画（\chapref{27}）；以及在 \SystemFomega{}
+这一纯函数式环境中借助存在类型处理对象与类的方法（\chapref{32}）。
+
+为了让本书的篇幅足以在一个学期的高级课程中讲完——同时也让普通研究生
+还能举得动它——我们不得不排除许多有趣而重要的主题。指称语义和公理语义
+的方法被完全略去；这些方法已经有优秀的专著介绍，而且在这里讨论它们会
+削弱本书鲜明的实用取向和实现取向。类型系统与逻辑之间丰富的联系在少数
+地方有所提示，但没有详细展开；它们虽然重要，却会把讨论带得太远。许多
+程序语言和类型系统的高级特性也只是顺带提及，例如依赖类型、交类型和
+Curry--Howard 对应；书中关于这些主题的简短小节可以作为进一步阅读的
+起点。最后，除了对一个类似 Java 的核心语言所作的短暂考察
+（\chapref{19}）之外，本书完全集中于基于 lambda 演算的系统。不过，在
+这一环境下发展出的概念和机制，可以直接迁移到带类型的并发语言、类型化
+汇编语言和专用对象演算等相关领域。
+
+\section*{预备知识}
+
+本书不要求读者预先学习过程序语言理论，但读者应具备一定程度的数学素养，
+尤其应系统而严谨地学习过本科层次的离散数学、算法和初等逻辑课程。
+
+读者应熟悉至少一种高阶函数式程序设计语言（Scheme、ML、Haskell 等），
+并掌握程序语言与编译器的基本概念，例如抽象语法、BNF 文法、求值和抽象机。
+许多优秀的本科教材都介绍了这些材料；我尤其喜欢 Friedman、Wand 和
+Haynes 的 \emph{Essentials of Programming Languages}（2001），以及
+Scott 的 \emph{Programming Language Pragmatics}（1999）。在若干章节中，
+具有 Java（Arnold 和 Gosling，1996）等面向对象语言的使用经验也会有所
+帮助。
+
+具体实现类型检查器的章节给出了相当数量的 OCaml（亦称 Objective Caml）
+代码片段。OCaml 是 ML 的一种流行方言。事先了解 OCaml 有助于阅读这些
+章节，但并非绝对必要：书中只使用了该语言的一小部分，而且每种特性都会在
+首次出现时加以解释。这些章节形成了一条与全书其余部分相对独立的线索；
+读者如果愿意，也可以将其全部跳过。
+
+目前最好的 OCaml 教材是 Cousineau 和 Mauny 的著作（1998）。OCaml
+发行版附带的教程材料也很容易阅读，可从
+\url{http://caml.inria.fr} 和 \url{http://www.ocaml.org} 获得。
+
+熟悉 ML 的另一种主要方言 Standard ML 的读者，在阅读 OCaml 代码片段时
+应该不会遇到困难。流行的 Standard ML 教材包括 Paulson（1996）和
+Ullman（1997）的著作。
+
+\section*{课程安排}
+
+一门中级或高级研究生课程应当能够在一个学期内讲授本书的大部分内容。
+\Cref{fig:preface-syllabus}给出了宾夕法尼亚大学一门博士生高级课程的
+示例大纲：每周两次课，每次 90 分钟；假设学生在程序语言理论方面几乎没有
+预备知识，但课程推进较快。
+
+\begin{figure}[p]
+  \centering
+  \footnotesize
+  \begin{tabularx}{0.96\textwidth}{
+    @{}>{\raggedleft\arraybackslash}p{1.2cm}
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}p{2.2cm}@{}
+  }
+    \toprule
+    讲次 & 主题 & 阅读章节 \\
+    \midrule
+     1 & 课程概览；历史；课程事务 & 1，（2） \\
+     2 & 预备知识：语法、操作语义 & 3，4 \\
+     3 & lambda 演算导论 & 5.1，5.2 \\
+     4 & lambda 演算的形式化 & 5.3，6，7 \\
+     5 & 类型；简单类型 lambda 演算 & 8，9，10 \\
+     6 & 简单扩展；派生形式 & 11 \\
+     7 & 更多扩展 & 11 \\
+     8 & 规范化 & 12 \\
+     9 & 引用；异常 & 13，14 \\
+    10 & 子类型化 & 15 \\
+    11 & 子类型化的元理论 & 16，17 \\
+    12 & 命令式对象 & 18 \\
+    13 & Featherweight Java & 19 \\
+    14 & 递归类型 & 20 \\
+    15 & 递归类型的元理论 & 21 \\
+    16 & 递归类型的元理论 & 21 \\
+    17 & 类型重构 & 22 \\
+    18 & 全称多态 & 23 \\
+    19 & 存在多态；抽象数据类型 & 24，（25） \\
+    20 & 有界量化 & 26，27 \\
+    21 & 有界量化的元理论 & 28 \\
+    22 & 类型算子 & 29 \\
+    23 & \SystemFomega{} 的元理论 & 30 \\
+    24 & 高阶子类型化 & 31 \\
+    25 & 纯函数式对象 & 32 \\
+    26 & 机动课 & \\
+    \bottomrule
+  \end{tabularx}
+  \caption{高级研究生课程示例大纲}
+  \label{fig:preface-syllabus}
+\end{figure}
+
+对于本科课程或入门研究生课程，可以从本书材料中选择多条不同的讲授路径。
+一门面向程序设计的类型系统课程，可以集中讨论引入各种类型特性并说明其
+用途的章节，略去大部分元理论和实现章节。另一种选择是开设类型系统基本
+理论与实现课程，依次讲授前面的所有章节，但很可能跳过\chapref{12}
+（也可能跳过\chapref{18}和\chapref{21}），并相应放弃本书后半部分较为
+高级的材料。较短的课程也可以借助\cref{fig:preface-dependencies}中的
+依赖关系图，选择若干感兴趣的章节来组织。
+
+本书也适合用作更一般的程序语言理论研究生课程的主教材。这类课程可以用
+半个到三分之二个学期学习本书的大部分内容，把剩余时间用于其他教学单元，
+例如：基于 Milner 的 $\pi$ 演算著作（1999）讨论并发理论；介绍 Hoare
+逻辑和公理语义（例如 Winskel，1993）；或者概览续延、模块系统等高级语言
+特性。
+
+如果课程十分重视学期项目，可以推迟讲授部分理论材料，例如规范化，或许
+还有若干元理论章节。这样，学生在选择项目主题之前就能接触更为广泛的示例。
+
+\section*{练习}
+
+大多数章节都包含大量练习：有些适合纸笔完成；有些要求在所讨论的演算中
+编写程序示例；还有些涉及扩展这些演算的 ML 实现。每道练习的预计难度采用
+下列等级表示：
+
+\begin{center}
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    标记 & 难度 & 预计用时 \\
+    \midrule
+    $\star$ & 快速检查 & 30 秒至 5 分钟 \\
+    $\star\star$ & 简单 & 不超过 1 小时 \\
+    $\star\star\star$ & 中等 & 不超过 3 小时 \\
+    $\star\star\star\star$ & 有挑战性 & 超过 3 小时 \\
+    \bottomrule
+  \end{tabular}
+\end{center}
+
+标有 $\star$ 的练习用于在阅读过程中即时检查对重要概念的理解。强烈建议
+读者在继续阅读后续内容之前，停下来完成每一道这样的练习。每章还会选出
+一组规模大致相当于一次作业的练习，并标为 \textsc{Recommended}（推荐）。
+
+附录 A 给出了大多数练习的完整解答。少数没有提供解答的练习会标上
+$\nrightarrow$，以免读者徒劳地到附录中寻找。
+
+\section*{排版约定}
+
+大多数章节先以叙述方式介绍某个类型系统的特性，然后在一幅或多幅图中把
+该系统形式化定义为一组推导规则。为了便于查阅，这些定义通常会完整呈现：
+不仅包括当前讨论特性所新增的规则，也包括构成完整演算所需的其余规则。
+新增部分使用灰色背景，以便清楚显示它相对于先前系统的“增量”。
+
+本书制作过程有一个不同寻常的特点：所有示例都会在排版期间接受机械的类型
+检查。一个脚本会逐章提取示例，生成并编译一个包含当前所讨论特性的定制类型
+检查器，再把它应用到示例上，并将检查器的响应插入正文。完成其中困难部分
+的系统名为 \textsf{TinkerType}，由 Michael Levin 和我共同开发（2001）。
+美国国家科学基金会通过项目 CCR-9701826
+\emph{Principled Foundations for Programming with Objects} 和
+CCR-9912352 \emph{Modular Type Systems} 为这项研究提供了资助。
+
+\section*{电子资源}
+
+与本书配套的网站位于：
+
+\begin{center}
+  \url{http://www.cis.upenn.edu/~bcpierce/tapl}
+\end{center}
+
+网站提供的资源包括勘误表、课程项目建议、读者贡献的补充材料链接，以及
+本书各章所讨论演算的一组实现（类型检查器和简单解释器）。
+
+这些实现为试验书中的示例和检验练习答案提供了环境。它们也经过整理，以便
+阅读和修改；我的学生已经成功地用它们完成过小型实现练习和规模更大的课程
+项目。这些实现使用 OCaml 编写。OCaml 编译器可从
+\url{http://caml.inria.fr} 免费获得，并且在大多数平台上都很容易安装。
+
+读者还应当了解 \emph{Types Forum}，这是一个讨论类型系统及其应用各个
+方面的电子邮件列表。该列表实行审核，以确保公告和讨论的流量适中，并保持
+较高的信噪比。邮件归档和订阅说明可在
+\url{http://www.cis.upenn.edu/~bcpierce/types} 找到。
+
+\section*{致谢}
+
+如果读者认为本书有所价值，那么最应当感谢的是我的四位导师：Luca
+Cardelli、Bob Harper、Robin Milner 和 John Reynolds。关于程序语言和
+类型的知识，我大多是从他们那里学到的。
+
+其余知识主要来自合作研究。除了 Luca、Bob、Robin 和 John，我在这些研究
+中的合作者还包括 Martín Abadi、Gordon Plotkin、Randy Pollack、David N.
+Turner、Didier Rémy、Davide Sangiorgi、Adriana Compagnoni、Martin
+Hofmann、Giuseppe Castagna、Martin Steffen、Kim Bruce、Naoki Kobayashi、
+Haruo Hosoya、Atsushi Igarashi、Philip Wadler、Peter Buneman、Vladimir
+Gapeyev、Michael Levin、Peter Sewell、Jérôme Vouillon 和 Eijiro Sumii。
+这些合作不仅奠定了我对这一主题的理解，也构成了我从中获得乐趣的基础。
+
+Thorsten Altenkirch、Bob Harper 和 John Reynolds 与我讨论教学方法，
+改进了本书的结构和组织。Jim Alexander、Penny Anderson、Josh Berdine、
+Tony Bonner、John Tang Boyland、Dave Clarke、Diego Dainese、Olivier
+Danvy、Matthew Davis、Vladimir Gapeyev、Bob Harper、Eric Hilsdale、
+Haruo Hosoya、Atsushi Igarashi、Robert Irwin、Takayasu Ito、Assaf
+Kfoury、Michael Levin、Vassily Litvinov、Pablo López Olivas、Dave
+MacQueen、Narciso Marti-Oliet、Philippe Meunier、Robin Milner、Matti
+Nykänen、Gordon Plotkin、John Prevost、Fermin Reig、Didier Rémy、John
+Reynolds、James Riely、Ohad Rodeh、Jürgen Schlegelmilch、Alan Schmitt、
+Andrew Schoonmaker、Olin Shivers、Perdita Stevens、Chris Stone、Eijiro
+Sumii、Val Tannen、Jérôme Vouillon 和 Philip Wadler 提供的订正与意见
+改进了正文。（如果我无意中漏掉了谁，谨此致歉。）Luca Cardelli、Roger
+Hindley、Dave MacQueen、John Reynolds 和 Jonathan Seldin 还就若干
+错综复杂的历史问题提供了亲历者的视角。
+
+1997 年和 1998 年参加我在印第安纳大学开设的研究生研讨课、以及 1999 年
+和 2000 年参加我在宾夕法尼亚大学开设的研究生研讨课的学生，坚持读完了
+本书的早期版本；他们的反应和意见为本书最终成形提供了至关重要的指引。
+MIT Press 的 Bob Prior 及其团队专业地引导书稿完成了出版过程的各个阶段。
+本书的设计以 Christopher Manning 为 MIT Press 开发的 \LaTeX{} 宏为
+基础。
+
+\clearpage
+\vspace*{\fill}
+\begin{flushright}
+  \begin{minipage}{0.78\textwidth}
+    \itshape
+    程序证明太过乏味，数学的社会过程在这里无法发挥作用。
+
+    \raggedleft
+    ——Richard DeMillo、Richard Lipton 和 Alan Perlis，1979
+  \end{minipage}
+\end{flushright}
+
+\begin{flushright}
+  \begin{minipage}{0.78\textwidth}
+    \itshape
+    ……所以，验证不要依赖社会过程。
+
+    \raggedleft
+    ——David Dill，1999
+  \end{minipage}
+\end{flushright}
+
+\begin{flushright}
+  \begin{minipage}{0.78\textwidth}
+    \itshape
+    只有当不理解形式化方法的人也能使用它们时，形式化方法才会产生重大
+    影响。
+
+    \raggedleft
+    ——据传为 Tom Melham 所言
+  \end{minipage}
+\end{flushright}
+\vspace*{\fill}
+
+\endgroup

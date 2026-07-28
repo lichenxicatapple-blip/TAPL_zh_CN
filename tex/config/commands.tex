@@ -13,6 +13,16 @@
 \newcommand{\Nat}{\mathbb{N}}
 \newcommand{\sembracket}[1]{\llbracket #1 \rrbracket}
 \newcommand{\tapltodo}[1]{\textcolor{TAPLTodo}{【待确认：#1】}}
+\newcommand{\SystemF}{\ensuremath{\mathrm{F}}}
+\newcommand{\SystemFomega}{\ensuremath{\mathrm{F}_{\omega}}}
+\newcommand{\SystemFomegasub}{\ensuremath{\mathrm{F}_{\omega<:}}}
+\newcommand{\chapref}[1]{%
+  \ifcsname r@chap:#1\endcsname
+    \hyperref[chap:#1]{第~\ref*{chap:#1}~章}%
+  \else
+    第~#1~章%
+  \fi
+}
 
 \theoremstyle{definition}
 \newtheorem{definition}{定义}[chapter]

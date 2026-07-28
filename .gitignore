@@ -4,6 +4,7 @@
 # Python caches
 __pycache__/
 *.py[cod]
+/.venv/
 
 # Temporary work
 /tmp/
