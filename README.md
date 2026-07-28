@@ -9,7 +9,8 @@ Languages*。项目规范见 `AGENTS.md`。
 - 已建立本地 PDF 页码与原书印刷页码映射。
 - 已建立 LaTeX 工程骨架。
 - 已使用可复现脚本切分全部 625 个 PDF 页面。
-- 尚未开始任何章节的正文翻译。
+- 前言已完成翻译和独立初审，正在落实人工总审意见。
+- 第 1 章尚未开始。
 
 ## 关键文件
 
@@ -42,15 +43,23 @@ make verify-splits
 `make split` 会核验原始 PDF 的 SHA-256、页数、章节首页标题和全书覆盖范围，
 然后写出切分 PDF 与清单。`make verify-splits` 只读复核现有产物。
 
-## 编译 LaTeX 骨架
+## 编译 LaTeX 书稿
 
-安装带有中文支持的 TeX Live、XeLaTeX 和 latexmk 后运行：
+运行以下命令可编译完整书稿入口：
 
 ```sh
 make pdf
 ```
 
-编译结果写入 `build/`。当前骨架不包含正文译文。
+编译结果写入 `build/main.pdf`。项目支持 XeLaTeX（latexmk）或 Tectonic。
+
+前言人工校对使用不包含未完成章节骨架的专用成品：
+
+```sh
+make review-preface
+```
+
+生成文件为 `output/pdf/preface-review.pdf`。
 
 ## Git 版本管理
 
@@ -64,6 +73,7 @@ Git。切分文件继续保留在本地，并可通过 `make split` 重建。
 章节初稿提交后，使用下列命令创建绑定该提交的独立审校包：
 
 ```sh
+make init-review UNIT=preface TARGET=<commit>
 make init-review CHAPTER=1 TARGET=<commit>
 ```
 

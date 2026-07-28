@@ -15,6 +15,7 @@ __pycache__/
 
 # LaTeX build directory and auxiliary files
 /build/
+/output/pdf/*.pdf
 *.aux
 *.bbl
 *.bcf

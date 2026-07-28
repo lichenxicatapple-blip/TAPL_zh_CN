@@ -1,6 +1,6 @@
 PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 
-.PHONY: setup pdf split verify-splits preface-assets init-review clean
+.PHONY: setup pdf review-preface split verify-splits preface-assets init-review clean
 
 setup:
 	python3 -m venv .venv
@@ -19,6 +19,20 @@ pdf:
 		echo "A XeLaTeX toolchain (latexmk + xelatex) or tectonic is required"; \
 		exit 1; \
 	fi
+
+review-preface:
+	mkdir -p build output/pdf
+	@if command -v latexmk >/dev/null && command -v xelatex >/dev/null; then \
+		cd tex && latexmk -xelatex -interaction=nonstopmode -halt-on-error \
+			-outdir=../build review-preface.tex; \
+	elif command -v tectonic >/dev/null; then \
+		cd tex && tectonic --keep-logs --keep-intermediates \
+			--outdir ../build review-preface.tex; \
+	else \
+		echo "A XeLaTeX toolchain (latexmk + xelatex) or tectonic is required"; \
+		exit 1; \
+	fi
+	cp build/review-preface.pdf output/pdf/preface-review.pdf
 
 split:
 	$(PYTHON) scripts/split_pdf.py

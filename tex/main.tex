@@ -14,18 +14,23 @@
 
 \frontmatter
 \input{frontmatter/titlepage}
-\tableofcontents
-\input{frontmatter/preface}
 
-\mainmatter
-\input{book-structure}
+\ifdefined\TAPLPrefaceReviewOnly
+  \input{frontmatter/preface}
+\else
+  \tableofcontents
+  \input{frontmatter/preface}
 
-\appendix
-\input{appendices/appendix-a}
-\input{appendices/appendix-b}
+  \mainmatter
+  \input{book-structure}
 
-\backmatter
-\input{backmatter/references}
-\input{backmatter/index}
+  \appendix
+  \input{appendices/appendix-a}
+  \input{appendices/appendix-b}
+
+  \backmatter
+  \input{backmatter/references}
+  \input{backmatter/index}
+\fi
 
 \end{document}
