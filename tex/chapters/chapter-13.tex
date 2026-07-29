@@ -254,7 +254,8 @@ o=\{i=\mathit{incc},d=\mathit{decc}\}
 引用单元时显式释放它们；与许多现代语言（包括 ML 与 Java）一样，依赖运行时
 系统执行\termfirst{垃圾回收}{garbage collection}，收集并重用程序已无法
 到达的单元。这不只是语言设计的偏好问题：存在显式释放操作时，要实现类型
-安全极其困难。原因是熟悉的悬垂引用问题：先分配一个保存数字的单元，把它的
+安全极其困难。原因是熟悉的\termfirst{悬垂引用}{dangling reference}问题：
+先分配一个保存数字的单元，把它的
 引用存入某数据结构并使用一段时间，然后释放它，再分配一个保存布尔值的新
 单元；新单元可能重用同一块存储。现在，同一存储单元可能有两个名字，一个
 类型是 \(\tapltype{Ref}\ \tapltype{Nat}\)，另一个类型是
@@ -555,7 +556,7 @@ l_2\mapsto\tapltype{Unit}\to\tapltype{Unit})\)，便能立即推断
 \centering
 \begin{minipage}{0.99\linewidth}
 \scriptsize
-\taplfigureheader{\(\tapltype{Ref}\)}
+\taplfigureheader{\(\taplnewmaterial{\tapltype{Ref}}\)}
   {\(\lambda_{\to}\)（图~\ref{fig:9-1}），并带
    \(\tapltype{Unit}\)（图~\ref{fig:11-2}）}
 \[
@@ -582,26 +583,27 @@ T&::=&T\to T&\text{类型：函数类型}\\
 \end{array}
 \]
 \[
-t\mid\mu\trans t'\mid\mu'
+t\taplnewmaterial{\mid\mu}\trans t'\taplnewmaterial{\mid\mu'}
 \qquad
 \text{判断形式：项与存储一步求值为新项与新存储}
 \]
 \[
 \begin{array}{c@{\qquad}c}
-\taplnewmaterial{
 \inferrule*[right=\textsc{E-AppAbs}]
- { }{(\lambda x:T_{11}.\,t_{12})\,v_2\mid\mu
-      \trans\taplsubst{x}{v_2}{t_{12}}\mid\mu}}
+ { }{(\lambda x:T_{11}.\,t_{12})\,v_2\taplnewmaterial{\mid\mu}
+      \trans\taplsubst{x}{v_2}{t_{12}}\taplnewmaterial{\mid\mu}}
 &
-\taplnewmaterial{
 \inferrule*[right=\textsc{E-App1}]
- {t_1\mid\mu\trans t_1'\mid\mu'}
- {t_1\,t_2\mid\mu\trans t_1'\,t_2\mid\mu'}}
+ {t_1\taplnewmaterial{\mid\mu}\trans
+  t_1'\taplnewmaterial{\mid\mu'}}
+ {t_1\,t_2\taplnewmaterial{\mid\mu}\trans
+  t_1'\,t_2\taplnewmaterial{\mid\mu'}}
 \\[8pt]
-\taplnewmaterial{
 \inferrule*[right=\textsc{E-App2}]
- {t_2\mid\mu\trans t_2'\mid\mu'}
- {v_1\,t_2\mid\mu\trans v_1\,t_2'\mid\mu'}}
+ {t_2\taplnewmaterial{\mid\mu}\trans
+  t_2'\taplnewmaterial{\mid\mu'}}
+ {v_1\,t_2\taplnewmaterial{\mid\mu}\trans
+  v_1\,t_2'\taplnewmaterial{\mid\mu'}}
 &
 \taplnewmaterial{
 \inferrule*[right=\textsc{E-Ref}]
@@ -643,30 +645,28 @@ t\mid\mu\trans t'\mid\mu'
 \end{array}
 \]
 \[
-\Gamma\mid\Sigma\vdash t:T
+\Gamma\taplnewmaterial{\mid\Sigma}\vdash t:T
 \qquad
 \text{判断形式：在上下文与存储类型下，项具有类型}
 \]
 \[
 \begin{array}{c@{\qquad}c}
-\taplnewmaterial{
 \inferrule*[right=\textsc{T-Var}]
- {x:T\in\Gamma}{\Gamma\mid\Sigma\vdash x:T}}
+ {x:T\in\Gamma}{\Gamma\taplnewmaterial{\mid\Sigma}\vdash x:T}
 &
-\taplnewmaterial{
 \inferrule*[right=\textsc{T-Abs}]
- {\Gamma,x:T_1\mid\Sigma\vdash t_2:T_2}
- {\Gamma\mid\Sigma\vdash\lambda x:T_1.\,t_2:T_1\to T_2}}
+ {\Gamma,x:T_1\taplnewmaterial{\mid\Sigma}\vdash t_2:T_2}
+ {\Gamma\taplnewmaterial{\mid\Sigma}\vdash
+  \lambda x:T_1.\,t_2:T_1\to T_2}
 \\[9pt]
-\taplnewmaterial{
 \inferrule*[right=\textsc{T-App}]
- {\Gamma\mid\Sigma\vdash t_1:T_{11}\to T_{12}\\
-  \Gamma\mid\Sigma\vdash t_2:T_{11}}
- {\Gamma\mid\Sigma\vdash t_1\,t_2:T_{12}}}
+ {\Gamma\taplnewmaterial{\mid\Sigma}\vdash t_1:T_{11}\to T_{12}\\
+  \Gamma\taplnewmaterial{\mid\Sigma}\vdash t_2:T_{11}}
+ {\Gamma\taplnewmaterial{\mid\Sigma}\vdash t_1\,t_2:T_{12}}
 &
-\taplnewmaterial{
 \inferrule*[right=\textsc{T-Unit}]
- { }{\Gamma\mid\Sigma\vdash\mathsf{unit}:\tapltype{Unit}}}
+ { }{\Gamma\taplnewmaterial{\mid\Sigma}\vdash
+      \mathsf{unit}:\tapltype{Unit}}
 \\[9pt]
 \taplnewmaterial{
 \inferrule*[right=\textsc{T-Loc}]
