@@ -15,6 +15,10 @@ de Bruijn 索引和小步求值。这个选择让一份紧凑的 Rust 工程能�
 它不是原书检查器具体语法的逐字符移植，也没有实现解析器、类型缩写和漂亮
 打印器。
 
+自然数值使用 crate 内部的任意精度结构表示，而不是把 `succ` 截断或饱和到
+宿主机器整数上限。`Term::Nat(u64)` 只是输入十进制字面量的便捷入口；反复
+使用 `Succ` 可以越过 `u64::MAX`，相关边界行为有自动化测试。
+
 `Type::Bottom` 用来紧凑表示普通 `error` 的任意结果类型，与作者
 `fullerror` 检查器的做法一致。携带值的异常使用抽象的 `Type::Exn`；
 `Term::Exception` 表示把程序选择的具体表示封装进这个抽象类型。这是原书
@@ -30,7 +34,11 @@ cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 ```
 
-测试覆盖正常求值、静态拒绝、闭包、记录、变体、列表、不动点、引用别名、
-普通异常和求值步数上限。作者官方 `tyarith`、`simplebool`、`fullsimple`、
-`fullref` 与 `fullerror` 快照保存在 `source/official-code/`，用于核对
-行为；其中 `fullerror` 缺失的 `try` 求值分支已按作者勘误补全在本实现中。
+第 8 章测试逐项覆盖正文中的两个可赋型示例、两个保守拒绝示例、错误守卫、
+分支类型不一致、三个算术运算符的错误参数、零与后继的各条正常求值路径，
+以及越过 `u64::MAX` 的边界。其余测试覆盖闭包、记录、变体、列表、不动点、
+引用别名、普通错误、应用两侧的异常传播次序、嵌套 `raise`、处理器惰性和
+求值步数上限。作者官方 `tyarith`、`simplebool`、
+`fullsimple`、`fullref` 与 `fullerror` 快照保存在
+`source/official-code/`，用于核对行为；其中 `fullerror` 缺失的 `try`
+求值分支已按作者勘误补全在本实现中。

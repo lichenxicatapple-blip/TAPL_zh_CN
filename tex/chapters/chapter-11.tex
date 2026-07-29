@@ -1,7 +1,7 @@
 % Chapter 11 — Simple Extensions
 % Source: ../source/split/chapters/ch11-simple-extensions_p117-p143.pdf
 % Original print pages: 117--148
-% Status: 待独立初审
+% Status: 独立复核
 
 \chapter{简单扩展}
 \label{chap:11}
@@ -36,18 +36,23 @@ lambda 演算（图~\ref{fig:9-1}）的多种扩展。相应的 OCaml 实现
 
 \begin{figure}[!ht]
 \centering
+\begin{minipage}{0.94\linewidth}
+\small
+\taplfigureheader{\(\mathrm{A}\)}
+  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 T&::=&\cdots&\text{类型}\\
  &\mid&A&\text{基本类型 }(A\in\mathcal A)
 \end{array}
 \]
+\end{minipage}
 \caption{没有解释的基本类型}
 \label{fig:11-1}
 \end{figure}
 
-我们用 \(A,B,C\) 等作为基本类型的名字。注意，这里和此前处理变量、类型
-变量时一样，既把 \(A\) 用作某个基本类型，也把它用作遍历基本类型的元变量；
+我们用 \(A,B,C\) 等作为基本类型的名字。注意，这里和此前处理变量时一样，
+既把 \(A\) 用作某个基本类型，也把它用作遍历基本类型的元变量；
 具体含义依上下文判断。
 
 没有解释的类型是否毫无用处？当然不是。虽然无法直接给它的元素命名，仍可以
@@ -58,10 +63,16 @@ T&::=&\cdots&\text{类型}\\
 \langle\mathsf{fun}\rangle:A\to A
 \]
 是 \(A\) 的元素上的恒等函数，无论这些元素实际是什么。类似地，
-\(\lambda x:B.\,x\) 是 \(B\) 上的恒等函数，而
+\[
+\lambda x:B.\,x
+\qquad\blacktriangleright\qquad
+\langle\mathsf{fun}\rangle:B\to B
+\]
+是 \(B\) 上的恒等函数，而
 \[
 \lambda f:A\to A.\,\lambda x:A.\,f\,(f\,x)
-\quad:\quad(A\to A)\to A\to A
+\qquad\blacktriangleright\qquad
+\langle\mathsf{fun}\rangle:(A\to A)\to A\to A
 \]
 接受函数 \(f\) 和参数 \(x\)，把 \(f\) 的行为重复两次。\footnote{从现在
 开始，显示求值结果时，为节省空间会省略 lambda 抽象的函数体，只写
@@ -79,6 +90,10 @@ T&::=&\cdots&\text{类型}\\
 
 \begin{figure}[!ht]
 \centering
+\begin{minipage}{0.94\linewidth}
+\small
+\taplfigureheader{\(\tapltype{Unit}\)}
+  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots&\text{项}\\
@@ -92,6 +107,7 @@ T&::=&\cdots&\text{类型}\\
 \inferrule*[right=\textsc{T-Unit}]
  { }{\Gamma\vdash\mathsf{unit}:\tapltype{Unit}}
 \]
+\end{minipage}
 \caption{Unit 类型}
 \label{fig:11-2}
 \end{figure}
@@ -154,7 +170,7 @@ lambda 演算中，能构造多少个不同的闭范式？}但它主要用于带
 \(\tapltype{Unit}\)、顺序执行构造及规则 \rulename{E-Seq}、
 \rulename{E-SeqNext}、\rulename{T-Seq} 的简单类型 lambda 演算；以
 \(\lambda^I\)（\(I\) 表示内部语言）表示只带 \(\tapltype{Unit}\) 的
-简单类型 lambda 演算。设精化函数
+简单类型 lambda 演算。设\termfirst{精化函数}{elaboration function}
 \(e\in\lambda^E\to\lambda^I\) 把外部语言翻译为内部语言：将每处
 \(t_1;t_2\) 替换为
 \((\lambda x:\tapltype{Unit}.\,t_2)\,t_1\)，每次选择新鲜的 \(x\)。
@@ -204,21 +220,25 @@ Standard ML 定义（Milner、Tofte 与 Harper，1990；Milner、Tofte、Harper
 给出通配符抽象的类型规则与求值规则，并证明它们可以从上述缩写导出。
 \end{exercise}
 
-\section{类型指称}
+\section{类型标注}
 \label{sec:11.4}
 
-以后还会经常用到另一项简单特性：为给定项显式指称某一类型，即在程序文本中
+以后还会经常用到另一项简单特性：为给定项显式标注某一类型，即在程序文本中
 记下一项断言，声明该项具有该类型。我们用 \(t\ \mathsf{as}\ T\) 表示
-“项 \(t\)，并为它指称类型 \(T\)”。这个构造的类型规则
-\textsc{T-Ascribe}（见图~\ref{fig:11-3}）只验证所指称的 \(T\) 确实是
-\(t\) 的类型。求值规则同样直接：丢掉指称，让 \(t\) 照常求值。
+“项 \(t\)，并为它标注类型 \(T\)”。这个构造的类型规则
+\textsc{T-Ascribe}（见图~\ref{fig:11-3}）只验证所标注的 \(T\) 确实是
+\(t\) 的类型。求值规则同样直接：丢掉标注，让 \(t\) 照常求值。
 
 \begin{figure}[!ht]
 \centering
+\begin{minipage}{0.94\linewidth}
+\small
+\taplfigureheader{\(\mathsf{as}\)}
+  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots&\text{项}\\
- &\mid&t\ \mathsf{as}\ T&\text{类型指称}
+ &\mid&t\ \mathsf{as}\ T&\text{类型标注}
 \end{array}
 \qquad
 \begin{array}{c}
@@ -233,14 +253,15 @@ t&::=&\cdots&\text{项}\\
 \inferrule*[right=\textsc{T-Ascribe}]
  {\Gamma\vdash t_1:T}{\Gamma\vdash t_1\ \mathsf{as}\ T:T}
 \]
-\caption{类型指称}
+\end{minipage}
+\caption{类型标注}
 \label{fig:11-3}
 \end{figure}
 
-类型指称在编程中有多种用途。常见用途之一是文档说明。大型复合表达式中，
-读者有时很难始终追踪每个子表达式的类型；适当加入类型指称，会使程序容易
+类型标注在编程中有多种用途。常见用途之一是文档说明。大型复合表达式中，
+读者有时很难始终追踪每个子表达式的类型；适当加入类型标注，会使程序容易
 理解得多。类似地，面对格外复杂的表达式，作者自己也未必清楚所有子表达式的
-类型；加入几处类型指称很适合帮助程序员理清思路。事实上，它有时还能帮助
+类型；加入几处类型标注很适合帮助程序员理清思路。事实上，它有时还能帮助
 定位令人费解的类型错误究竟来自哪里。
 
 另一个用途是控制复杂类型的打印。本书用来检查示例的类型检查器，以及名称以
@@ -267,47 +288,50 @@ t&::=&\cdots&\text{项}\\
 原因。例如：
 \[
 \lambda f:\tapltype{Unit}\to\tapltype{Unit}.\,f
-\quad:\quad
+\qquad\blacktriangleright\qquad
+\langle\mathsf{fun}\rangle:
 (\tapltype{Unit}\to\tapltype{Unit})\to\texttt{UU}
 \]
 中，函数的结果类型折叠成了 \texttt{UU}，参数类型却没有。要把它打印为
-\(\texttt{UU}\to\texttt{UU}\)，可以把抽象的类型标注改成：
+\(\texttt{UU}\to\texttt{UU}\)，可以把抽象的类型注解改成：
 \[
 \lambda f:\texttt{UU}.\,f
-\quad:\quad\texttt{UU}\to\texttt{UU},
+\qquad\blacktriangleright\qquad
+\langle\mathsf{fun}\rangle:\texttt{UU}\to\texttt{UU},
 \]
-也可以给整个抽象加上类型指称：
+也可以给整个抽象加上类型标注：
 \[
 (\lambda f:\tapltype{Unit}\to\tapltype{Unit}.\,f)
 \ \mathsf{as}\ \texttt{UU}\to\texttt{UU}
-\quad:\quad\texttt{UU}\to\texttt{UU}.
+\qquad\blacktriangleright\qquad
+\langle\mathsf{fun}\rangle:\texttt{UU}\to\texttt{UU}.
 \]
 
 处理 \(t\ \mathsf{as}\ T\) 时，类型检查器会展开 \(T\) 中的缩写，检查
-\(t\) 确实具有类型 \(T\)，但随后以原样写出的 \(T\) 作为指称表达式的
-类型。用类型指称控制类型打印，是本书实现工程方式特有的用法。完整程序语言
+\(t\) 确实具有类型 \(T\)，但随后以原样写出的 \(T\) 作为标注表达式的
+类型。用类型标注控制类型打印，是本书实现工程方式特有的用法。完整程序语言
 中的缩写和类型打印机制，要么根本没有必要——例如 Java 按构造就用短名字
 表示全部类型，参见\chapref{19}——要么会更紧密地集成到语言中——
 例如 OCaml，参见 Rémy 与 Vouillon（1998）及 Vouillon（2000）。
 
-类型指称的最后一种用途，是充当抽象机制；
+类型标注的最后一种用途，是充当抽象机制；
 \taplsecref{15.5}{sec:15.5} 会详细讨论。
 在同一项 \(t\) 可能具有许多不同类型的系统中，例如带子类型化的系统，可以
-用类型指称“隐藏”其中一些类型，要求类型检查器把 \(t\) 当作仿佛只具有一个
-更小的类型集合。\taplsecref{15.5}{sec:15.5} 也会讨论类型指称与类型转换
+用类型标注“隐藏”其中一些类型，要求类型检查器把 \(t\) 当作仿佛只具有一个
+更小的类型集合。\taplsecref{15.5}{sec:15.5} 也会讨论类型标注与类型转换
 的关系。
 
 \begin{exercise}[推荐，\(\star\star\)]
 \label{ex:11.4.1}
 \begin{enumerate}
-  \item 说明如何把类型指称表述成派生形式。证明这里给出的“正式”类型规则
+  \item 说明如何把类型标注表述成派生形式。证明这里给出的“正式”类型规则
     与求值规则在适当意义上对应于你的定义。
   \item 假设不用 \textsc{E-Ascribe} 与 \textsc{E-Ascribe1} 这一对规则，
     而使用一到达指称就立即丢弃它的“急切”规则
     \[
       t\ \mathsf{as}\ T\trans t.
     \]
-    此时类型指称还能视为派生形式吗？
+    此时类型标注还能视为派生形式吗？
 \end{enumerate}
 \end{exercise}
 
@@ -326,6 +350,10 @@ t&::=&\cdots&\text{项}\\
 
 \begin{figure}[!ht]
 \centering
+\begin{minipage}{0.94\linewidth}
+\small
+\taplfigureheader{\(\mathsf{let}\)}
+  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots&\text{项}\\
@@ -348,6 +376,7 @@ t&::=&\cdots&\text{项}\\
  {\Gamma\vdash t_1:T_1\\\Gamma,x:T_1\vdash t_2:T_2}
  {\Gamma\vdash\mathsf{let}\ x=t_1\ \mathsf{in}\ t_2:T_2}
 \]
+\end{minipage}
 \caption{let 绑定}
 \label{fig:11-4}
 \end{figure}
@@ -360,19 +389,19 @@ t&::=&\cdots&\text{项}\\
 使程序崩溃。请完成这个实现。
 \end{exercise}
 
-let 也能定义成派生形式吗？Landin 说明可以，但细节比顺序执行与类型指称
+let 也能定义成派生形式吗？Landin 说明可以，但细节比顺序执行与类型标注
 稍微微妙。直观上，抽象与应用的组合显然可以取得 let 绑定的效果：
 \[
 \mathsf{let}\ x=t_1\ \mathsf{in}\ t_2
 \quad\triangleq\quad
 (\lambda x:T_1.\,t_2)\,t_1.
 \]
-但注意，缩写右侧含有类型标注 \(T_1\)，左侧却没有。若把派生形式设想为
+但注意，缩写右侧含有类型注解 \(T_1\)，左侧却没有。若把派生形式设想为
 编译器解析阶段执行的去糖变换，就必须问：解析器怎样知道去糖后的内部语言项
 中，lambda 上应该生成 \(T_1\) 这个标注？
 
 答案当然是：信息来自类型检查器。只需计算 \(t_1\) 的类型，就能发现所需的
-类型标注。更形式地说，这说明 let 构造与此前的派生形式略有不同：不应把它
+类型注解。更形式地说，这说明 let 构造与此前的派生形式略有不同：不应把它
 看成作用于项的去糖变换，而应看成作用于类型推导的变换（也可以理解为作用于
 被类型检查器的分析结果装饰过的项），将含 let 的推导
 \[
@@ -423,6 +452,8 @@ Hindley--Milner 多态（即基于合一的多态）的语言中，类型检查�
 \centering
 \begin{minipage}{0.98\linewidth}
 \small
+\taplfigureheader{\(\times\)}
+  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots&\text{项}\\
@@ -544,6 +575,8 @@ product}）。这里用花括号书写对，是为了强调它与 \S\ref{sec:11.
 \centering
 \begin{minipage}{0.98\linewidth}
 \small
+\taplfigureheader{\(\{\}\)}
+  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots&\text{项}\\
@@ -600,6 +633,8 @@ T&::=&\cdots\mid\{T_i\}^{i\in1..n}&\text{元组类型}
 \centering
 \begin{minipage}{0.98\linewidth}
 \small
+\taplfigureheader{\(\{\}\)}
+  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots\mid\{l_i=t_i\}^{i\in1..n}&\text{记录}\\
@@ -642,12 +677,12 @@ T&::=&\cdots\mid\{l_i:T_i\}^{i\in1..n}&\text{记录类型}
 \(v_j\)。可以用更显式的形式改写这条规则，消除这项约定——
 \textsc{E-ProjTuple} 中也用了类似约定——但可读性代价会很高。
 
-\begin{exercise}[\(\star\star\)]
+\begin{exercise}[\(\star,\nrightarrow\)]
 \label{ex:11.8.1}
 把 \textsc{E-ProjRcd} 写成更显式的形式，以作比较。
 \end{exercise}
 
-注意，原书在元组与积两套定义的左上角特性列表中，都使用同一个特性符号
+注意，原书在元组与记录两套定义的左上角特性列表中，都使用同一个特性符号
 \(\{\}\)。事实上，只需让标签集合同时包含字母标识符和自然数，就能把元组
 作为记录的特例。记录的第 \(i\) 个字段若以 \(i\) 为标签，就省略标签。
 例如，
@@ -693,6 +728,8 @@ T&::=&\cdots\mid\{l_i:T_i\}^{i\in1..n}&\text{记录类型}
 \centering
 \begin{minipage}{0.98\linewidth}
 \small
+\taplfigureheader{\(\{\}\), \(\mathsf{let}\ p\)（无类型）}
+  {图~\ref{fig:11-7} 与图~\ref{fig:11-4}}
 \[
 \begin{array}{@{}rcll@{}}
 p&::=&x&\text{模式：变量模式}\\
@@ -818,6 +855,8 @@ case 取第一分支，把 \(x\) 绑定到该地址值；第一分支的体再�
 \centering
 \begin{minipage}{0.99\linewidth}
 \small
+\taplfigureheader{\(+\)}
+  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots\mid\mathsf{inl}\ t\mid\mathsf{inr}\ t&\text{注入}\\
@@ -916,7 +955,7 @@ T&::=&\cdots\mid T+T&\text{和类型}
 \begin{enumerate}
   \item 让类型检查算法更复杂，以某种方式“猜测” \(T_2\)。具体地说，
     暂时让 \(T_2\) 保持未定，稍后尝试发现它应当取什么值。第
-    \chapref{22}讨论类型重建时会详细研究这类技术。
+    \chapref{22}讨论类型重构时会详细研究这类技术。
   \item 细化类型语言，使 \(T_2\) 的所有可能值能以某种方式得到统一表示。
     \chapref{15}讨论子类型化时会考察这项方案。
   \item 要求程序员显式标注预期的 \(T_2\)。这项方案最简单，而且不像初看
@@ -931,14 +970,16 @@ T&::=&\cdots\mid T+T&\text{和类型}
 完整和类型。\textsc{T-Inl} 与 \textsc{T-Inr} 先检查被注入的项确实属于
 相应分支，再以声明的和类型作为注入的类型。为了不在规则中反复书写
 \(T_1+T_2\)，语法允许任意类型 \(T\) 作为注入标注；若注入是良类型的，
-类型规则会保证标注总是和类型。这种类型标注语法意在让人联想到
-\S\ref{sec:11.4} 的类型指称；实际上，可以把它看作语法上强制要求的类型
-指称。
+类型规则会保证注解总是和类型。这种类型注解语法意在让人联想到
+\S\ref{sec:11.4} 的类型标注；实际上，可以把它看作语法上强制要求的类型
+标注。
 
 \begin{figure}[!ht]
 \centering
 \begin{minipage}{0.98\linewidth}
 \small
+\taplfigureheader{\(+\)}
+  {\(\lambda_{\to}\)（图~\ref{fig:11-9}）}
 \[
 t::=\cdots\mid\mathsf{inl}\ t\ \mathsf{as}\ T
 \mid\mathsf{inr}\ t\ \mathsf{as}\ T
@@ -962,7 +1003,7 @@ t::=\cdots\mid\mathsf{inl}\ t\ \mathsf{as}\ T
 
 正如积推广成带标签的记录，二元和也能推广成带标签的
 \termfirst{变体}{variant}。不再写 \(T_1+T_2\)，而写
-\(\langle l_1:T_1,l_2:T_2\rangle\)，其中 \(l_1,l_2\) 为字段标签；
+\(\langle l_1:T_1,l_2:T_2\rangle\)，其中 \(l_1,l_2\) 为变体标签；
 不再写 \(\mathsf{inl}\ t\ \mathsf{as}\ T_1+T_2\)，而写
 \(\langle l_1=t\rangle\ \mathsf{as}\
 \langle l_1:T_1,l_2:T_2\rangle\)；case 分支也不用
@@ -987,6 +1028,8 @@ a&=\langle\mathit{physical}=pa\rangle\ \mathsf{as}\ \texttt{Addr}
 \centering
 \begin{minipage}{0.99\linewidth}
 \small
+\taplfigureheader{\(\langle\rangle\)}
+  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots\mid\langle l=t\rangle\ \mathsf{as}\ T&\text{变体}\\
@@ -1036,8 +1079,10 @@ T&::=&\cdots\mid\langle l_i:T_i\rangle^{i\in1..n}&\text{变体类型}
 \end{figure}
 
 变体的形式定义见图~\ref{fig:11-11}。注意，与 \S\ref{sec:11.8} 的记录
-一样，这里变体类型中的标签次序具有意义。原书图的值语法漏列了
-\(\langle l=v\rangle\ \mathsf{as}\ T\)；本图已经按作者勘误补入。
+一样，这里变体类型中的标签次序具有意义。
+
+\translatornote{原书图的值语法漏列了
+\(\langle l=v\rangle\ \mathsf{as}\ T\)；本图已经按作者勘误补入。}
 
 \subsection*{可选值}
 
@@ -1200,12 +1245,18 @@ V=\langle l:T\rangle.
 \mathsf{case}\ d\ \mathsf{of}\
 \langle\mathit{dollars}=x\rangle\Rightarrow\\
 &\quad\langle\mathit{euros}=\mathit{timesfloat}\ x\ 1.1325\rangle\
-\mathsf{as}\ \texttt{EuroAmount},\\
+\mathsf{as}\ \texttt{EuroAmount},\\[-1pt]
+&\blacktriangleright
+\langle\mathsf{fun}\rangle:
+\texttt{DollarAmount}\to\texttt{EuroAmount},\\[3pt]
 \texttt{euros2dollars}={}&\lambda e:\texttt{EuroAmount}.\
 \mathsf{case}\ e\ \mathsf{of}\
 \langle\mathit{euros}=x\rangle\Rightarrow\\
 &\quad\langle\mathit{dollars}=\mathit{timesfloat}\ x\ 0.883\rangle\
-\mathsf{as}\ \texttt{DollarAmount}.
+\mathsf{as}\ \texttt{DollarAmount},\\[-1pt]
+&\blacktriangleright
+\langle\mathsf{fun}\rangle:
+\texttt{EuroAmount}\to\texttt{DollarAmount}.
 \end{aligned}
 \]
 类型检查器现在能追踪计算使用的货币，并提醒我们怎样解释最终结果：
@@ -1257,7 +1308,7 @@ type t = L1 of t1 | ... | Ln of tn
     使用本书的约定。
 
   \item 最有意思的区别是，使用构造子 \(l_i\) 把 \(T_i\) 的元素注入数据
-    类型 \(T\) 时，OCaml 不要求类型标注，只写 \(l_i(t)\)。OCaml 能在仍然
+    类型 \(T\) 时，OCaml 不要求类型注解，只写 \(l_i(t)\)。OCaml 能在仍然
     保持类型唯一的同时省去标注，是因为使用数据类型 \(T\) 前必须先声明它，
     而且 \(T\) 的标签不能被同一作用域中声明的其他数据类型使用。因此，
     类型检查器看到 \(l_i(t)\) 时，知道标注只可能是 \(T\)。实际上，标注
@@ -1325,7 +1376,8 @@ Abadi、Cardelli、Pierce 与 Rémy（1995），以及 Henglein（1994）。
 \section{一般递归}
 \label{sec:11.11}
 
-大多数程序语言的另一项机制是定义递归函数。第~\ref{chap:5}~章已经看到，
+大多数程序语言的另一项机制是定义递归函数，即
+\termfirst{一般递归}{general recursion}。第~\ref{chap:5}~章已经看到，
 在无类型 lambda 演算中，可以借助 \(\mathsf{fix}\) 组合子定义这类函数。
 
 有类型系统中也能以相似方式定义递归函数。例如，下面的
@@ -1366,6 +1418,10 @@ lambda 演算中定义。第~\ref{chap:12}~章会看到，只用简单类型，�
 
 \begin{figure}[!ht]
 \centering
+\begin{minipage}{0.94\linewidth}
+\small
+\taplfigureheader{\(\mathsf{Fix}\)}
+  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots\mid\mathsf{fix}\ t&\text{不动点}\\
@@ -1391,14 +1447,18 @@ t&::=&\cdots\mid\mathsf{fix}\ t&\text{不动点}\\
 \mathsf{let}\ x=\mathsf{fix}\,
   (\lambda x:T_1.\,t_1)\ \mathsf{in}\ t_2.
 \]
+\end{minipage}
 \caption{一般递归}
 \label{fig:11-12}
 \end{figure}
 
 带自然数与 \(\mathsf{fix}\) 的简单类型 lambda 演算长期以来一直是程序
-语言研究者偏爱的实验对象，因为它是最简单却能呈现完全抽象等多种微妙语义
+语言研究者偏爱的实验对象，因为它是最简单却能呈现
+\termfirst{完全抽象}{full abstraction}等多种微妙语义
 现象的语言（Plotkin，1977；Hyland 与 Ong，2000；Abramsky、Jagadeesan
-与 Malacaria，2000）。它通常称为 PCF。
+与 Malacaria，2000）。它通常称为
+\termfirst{可计算函数程序设计语言}
+{Programming Language for Computable Functions, PCF}。
 
 \begin{exercise}[\(\star\star\)]
 \label{ex:11.11.1}
@@ -1425,6 +1485,16 @@ t&::=&\cdots\mid\mathsf{fix}\ t&\text{不动点}\\
   \mathit{isodd}=\lambda x:\tapltype{Nat}.\
   \mathsf{if}\ \tapliszero{x}\ \mathsf{then}\ \taplfalse\
   \mathsf{else}\ ieio.\mathit{iseven}\,(\taplpred{x})\}.
+\end{aligned}
+\]
+\[
+\begin{aligned}
+\mathit{ff}\ \blacktriangleright\ \langle\mathsf{fun}\rangle:\;&
+\{\mathit{iseven}:\tapltype{Nat}\to\tapltype{Bool},
+  \mathit{isodd}:\tapltype{Nat}\to\tapltype{Bool}\}\\
+&{}\to
+\{\mathit{iseven}:\tapltype{Nat}\to\tapltype{Bool},
+  \mathit{isodd}:\tapltype{Nat}\to\tapltype{Bool}\}.
 \end{aligned}
 \]
 对 \(\mathit{ff}\) 取不动点，得到由两个函数组成的记录：
@@ -1494,6 +1564,9 @@ r=\mathsf{fix}\ \mathit{ff}:
 \centering
 \begin{minipage}{0.99\linewidth}
 \scriptsize
+\taplfigureheader{\(\mathrm{B},\ \tapltype{List}\)}
+  {\(\lambda_{\to}\)（图~\ref{fig:9-1}），并带布尔值
+   （图~\ref{fig:8-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots\mid\mathsf{nil}[T]&\text{空表}\\
@@ -1572,11 +1645,13 @@ T&::=&\cdots\mid\tapltype{List}\ T&\text{列表类型}
 
 图~\ref{fig:11-13} 汇总列表的语法、语义和类型规则。除句法差异
 （\(\tapltype{List}\ T\) 而非 \(T\ \mathsf{list}\) 等）和所有句法形式
-都带显式类型标注之外，\footnote{多数显式标注实际上可以省略
+都带显式类型注解之外，\footnote{多数显式注解实际上可以省略
 （见练习~\ref{ex:11.12.2}：哪一个不能省？）；这里保留它们，是为了便于
-与 \taplsecref{23.4}{sec:23.4} 中列表的编码比较。作者勘误还明确指出，
-\texttt{fullsimple} 检查器实际上没有实现列表。}这些列表与 ML 等函数式
+与 \taplsecref{23.4}{sec:23.4} 中列表的编码比较。}这些列表与 ML 等函数式
 语言中的列表本质相同。
+
+\translatornote{作者勘误指出，\texttt{fullsimple} 检查器实际上没有实现
+列表；这不改变这里给出的形式化定义。}
 
 元素类型为 \(T\) 的空表写作 \(\mathsf{nil}[T]\)。在列表 \(t_2\) 前加入
 类型为 \(T\) 的新元素 \(t_1\) 得到的列表，写作
@@ -1594,6 +1669,6 @@ T&::=&\cdots\mid\tapltype{List}\ T&\text{列表类型}
 
 \begin{exercise}[\(\star\star\)]
 \label{ex:11.12.2}
-这里的列表呈现包含许多并非真正必要的类型标注，因为类型规则很容易从上下文
-推导出这些标注。能否删除全部类型标注？
+这里的列表呈现包含许多并非真正必要的类型注解，因为类型规则很容易从上下文
+推导出这些注解。能否删除全部类型注解？
 \end{exercise}

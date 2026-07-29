@@ -480,10 +480,93 @@ pub fn type_of(
 
 type Environment = BTreeMap<String, Value>;
 
+/// An arbitrary-precision natural number stored in base \(10^9\).
+///
+/// The empty limb vector represents zero.  This keeps the host
+/// implementation faithful to TAPL's unbounded chains of `succ`, including
+/// values just beyond `u64::MAX`, without adding a third-party dependency.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Natural(Vec<u32>);
+
+impl Natural {
+    const BASE: u64 = 1_000_000_000;
+    const MAX_LIMB: u32 = 999_999_999;
+
+    fn from_u64(mut value: u64) -> Self {
+        let mut limbs = Vec::new();
+        while value > 0 {
+            limbs.push((value % Self::BASE) as u32);
+            value /= Self::BASE;
+        }
+        Self(limbs)
+    }
+
+    fn increment(mut self) -> Self {
+        let mut index = 0;
+        loop {
+            if index == self.0.len() {
+                self.0.push(1);
+                break;
+            }
+            if u64::from(self.0[index]) + 1 < Self::BASE {
+                self.0[index] += 1;
+                break;
+            }
+            self.0[index] = 0;
+            index += 1;
+        }
+        self
+    }
+
+    fn predecessor(mut self) -> Self {
+        if self.0.is_empty() {
+            return self;
+        }
+        let mut index = 0;
+        loop {
+            if self.0[index] > 0 {
+                self.0[index] -= 1;
+                break;
+            }
+            self.0[index] = Self::MAX_LIMB;
+            index += 1;
+        }
+        while self.0.last() == Some(&0) {
+            self.0.pop();
+        }
+        self
+    }
+
+    fn is_zero(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    fn to_u64(&self) -> Option<u64> {
+        self.0.iter().rev().try_fold(0_u64, |accumulator, limb| {
+            accumulator
+                .checked_mul(Self::BASE)?
+                .checked_add(u64::from(*limb))
+        })
+    }
+}
+
+impl fmt::Display for Natural {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Some((last, remaining)) = self.0.split_last() else {
+            return formatter.write_str("0");
+        };
+        write!(formatter, "{last}")?;
+        for limb in remaining.iter().rev() {
+            write!(formatter, "{limb:09}")?;
+        }
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum Value {
     Bool(bool),
-    Nat(u64),
+    Nat(Natural),
     Unit,
     Closure {
         parameter: String,
@@ -511,9 +594,16 @@ impl Value {
     }
 
     #[must_use]
-    pub const fn as_nat(&self) -> Option<u64> {
+    pub fn as_nat(&self) -> Option<u64> {
         match self {
-            Self::Nat(value) => Some(*value),
+            Self::Nat(value) => value.to_u64(),
+            _ => None,
+        }
+    }
+
+    fn into_natural(self) -> Option<Natural> {
+        match self {
+            Self::Nat(value) => Some(value),
             _ => None,
         }
     }
@@ -691,25 +781,28 @@ impl Evaluator<'_> {
                     self.eval(else_branch, environment)
                 }
             }
-            Term::Nat(value) => Ok(Value::Nat(*value)),
-            Term::Succ(argument) => Ok(Value::Nat(
-                self.eval(argument, environment)?
-                    .as_nat()
-                    .ok_or(RuntimeError::ExpectedNatural)?
-                    .saturating_add(1),
-            )),
-            Term::Pred(argument) => Ok(Value::Nat(
-                self.eval(argument, environment)?
-                    .as_nat()
-                    .ok_or(RuntimeError::ExpectedNatural)?
-                    .saturating_sub(1),
-            )),
-            Term::IsZero(argument) => Ok(Value::Bool(
-                self.eval(argument, environment)?
-                    .as_nat()
-                    .ok_or(RuntimeError::ExpectedNatural)?
-                    == 0,
-            )),
+            Term::Nat(value) => Ok(Value::Nat(Natural::from_u64(*value))),
+            Term::Succ(argument) => {
+                let natural = self
+                    .eval(argument, environment)?
+                    .into_natural()
+                    .ok_or(RuntimeError::ExpectedNatural)?;
+                Ok(Value::Nat(natural.increment()))
+            }
+            Term::Pred(argument) => {
+                let natural = self
+                    .eval(argument, environment)?
+                    .into_natural()
+                    .ok_or(RuntimeError::ExpectedNatural)?;
+                Ok(Value::Nat(natural.predecessor()))
+            }
+            Term::IsZero(argument) => {
+                let natural = self
+                    .eval(argument, environment)?
+                    .into_natural()
+                    .ok_or(RuntimeError::ExpectedNatural)?;
+                Ok(Value::Bool(natural.is_zero()))
+            }
             Term::Unit => Ok(Value::Unit),
             Term::Seq(first, second) => {
                 self.eval(first, environment)?;
@@ -918,6 +1011,87 @@ mod tests {
             Type::Bool
         );
         assert_eq!(eval(&term, &mut vec![]).unwrap().as_bool(), Some(true));
+    }
+
+    #[test]
+    fn chapter_8_examples_have_the_expected_types() {
+        let boolean_example = Term::If(
+            Box::new(Term::True),
+            Box::new(Term::False),
+            Box::new(Term::True),
+        );
+        let natural_example = Term::Pred(Box::new(Term::Succ(Box::new(Term::Pred(Box::new(
+            Term::Succ(Box::new(Term::Nat(0))),
+        ))))));
+        assert_eq!(
+            type_of(&boolean_example, &empty_context(), &vec![]).unwrap(),
+            Type::Bool
+        );
+        assert_eq!(
+            type_of(&natural_example, &empty_context(), &vec![]).unwrap(),
+            Type::Nat
+        );
+
+        let conservative_rejections = [
+            Term::If(
+                Box::new(Term::IsZero(Box::new(Term::Nat(0)))),
+                Box::new(Term::Nat(0)),
+                Box::new(Term::False),
+            ),
+            Term::If(
+                Box::new(Term::True),
+                Box::new(Term::Nat(0)),
+                Box::new(Term::False),
+            ),
+        ];
+        for term in conservative_rejections {
+            assert!(type_of(&term, &empty_context(), &vec![]).is_err());
+        }
+    }
+
+    #[test]
+    fn arithmetic_operators_reject_arguments_of_the_wrong_type() {
+        let ill_typed_terms = [
+            Term::Succ(Box::new(Term::False)),
+            Term::Pred(Box::new(Term::True)),
+            Term::IsZero(Box::new(Term::False)),
+        ];
+        for term in ill_typed_terms {
+            assert!(type_of(&term, &empty_context(), &vec![]).is_err());
+        }
+    }
+
+    #[test]
+    fn arithmetic_evaluation_covers_zero_and_successor_cases() {
+        let cases = [
+            (Term::Pred(Box::new(Term::Nat(0))), "0"),
+            (
+                Term::Pred(Box::new(Term::Succ(Box::new(Term::Nat(7))))),
+                "7",
+            ),
+            (Term::IsZero(Box::new(Term::Nat(0))), "true"),
+            (
+                Term::IsZero(Box::new(Term::Succ(Box::new(Term::Nat(0))))),
+                "false",
+            ),
+        ];
+        for (term, expected) in cases {
+            assert_eq!(eval(&term, &mut vec![]).unwrap().to_string(), expected);
+        }
+    }
+
+    #[test]
+    fn natural_successor_is_not_limited_by_u64() {
+        let term = Term::Succ(Box::new(Term::Nat(u64::MAX)));
+        let value = eval(&term, &mut vec![]).unwrap();
+        assert_eq!(value.to_string(), "18446744073709551616");
+        assert_eq!(value.as_nat(), None);
+        assert_eq!(
+            eval(&Term::Pred(Box::new(term)), &mut vec![])
+                .unwrap()
+                .as_nat(),
+            Some(u64::MAX)
+        );
     }
 
     #[test]
@@ -1131,6 +1305,69 @@ mod tests {
             Type::Nat
         );
         assert_eq!(eval(&term, &mut vec![]).unwrap().as_nat(), Some(99));
+    }
+
+    #[test]
+    fn ordinary_error_propagates_from_both_application_positions() {
+        let divergent = Term::Fix(Box::new(abs("x", Type::Nat, Term::Var("x".into()))));
+        let left_error = app(Term::Error, divergent);
+        let right_error = app(abs("x", Type::Nat, Term::Var("x".into())), Term::Error);
+        assert_eq!(
+            eval_with_limit(&left_error, &mut vec![], 30).unwrap_err(),
+            RuntimeError::Abort
+        );
+        assert_eq!(
+            eval(&right_error, &mut vec![]).unwrap_err(),
+            RuntimeError::Abort
+        );
+    }
+
+    #[test]
+    fn raised_values_propagate_left_to_right_through_application() {
+        let raise = |payload| Term::Raise {
+            value: Box::new(Term::Exception(Box::new(Term::Nat(payload)))),
+            result_type: Type::Nat,
+        };
+        let left_raise = app(raise(1), raise(2));
+        let right_raise = app(abs("x", Type::Nat, Term::Var("x".into())), raise(2));
+        assert_eq!(
+            eval(&left_raise, &mut vec![]).unwrap_err(),
+            RuntimeError::UncaughtException("1".into())
+        );
+        assert_eq!(
+            eval(&right_raise, &mut vec![]).unwrap_err(),
+            RuntimeError::UncaughtException("2".into())
+        );
+    }
+
+    #[test]
+    fn nested_raise_propagates_the_inner_exception() {
+        let inner = Term::Raise {
+            value: Box::new(Term::Exception(Box::new(Term::Nat(7)))),
+            result_type: Type::Exn,
+        };
+        let outer = Term::Raise {
+            value: Box::new(inner),
+            result_type: Type::Nat,
+        };
+        assert_eq!(
+            eval(&outer, &mut vec![]).unwrap_err(),
+            RuntimeError::UncaughtException("7".into())
+        );
+    }
+
+    #[test]
+    fn successful_try_does_not_evaluate_its_handler() {
+        let ordinary = Term::Try {
+            body: Box::new(Term::Nat(5)),
+            handler: Box::new(Term::Error),
+        };
+        let carrying = Term::TryWith {
+            body: Box::new(Term::Nat(6)),
+            handler: Box::new(Term::Error),
+        };
+        assert_eq!(eval(&ordinary, &mut vec![]).unwrap().as_nat(), Some(5));
+        assert_eq!(eval(&carrying, &mut vec![]).unwrap().as_nat(), Some(6));
     }
 
     #[test]

@@ -1,7 +1,7 @@
 % Chapter 8 — Typed Arithmetic Expressions
 % Source: ../source/split/chapters/ch08-typed-arithmetic-expressions_p089-p097.pdf
 % Original print pages: 91--98
-% Status: 待独立初审
+% Status: 独立复核
 
 \chapter{带类型的算术表达式}
 \label{chap:8}
@@ -72,11 +72,21 @@ nv&::=&\taplzero&\text{数值：零值}\\
 \centering
 \begin{minipage}{0.94\linewidth}
 \small
+\noindent\textbf{B（带类型）}\hfill
+\textit{扩展 B（图~\ref{fig:3-1}）}
+\par\smallskip
+\noindent\begin{minipage}[t]{0.38\linewidth}
+\textbf{新增句法形式}
 \[
 \begin{array}{@{}rcll@{}}
-T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}
+T&::=&\tapltype{Bool}&\text{布尔值类型}
 \end{array}
-\quad
+\]
+\end{minipage}\hfill
+\begin{minipage}[t]{0.60\linewidth}
+\textbf{新增类型规则}\par
+\(\text{判断形式： }t:T\quad\text{项 \(t\) 具有类型 \(T\)}\)
+\[
 \begin{array}{c@{\qquad\qquad}c}
 \inferrule*[right=\textsc{T-True}]{ }{\tapltrue:\tapltype{Bool}}
 &
@@ -89,6 +99,7 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}
 \end{array}
 \]
 \end{minipage}
+\end{minipage}
 \caption{布尔值的类型规则（B）}
 \label{fig:8-1}
 \end{figure}
@@ -96,12 +107,23 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}
 \begin{figure}[!ht]
 \centering
 \begin{minipage}{0.94\linewidth}
+\small
+\noindent\textbf{N（带类型）}\hfill
+\textit{扩展 NB（图~\ref{fig:3-2}）与 B}
+\par\smallskip
+\noindent\begin{minipage}[t]{0.38\linewidth}
+\textbf{新增句法形式}
 \[
 \begin{array}{@{}rcll@{}}
 T&::=&\cdots&\text{类型}\\
- &\mid&\tapltype{Nat}&\text{自然数的类型}
+ &\mid&\tapltype{Nat}&\text{自然数类型}
 \end{array}
-\qquad
+\]
+\end{minipage}\hfill
+\begin{minipage}[t]{0.60\linewidth}
+\textbf{新增类型规则}\par
+\(\text{判断形式： }t:T\quad\text{项 \(t\) 具有类型 \(T\)}\)
+\[
 \begin{array}{c@{\qquad}c}
 \inferrule*[right=\textsc{T-Zero}]{ }{\taplzero:\tapltype{Nat}}
 &
@@ -115,6 +137,7 @@ T&::=&\cdots&\text{类型}\\
  {t_1:\tapltype{Nat}}{\tapliszero{t_1}:\tapltype{Bool}}
 \end{array}
 \]
+\end{minipage}
 \end{minipage}
 \caption{自然数的类型规则（NB）}
 \label{fig:8-2}
@@ -145,8 +168,9 @@ T&::=&\cdots&\text{类型}\\
 \end{definition}
 
 对类型关系进行推理时，我们常会说：“如果形如 \(\taplsucc{t_1}\) 的项
-具有某种类型，那么它必定具有类型 \(\tapltype{Nat}\)。”下面的引理汇集了
-这一类基本事实；每一项都直接来自相应类型规则的形状。
+具有某种类型，那么它必定具有类型 \(\tapltype{Nat}\)。”下面的
+\termfirst{反演引理}{inversion lemma}汇集了这一类基本事实；每一项都直接
+来自相应类型规则的形状。
 
 \begin{lemma}[类型关系的反演]
 \label{lem:8.2.2}
@@ -175,7 +199,7 @@ T&::=&\cdots&\text{类型}\\
 子项的类型计算整个项的类型（如果存在）。第~\ref{chap:9}~章会详细回到
 这一点。
 
-\begin{exercise}[\(\star\star\)]
+\begin{exercise}[\(\star,\nrightarrow\)]
 \label{ex:8.2.3}
 证明：良类型项的每个子项都是良类型的。
 \end{exercise}
@@ -243,13 +267,17 @@ Felleisen（1994）提出了一个变体。}
 \begin{description}[style=nextline,leftmargin=2em]
   \item[进展性] 良类型项不会卡住：它要么是值，要么能按求值规则迈出一步。
   \item[保持性] 良类型项迈出一步求值后，所得的项仍然是良类型的。
+    \footnote{在本书考察的大多数类型系统中，求值不仅保持良类型性，也保持项
+    的精确类型。不过，有些系统允许类型在求值期间改变。例如，在带子类型化
+    的系统（\chapref{15}）中，项的类型可能在求值时变得更小，也就是包含
+    更多信息。}
 \end{description}
 
 两项性质合起来告诉我们：良类型项在求值过程中永远不会到达卡住状态。
 
 证明进展性定理之前，先记录关于 \(\tapltype{Bool}\) 与
-\(\tapltype{Nat}\) 的典范形式可能具有何种形状的两个事实；所谓典范形式，
-就是这些类型的良类型值。
+\(\tapltype{Nat}\) 的典范形式可能具有何种形状的两个事实；所谓
+\termfirst{典范形式}{canonical forms}，就是这些类型的良类型值。
 
 \begin{lemma}[典范形式]
 \label{lem:8.3.1}
@@ -314,7 +342,8 @@ t=\taplpred{t_1}\qquad t_1:\tapltype{Nat}.
 \]
 由归纳假设，\(t_1\) 要么是值，要么存在 \(t_1'\) 使
 \(t_1\trans t_1'\)。若 \(t_1\) 是值，典范形式引理说明它必为数值，
-即 \(\taplzero\)，或对某个 \(nv_1\) 为 \(\taplsucc{nv_1}\)；于是
+即要么是 \(\taplzero\)，要么对某个 \(nv_1\) 是
+\(\taplsucc{nv_1}\)；于是
 \textsc{E-PredZero} 或 \textsc{E-PredSucc} 适用于 \(t\)。另一方面，
 若 \(t_1\trans t_1'\)，则由 \textsc{E-Pred}，
 \(\taplpred{t_1}\trans\taplpred{t_1'}\)。
@@ -391,7 +420,7 @@ t_1:\tapltype{Nat}.
 \(\taplsucc{t_1'}:\tapltype{Nat}\)，即 \(t':T\)。
 \end{proof}
 
-\begin{exercise}[\(\star\star\star\)]
+\begin{exercise}[\(\star\star,\nrightarrow\)]
 \label{ex:8.3.4}
 重组上述证明，使其对求值推导而非类型推导作归纳。
 \end{exercise}
@@ -424,13 +453,13 @@ Wadler，1999），这里给出的保持性形式会失效（详见\chapref{19}�
 请给出反例。
 \end{exercise}
 
-\begin{exercise}[推荐，\(\star\star\star\)]
+\begin{exercise}[推荐，\(\star\star\)]
 \label{ex:8.3.7}
 假设求值关系采用练习~\ref{ex:3.5.17} 那样的大步风格定义。类型安全性的
 直觉性质应如何形式化？
 \end{exercise}
 
-\begin{exercise}[推荐，\(\star\star\star\)]
+\begin{exercise}[推荐，\(\star\star\)]
 \label{ex:8.3.8}
 假设按照练习~\ref{ex:3.5.16}，在求值关系中加入把无意义项归约到显式
 \(\taplwrong\) 状态的规则。此时类型安全性又应如何形式化？

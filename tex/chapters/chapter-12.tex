@@ -1,7 +1,7 @@
 % Chapter 12 — Normalization
 % Source: ../source/split/chapters/ch12-normalization_p144-p148.pdf
 % Original print pages: 149--152
-% Status: 待独立初审
+% Status: 独立复核
 
 \chapter{规范化}
 \label{chap:12}
@@ -15,7 +15,8 @@
 不同于此前考察的类型安全性质，规范化性质不能推广到完整程序语言，因为这类
 语言几乎总会用一般递归（\S\ref{sec:11.11}）或递归类型
 （\chapref{20}）等构造扩展简单类型 lambda 演算，而这些构造可以
-写出不终止程序。不过，\chapref{30}讨论 System \(F_\omega\) 的
+写出不终止程序。不过，\taplsecref{30.3}{sec:30.3} 讨论
+System \(F_\omega\) 的
 元理论时，规范化问题会在类型层面再次出现：该系统的类型语言实际上包含一份
 简单类型 lambda 演算；类型检查算法能否终止，将取决于类型表达式上的
 “规范化”操作保证终止这一事实。
@@ -24,7 +25,13 @@
 成果之一，并且经常像本章这样，使用逻辑关系这一基本证明技术。
 
 有些读者第一次阅读时也许愿意跳过本章；这样做不会妨碍后续章节。完整的章节
-依赖关系见原书前言的图 P-1。
+依赖关系见%
+\ifcsname r@fig:preface-dependencies\endcsname
+  \cref{fig:preface-dependencies}%
+\else
+  前言中的“章节依赖关系”图%
+\fi
+。
 
 \section{简单类型的规范化}
 \label{sec:12.1}
@@ -131,7 +138,7 @@ x_1:T_1,\ldots,x_n:T_n\vdash t:T,
 \[
 \mathcal R_T(
   \taplsubst{x_1}{v_1}{\cdots
-    \taplsubst{x_n}{v_n}{t}\cdots}).
+    \taplsubst{x_n}{v_n}{t}}).
 \]
 \end{lemma}
 
@@ -158,7 +165,7 @@ T=S_1\to S_2.
 显然，
 \[
 \taplsubst{x_1}{v_1}{\cdots
-  \taplsubst{x_n}{v_n}{t}\cdots}
+  \taplsubst{x_n}{v_n}{t}}
 \]
 已经是值，因而求值会停止。余下只需证明：任取 \(s:S_1\)，若
 \(\mathcal R_{S_1}(s)\)，则
@@ -166,7 +173,7 @@ T=S_1\to S_2.
 \mathcal R_{S_2}\bigl(
  (\lambda x:S_1.\,
    \taplsubst{x_1}{v_1}{\cdots
-    \taplsubst{x_n}{v_n}{s_2}\cdots})\,s\bigr).
+    \taplsubst{x_n}{v_n}{s_2}})\,s\bigr).
 \]
 于是设 \(s\) 是这样的项。由引理~\ref{lem:12.1.3}，存在某个 \(v\)，使
 \(s\transmulti v\)。由引理~\ref{lem:12.1.4}，
@@ -175,23 +182,43 @@ T=S_1\to S_2.
 \mathcal R_{S_2}\bigl(
 \taplsubst{x_1}{v_1}{\cdots
  \taplsubst{x_n}{v_n}{
-  \taplsubst{x}{v}{s_2}}\cdots}\bigr).
+  \taplsubst{x}{v}{s_2}}}\bigr).
 \]
 而
 \[
 \begin{aligned}
 &(\lambda x:S_1.\,
   \taplsubst{x_1}{v_1}{\cdots
-   \taplsubst{x_n}{v_n}{s_2}\cdots})\,s\\
+   \taplsubst{x_n}{v_n}{s_2}})\,s\\
 &\qquad\transmulti
 \taplsubst{x_1}{v_1}{\cdots
  \taplsubst{x_n}{v_n}{
-  \taplsubst{x}{v}{s_2}}\cdots}.
+  \taplsubst{x}{v}{s_2}}}.
 \end{aligned}
 \]
-再由引理~\ref{lem:12.1.4} 得到前一个应用项属于
-\(\mathcal R_{S_2}\)。由于 \(s\) 任取，
-\(\mathcal R_{S_1\to S_2}\) 的定义便给出所需结论。
+再由引理~\ref{lem:12.1.4} 得到
+\[
+\mathcal R_{S_2}\Bigl(
+ \taplobjparens{\lambda x:S_1.\,
+   \taplsubst{x_1}{v_1}{\cdots
+    \taplsubst{x_n}{v_n}{s_2}}}\,s
+\Bigr).
+\]
+也就是说，
+\[
+\mathcal R_{S_2}\Bigl(
+ \taplobjparens{
+  \taplsubst{x_1}{v_1}{\cdots
+   \taplsubst{x_n}{v_n}{\lambda x:S_1.\,s_2}}}\,s
+\Bigr).
+\]
+由于 \(s\) 任取，\(\mathcal R_{S_1\to S_2}\) 的定义给出
+\[
+\mathcal R_{S_1\to S_2}\Bigl(
+ \taplsubst{x_1}{v_1}{\cdots
+  \taplsubst{x_n}{v_n}{\lambda x:S_1.\,s_2}}
+\Bigr).
+\]
 
 \medskip\noindent
 \textbf{情形 \rulename{T-App}：}
@@ -206,15 +233,29 @@ T=T_{12}.
 归纳假设分别给出
 \[
 \mathcal R_{T_{11}\to T_{12}}(
- \taplsubst{x_1}{v_1}{\cdots\taplsubst{x_n}{v_n}{t_1}\cdots})
+ \taplsubst{x_1}{v_1}{\cdots\taplsubst{x_n}{v_n}{t_1}})
 \]
 与
 \[
 \mathcal R_{T_{11}}(
- \taplsubst{x_1}{v_1}{\cdots\taplsubst{x_n}{v_n}{t_2}\cdots}).
+ \taplsubst{x_1}{v_1}{\cdots\taplsubst{x_n}{v_n}{t_2}}).
 \]
-由 \(\mathcal R_{T_{11}\to T_{12}}\) 的定义可得二者的应用属于
-\(\mathcal R_{T_{12}}\)，也就是所需结论。
+由 \(\mathcal R_{T_{11}\to T_{12}}\) 的定义可得
+\[
+\mathcal R_{T_{12}}\Bigl(
+ \taplobjparens{
+  \taplsubst{x_1}{v_1}{\cdots\taplsubst{x_n}{v_n}{t_1}}}\,
+ \taplobjparens{
+  \taplsubst{x_1}{v_1}{\cdots\taplsubst{x_n}{v_n}{t_2}}}
+\Bigr),
+\]
+也就是
+\[
+\mathcal R_{T_{12}}\Bigl(
+ \taplsubst{x_1}{v_1}{\cdots
+  \taplsubst{x_n}{v_n}{\taplobjparens{t_1\,t_2}}}
+\Bigr).
+\]
 \end{proof}
 
 现在只需在引理~\ref{lem:12.1.5} 中令 \(t\) 为闭项，再回想每个
@@ -239,8 +280,9 @@ T=T_{12}.
 \section{注记}
 \label{sec:12.2}
 
-理论文献最常把规范化性质表述为采用完全（非确定性）beta 归约之演算的强
-规范化。标准证明方法由 Tait（1967）发明，经 Girard（1972、1989）推广到
+理论文献最常把规范化性质表述为：采用完全（非确定性）
+\(\beta\) 归约的演算具有\termfirst{强规范化}{strong normalization}。
+标准证明方法由 Tait（1967）发明，经 Girard（1972、1989）推广到
 System \(F\)（见\chapref{23}），后来又由 Tait（1975）简化。
 本章的呈现由 Martin Hofmann（私人通信）给出，是把 Tait 的方法改写到按值
 调用系统的版本。逻辑关系证明技术的经典参考文献包括 Howard（1973）、
@@ -255,5 +297,6 @@ Tait（1967）、Friedman（1975）、Plotkin（1973、1980）和 Statman
 Filinski，1999、2001；Reynolds，1998a）。
 
 \translatornote{原书称“Tait 的强规范化证明与上述算法精确对应”。作者
-勘误指出，这一说法并不准确：以求值实现规范化对应的是\emph{弱}规范化，
-不能直接与强规范化证明等同。本段据此避免保留原来的等同断言。}
+勘误指出，这一说法并不准确：以求值实现规范化对应的是
+\termfirst{弱规范化}{weak normalization}，不能直接与强规范化证明等同。
+本段据此避免保留原来的等同断言。}

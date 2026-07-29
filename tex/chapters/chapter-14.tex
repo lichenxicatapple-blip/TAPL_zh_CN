@@ -1,7 +1,7 @@
 % Chapter 14 — Exceptions
 % Source: ../source/split/chapters/ch14-exceptions_p166-p173.pdf
 % Original print pages: 171--178
-% Status: 待独立初审
+% Status: 独立复核
 
 \chapter{异常}
 \label{chap:14}
@@ -17,7 +17,7 @@
 无法打开，系统内存耗尽、用户终止进程一类灾难性事件发生，等等。
 
 \S\ref{sec:11.10} 已经看到，有些异常条件可以通过让函数返回变体
-（或 option）来表示。但若这些条件真正罕见，我们也许不愿强迫函数的每个
+（或 option）来表示。但若这些条件确实属于异常情形，我们也许不愿强迫函数的每个
 调用者都处理它们发生的可能。更合意的做法可能是：异常条件把控制直接转移到
 程序更高层定义的异常处理器；甚至在异常足够罕见、或调用者无论如何也无法
 恢复时，直接终止程序。本章先考察后一情形（\S\ref{sec:14.1}），把异常视为
@@ -38,12 +38,17 @@ Rust 版本采用图~\ref{fig:14-2} 的完整规则，不沿用这一实现缺�
 \centering
 \begin{minipage}{0.96\linewidth}
 \small
+\taplfigureheader{\(\mathsf{error}\)}
+  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
 \[
 \begin{gathered}
+\text{\textbf{新增句法形式}}\qquad
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots\mid\mathsf{error}&\text{项：运行时错误}
 \end{array}
 \qquad
+\begin{gathered}
+\text{\textbf{新增求值规则}}\\[-2pt]
 \begin{array}{c}
 \inferrule*[right=\textsc{E-AppErr1}]
  { }{\mathsf{error}\ t_2\trans\mathsf{error}}
@@ -51,7 +56,9 @@ t&::=&\cdots\mid\mathsf{error}&\text{项：运行时错误}
 \inferrule*[right=\textsc{E-AppErr2}]
  { }{v_1\ \mathsf{error}\trans\mathsf{error}}
 \end{array}
+\end{gathered}
 \\[12pt]
+\text{\textbf{新增类型规则}}\qquad
 \inferrule*[right=\textsc{T-Error}]
  { }{\Gamma\vdash\mathsf{error}:T}
 \end{gathered}
@@ -63,9 +70,16 @@ t&::=&\cdots\mid\mathsf{error}&\text{项：运行时错误}
 
 \begin{figure}[!ht]
 \centering
+\begin{minipage}{0.96\linewidth}
+\small
+\taplfigureheader{\(\mathsf{error},\ \mathsf{try}\)}
+  {\(\lambda_{\to}\) 并带错误（图~\ref{fig:14-1}）}
+\textbf{新增句法形式}
 \[
 t::=\cdots\mid\mathsf{try}\ t\ \mathsf{with}\ t
+\qquad\text{捕获错误}
 \]
+\textbf{新增求值规则}
 \[
 \begin{array}{c@{\qquad}c}
 \inferrule*[right=\textsc{E-TryV}]
@@ -77,13 +91,18 @@ t::=\cdots\mid\mathsf{try}\ t\ \mathsf{with}\ t
 \inferrule*[right=\textsc{E-Try}]
  {t_1\trans t_1'}
  {\mathsf{try}\ t_1\ \mathsf{with}\ t_2
-  \trans\mathsf{try}\ t_1'\ \mathsf{with}\ t_2}
-&
+ \trans\mathsf{try}\ t_1'\ \mathsf{with}\ t_2}
+\end{array}
+\]
+\textbf{新增类型规则}
+\[
+\begin{array}{c}
 \inferrule*[right=\textsc{T-Try}]
  {\Gamma\vdash t_1:T\\\Gamma\vdash t_2:T}
  {\Gamma\vdash\mathsf{try}\ t_1\ \mathsf{with}\ t_2:T}
 \end{array}
 \]
+\end{minipage}
 \caption{错误处理}
 \label{fig:14-2}
 \end{figure}
@@ -92,10 +111,19 @@ t::=\cdots\mid\mathsf{try}\ t\ \mathsf{with}\ t
 \centering
 \begin{minipage}{0.99\linewidth}
 \footnotesize
+\taplfigureheader{\(\mathsf{exceptions}\)}
+  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
+\textbf{新增句法形式}
 \[
 t::=\cdots\mid\mathsf{raise}\ t
 \mid\mathsf{try}\ t\ \mathsf{with}\ t
+\qquad
+\begin{array}{l}
+\mathsf{raise}\ t\text{：抛出异常}\\
+\mathsf{try}\ t\ \mathsf{with}\ t\text{：处理异常}
+\end{array}
 \]
+\textbf{新增求值规则}
 \[
 \begin{array}{c@{\qquad}c}
 \inferrule*[right=\textsc{E-AppRaise1}]
@@ -125,6 +153,7 @@ t::=\cdots\mid\mathsf{raise}\ t
   \trans\mathsf{try}\ t_1'\ \mathsf{with}\ t_2}}
 \end{array}
 \]
+\textbf{新增类型规则}
 \[
 \inferrule*[right=\textsc{T-Exn}]
  {\Gamma\vdash t_1:T_{\mathit{exn}}}
@@ -140,6 +169,7 @@ t::=\cdots\mid\mathsf{raise}\ t
 \caption{携带值的异常}
 \label{fig:14-3}
 \end{figure}
+\FloatBarrier
 
 \section{抛出异常}
 \label{sec:14.1}
@@ -211,9 +241,10 @@ t::=\cdots\mid\mathsf{raise}\ t
 \section{处理异常}
 \label{sec:14.2}
 
-\(\mathsf{error}\) 的求值规则可以理解为“展开调用栈”：不断丢弃尚未完成的
+\(\mathsf{error}\) 的求值规则可以理解为
+\termfirst{栈展开}{stack unwinding}：不断丢弃尚未完成的
 函数调用，直到错误一路传播到最外层。真实异常语言的实现正是这样工作：
-调用栈由一组活动记录组成，每个活动函数调用对应一条；抛出异常会从调用栈中
+调用栈由一组\termfirst{活动记录}{activation record}组成，每个活动函数调用对应一条；抛出异常会从调用栈中
 依次弹出活动记录，直到栈空。
 
 多数异常语言还允许在调用栈中安装异常处理器。抛出异常时，活动记录依次弹出，
@@ -304,15 +335,15 @@ try 的类型规则直接来自操作语义。整个 try 的结果可能是主�
     留出空间。ML 采用这种思路，提供名为 \texttt{exn} 的单一可扩展变体
     类型。\footnote{也可以更进一步，把可扩展变体类型作为一般语言特性；
     ML 设计者选择只把 \texttt{exn} 当作特例。}在当前体系中，ML 声明
-    \(\mathsf{exception}\ l\ \mathsf{of}\ T\) 可理解成：“保证 \(l\)
-    不同于 \(T_{\mathit{exn}}\) 中已有的全部标签；从现在开始，若声明前的
-    可能变体为 \(l_1:T_1,\ldots,l_n:T_n\)，就令
+    \(\mathsf{exception}\ l\ \mathsf{of}\ T\) 可理解成如下操作：
+    保证 \(l\) 不同于 \(T_{\mathit{exn}}\) 中已有的全部标签；从现在开始，
+    若声明前的可能变体为 \(l_1:T_1,\ldots,l_n:T_n\)，就令%
+    \footnote{异常形式是绑定子，因此需要时总能对它作 \(\alpha\) 变换，
+    保证 \(l\) 不同于 \(T_{\mathit{exn}}\) 中已经使用的标签。}
     \[
       T_{\mathit{exn}}=
       \langle l_1:T_1,\ldots,l_n:T_n,l:T\rangle.
     \]
-    ”\footnote{异常形式是绑定子，因此需要时总能对它作 \(\alpha\) 变换，
-    保证 \(l\) 不同于 \(T_{\mathit{exn}}\) 中已经使用的标签。}
 
     ML 抛出异常的语法是 \(\mathsf{raise}\ l(t)\)，其中 \(l\) 是当前作用域
     定义的异常标签。它可以理解为加标签运算符与简单
@@ -332,7 +363,7 @@ try 的类型规则直接来自操作语义。整个 try 的结果可能是主�
     (\lambda e:T_{\mathit{exn}}.\
       \mathsf{case}\ e\ \mathsf{of}\
       \langle l=x\rangle\Rightarrow h
-      \mid y\Rightarrow\mathsf{raise}\ y).
+      \mid\ \_\Rightarrow\mathsf{raise}\ e).
     \end{aligned}
     \]
     case 检查抛出的异常是否带标签 \(l\)。若是，就把异常携带的值绑定到
@@ -368,7 +399,7 @@ try 的类型规则直接来自操作语义。整个 try 的结果可能是主�
 \begin{exercise}[\(\star\star\star\star\)]
 \label{ex:14.3.2}
 上文指出，Java 异常——\texttt{Exception} 的子类——比 ML 异常
-（以及这里定义的异常）受到更严格控制：方法可能抛出的每个异常都必须在方法
+（以及这里定义的异常）受到更严格控制：方法可能抛出的\emph{每个异常}都必须在方法
 类型中声明。扩展练习~\ref{ex:14.3.1} 的解答，让函数类型除了表示参数与
 结果类型，也表示它可能抛出的异常集合。证明你的系统类型安全。
 \end{exercise}

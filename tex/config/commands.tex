@@ -30,6 +30,22 @@
 \newcommand{\taplsubst}[3]{[#1\mapsto #2]#3}
 \newcommand{\taplredex}[1]{\underline{#1}}
 \newcommand{\rulename}[1]{{\normalfont\textsc{#1}}}
+\newcommand{\taplnewmaterial}[1]{%
+  \begingroup
+  \setlength{\fboxsep}{1.5pt}%
+  \colorbox{TAPLNewMaterialBackground}{\ensuremath{#1}}%
+  \endgroup
+}
+\newcommand{\taplfigureheader}[2]{%
+  \noindent\textbf{#1}\hfill\textit{扩展 #2}\par\smallskip
+}
+\renewcommand{\thefigure}{%
+  \ifnum\value{chapter}>0\relax
+    \thechapter-\arabic{figure}%
+  \else
+    \arabic{figure}%
+  \fi
+}
 \newcommand{\taplobjparens}[1]{%
   \mathopen{\text{\ttfamily\bfseries(}}#1\mathclose{\text{\ttfamily\bfseries)}}%
 }

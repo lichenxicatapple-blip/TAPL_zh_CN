@@ -1,7 +1,7 @@
 % Chapter 9 — Simply Typed Lambda-Calculus
 % Source: ../source/split/chapters/ch09-simply-typed-lambda-calculus_p098-p112.pdf
 % Original print pages: 99--112
-% Status: 待独立初审
+% Status: 独立复核
 
 \chapter{简单类型 lambda 演算}
 \label{chap:9}
@@ -47,15 +47,19 @@
 \centering
 \begin{minipage}{0.97\linewidth}
 \small
+\noindent\textbf{\(\lambda_{\to}\) [带类型]}\hfill
+\textit{基于 \(\lambda\)（图~\ref{fig:5-3}）}
+\par\smallskip
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&x&\text{项：变量}\\
- &\mid&\lambda x:T.\,t&\text{抽象}\\
+ &\mid&\lambda x\taplnewmaterial{{:}T}.\,t&\text{抽象}\\
  &\mid&t\ t&\text{应用}\\[2pt]
-v&::=&\lambda x:T.\,t&\text{值：抽象值}\\[2pt]
-T&::=&T\to T&\text{类型：函数类型}\\[2pt]
-\Gamma&::=&\varnothing&\text{上下文：空上下文}\\
- &\mid&\Gamma,x:T&\text{项变量绑定}
+v&::=&\lambda x\taplnewmaterial{{:}T}.\,t&\text{值：抽象值}\\[2pt]
+\taplnewmaterial{T}&::=&\taplnewmaterial{T\to T}&\text{类型：函数类型}\\[2pt]
+\taplnewmaterial{\Gamma}&::=&\taplnewmaterial{\varnothing}
+  &\text{上下文：空上下文}\\
+ &\mid&\taplnewmaterial{\Gamma,x:T}&\text{项变量绑定}
 \end{array}
 \qquad
 \begin{array}{c}
@@ -66,26 +70,37 @@ T&::=&T\to T&\text{类型：函数类型}\\[2pt]
  {t_2\trans t_2'}{v_1\,t_2\trans v_1\,t_2'}
 \\[10pt]
 \inferrule*[right=\textsc{E-AppAbs}]
- { }{(\lambda x:T_{11}.\,t_{12})\,v_2
+ { }{(\lambda x\taplnewmaterial{{:}T_{11}}.\,t_{12})\,v_2
       \trans \taplsubst{x}{v_2}{t_{12}}}
 \end{array}
 \]
 \[
+\taplnewmaterial{\Gamma\vdash t:T}
+\qquad
+\text{判断形式：在上下文 \(\Gamma\) 下，项 \(t\) 具有类型 \(T\)}
+\]
+\[
 \begin{array}{c@{\qquad}c}
-\inferrule*[right=\textsc{T-Var}]
- {x:T\in\Gamma}{\Gamma\vdash x:T}
+\taplnewmaterial{
+ \inferrule*[right=\textsc{T-Var}]
+  {x:T\in\Gamma}{\Gamma\vdash x:T}}
 &
-\inferrule*[right=\textsc{T-Abs}]
- {\Gamma,x:T_1\vdash t_2:T_2}
- {\Gamma\vdash\lambda x:T_1.\,t_2:T_1\to T_2}
+\taplnewmaterial{
+ \inferrule*[right=\textsc{T-Abs}]
+  {\Gamma,x:T_1\vdash t_2:T_2}
+  {\Gamma\vdash\lambda x:T_1.\,t_2:T_1\to T_2}}
 \\[14pt]
 \multicolumn{2}{c}{
-\inferrule*[right=\textsc{T-App}]
- {\Gamma\vdash t_1:T_{11}\to T_{12}\\
-  \Gamma\vdash t_2:T_{11}}
- {\Gamma\vdash t_1\,t_2:T_{12}}}
+\taplnewmaterial{
+ \inferrule*[right=\textsc{T-App}]
+  {\Gamma\vdash t_1:T_{11}\to T_{12}\\
+   \Gamma\vdash t_2:T_{11}}
+  {\Gamma\vdash t_1\,t_2:T_{12}}}}
 \end{array}
 \]
+\noindent
+\taplnewmaterial{\text{浅灰区域}}\quad
+表示相对于图~\ref{fig:5-3} 新增或改变的带类型材料。
 \end{minipage}
 \caption{纯简单类型 lambda 演算（\(\lambda_{\to}\)）}
 \label{fig:9-1}
@@ -223,7 +238,7 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
 有时会省略。}
 
 上述规则汇总在图~\ref{fig:9-1} 中；为求完整，图中也列出了语法与求值规则。
-原书图中高亮区域表示相对于无类型 lambda 演算新增的材料，包括全新的规则，
+图中高亮区域表示相对于无类型 lambda 演算新增的材料，包括全新的规则，
 也包括在旧规则中加入的部分。与布尔值和自然数一样，完整演算的定义被拆成
 两部分：一部分是图中没有任何基本类型的纯简单类型 lambda 演算；另一部分是
 图~\ref{fig:8-1} 已给出的布尔值规则——当然，必须为该图的每个类型陈述都
@@ -336,9 +351,8 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
 \end{theorem}
 
 \begin{proof}
-留作练习。\footnote{作者勘误建议把这个证明视为“推荐、三星”练习。}
-证明直接得几乎无话可说；不过，写出部分细节很适合练习如何“搭起”关于类型
-关系的证明。
+留作练习（推荐，三星）。证明直接得几乎无话可说；不过，写出部分细节很适合
+练习如何“搭起”关于类型关系的证明。
 \end{proof}
 
 本书以后会遇到许多不再具有这种简单对应的类型系统：同一个项会被指派多种
@@ -394,9 +408,10 @@ t=t_1\,t_2,\qquad
 接下来要证明求值保持类型。先陈述类型关系的两个“结构引理”。它们本身并不
 特别有趣，但能让后续证明对类型推导作若干有用的变换。
 
-第一个结构引理说明，可以按需要置换上下文元素，而不会改变从该上下文可以
-导出的类型陈述集合。回想上文的要求：上下文中的所有绑定都必须有不同名字；
-每次为上下文加入绑定时，都默认新名字不同于已经绑定的全部名字，必要时按照
+第一个结构引理说明，可以按需要
+\termfirst{置换}{permutation}上下文元素，而不会改变从该上下文可以导出的
+类型陈述集合。回想上文的要求：上下文中的所有绑定都必须有不同名字；每次为
+上下文加入绑定时，都默认新名字不同于已经绑定的全部名字，必要时按照
 约定~\ref{conv:5.3.4} 重命名。
 
 \begin{lemma}[置换]
@@ -408,6 +423,9 @@ t=t_1\,t_2,\qquad
 \begin{proof}
 对类型推导作直接归纳。
 \end{proof}
+
+第二个结构引理是\termfirst{弱化}{weakening}：向上下文加入未被使用的新
+假设，不会使原有的类型陈述失效。
 
 \begin{lemma}[弱化]
 \label{lem:9.3.7}
@@ -582,7 +600,8 @@ Curry 与 Howard 注意到，这种证据具有强烈的计算意味。例如，
 命题 \(P\supset Q\) & 类型 \(P\to Q\)\\
 命题 \(P\land Q\) & 类型 \(P\times Q\)（见 \S\ref{sec:11.6}）\\
 命题 \(P\) 的证明 & 类型为 \(P\) 的项 \(t\)\\
-命题 \(P\) 可证明 & 类型 \(P\) 有居项（某个项属于它）\\
+命题 \(P\) 可证明 & 类型 \(P\) \termfirst{有居项}{inhabited}
+  （某个项属于它）\\
 \bottomrule
 \end{tabular}
 \end{center}
