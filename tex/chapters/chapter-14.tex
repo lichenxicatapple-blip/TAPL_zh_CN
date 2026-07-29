@@ -1,5 +1,384 @@
 % Chapter 14 — Exceptions
 % Source: ../source/split/chapters/ch14-exceptions_p166-p173.pdf
 % Original print pages: 171--178
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:14}
+% Status: 待独立初审
+
+\chapter{异常}
+\label{chap:14}
+
+\section*{概述}
+
+第~\ref{chap:13}~章说明了怎样用可变引用扩展纯简单类型 lambda 演算的
+简单操作语义，并考察这项扩展对类型规则和类型安全性证明的影响。本章处理
+对原计算模型的另一项扩展：抛出和处理异常。
+
+现实编程中，函数经常需要通知调用者：由于某种原因，它无法完成任务。可能是
+某项计算涉及除零或算术溢出，字典中缺少查找键，数组索引越界，文件找不到或
+无法打开，系统内存耗尽、用户终止进程一类灾难性事件发生，等等。
+
+\S\ref{sec:11.10} 已经看到，有些异常条件可以通过让函数返回变体
+（或 option）来表示。但若这些条件真正罕见，我们也许不愿强迫函数的每个
+调用者都处理它们发生的可能。更合意的做法可能是：异常条件把控制直接转移到
+程序更高层定义的异常处理器；甚至在异常足够罕见、或调用者无论如何也无法
+恢复时，直接终止程序。本章先考察后一情形（\S\ref{sec:14.1}），把异常视为
+整个程序的终止；再加入捕获异常并从中恢复的机制（\S\ref{sec:14.2}）；
+最后细化两种机制，让程序员指定的额外数据可以从异常抛出点传给处理器
+（\S\ref{sec:14.3}）。\footnote{本章研究在简单类型 lambda 演算
+（图~\ref{fig:9-1}）上加入多种异常抛出与处理基本构造的系统
+（图~\ref{fig:14-1} 与图~\ref{fig:14-2}）。第一种扩展的 OCaml 实现是
+\texttt{fullerror}；携带值的异常语言（图~\ref{fig:14-3}）没有官方实现。}
+
+\translatornote{本译本的 \texttt{code/simple/} Rust 参考实现同时覆盖
+普通 \(\mathsf{error}\)、\(\mathsf{try}\) 处理器和携带值的
+\(\mathsf{raise}\)，并验证传播次序与处理器行为。作者勘误指出，若干官方
+OCaml 检查器的 \texttt{eval1} 漏掉了归约 \(\mathsf{try}\) 的分支；
+Rust 版本采用图~\ref{fig:14-2} 的完整规则，不沿用这一实现缺漏。}
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.96\linewidth}
+\small
+\[
+\begin{gathered}
+\begin{array}{@{}rcll@{}}
+t&::=&\cdots\mid\mathsf{error}&\text{项：运行时错误}
+\end{array}
+\qquad
+\begin{array}{c}
+\inferrule*[right=\textsc{E-AppErr1}]
+ { }{\mathsf{error}\ t_2\trans\mathsf{error}}
+\\[10pt]
+\inferrule*[right=\textsc{E-AppErr2}]
+ { }{v_1\ \mathsf{error}\trans\mathsf{error}}
+\end{array}
+\\[12pt]
+\inferrule*[right=\textsc{T-Error}]
+ { }{\Gamma\vdash\mathsf{error}:T}
+\end{gathered}
+\]
+\end{minipage}
+\caption{错误}
+\label{fig:14-1}
+\end{figure}
+
+\begin{figure}[!ht]
+\centering
+\[
+t::=\cdots\mid\mathsf{try}\ t\ \mathsf{with}\ t
+\]
+\[
+\begin{array}{c@{\qquad}c}
+\inferrule*[right=\textsc{E-TryV}]
+ { }{\mathsf{try}\ v_1\ \mathsf{with}\ t_2\trans v_1}
+&
+\inferrule*[right=\textsc{E-TryError}]
+ { }{\mathsf{try}\ \mathsf{error}\ \mathsf{with}\ t_2\trans t_2}
+\\[12pt]
+\inferrule*[right=\textsc{E-Try}]
+ {t_1\trans t_1'}
+ {\mathsf{try}\ t_1\ \mathsf{with}\ t_2
+  \trans\mathsf{try}\ t_1'\ \mathsf{with}\ t_2}
+&
+\inferrule*[right=\textsc{T-Try}]
+ {\Gamma\vdash t_1:T\\\Gamma\vdash t_2:T}
+ {\Gamma\vdash\mathsf{try}\ t_1\ \mathsf{with}\ t_2:T}
+\end{array}
+\]
+\caption{错误处理}
+\label{fig:14-2}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\begin{minipage}{0.99\linewidth}
+\footnotesize
+\[
+t::=\cdots\mid\mathsf{raise}\ t
+\mid\mathsf{try}\ t\ \mathsf{with}\ t
+\]
+\[
+\begin{array}{c@{\qquad}c}
+\inferrule*[right=\textsc{E-AppRaise1}]
+ { }{(\mathsf{raise}\ v_{11})\,t_2\trans\mathsf{raise}\ v_{11}}
+&
+\inferrule*[right=\textsc{E-AppRaise2}]
+ { }{v_1\,(\mathsf{raise}\ v_{21})\trans\mathsf{raise}\ v_{21}}
+\\[8pt]
+\inferrule*[right=\textsc{E-Raise}]
+ {t_1\trans t_1'}{\mathsf{raise}\ t_1\trans\mathsf{raise}\ t_1'}
+&
+\inferrule*[right=\textsc{E-RaiseRaise}]
+ { }{\mathsf{raise}\,(\mathsf{raise}\ v_{11})
+      \trans\mathsf{raise}\ v_{11}}
+\\[8pt]
+\inferrule*[right=\textsc{E-TryV}]
+ { }{\mathsf{try}\ v_1\ \mathsf{with}\ t_2\trans v_1}
+&
+\inferrule*[right=\textsc{E-TryRaise}]
+ { }{\mathsf{try}\ (\mathsf{raise}\ v_{11})\ \mathsf{with}\ t_2
+      \trans t_2\,v_{11}}
+\\[8pt]
+\multicolumn{2}{c}{
+\inferrule*[right=\textsc{E-Try}]
+ {t_1\trans t_1'}
+ {\mathsf{try}\ t_1\ \mathsf{with}\ t_2
+  \trans\mathsf{try}\ t_1'\ \mathsf{with}\ t_2}}
+\end{array}
+\]
+\[
+\inferrule*[right=\textsc{T-Exn}]
+ {\Gamma\vdash t_1:T_{\mathit{exn}}}
+ {\Gamma\vdash\mathsf{raise}\ t_1:T}
+\qquad
+\inferrule*[right=\textsc{T-Try}]
+ {\Gamma\vdash t_1:T\\
+  \Gamma\vdash t_2:T_{\mathit{exn}}\to T}
+ {\Gamma\vdash\mathsf{try}\ t_1\ \mathsf{with}\ t_2:T}
+\]
+\end{minipage}
+\par\medskip
+\caption{携带值的异常}
+\label{fig:14-3}
+\end{figure}
+
+\section{抛出异常}
+\label{sec:14.1}
+
+先为简单类型 lambda 演算加入表示异常的最简单机制：项
+\(\mathsf{error}\) 一经求值，就完全终止包含它的项的求值。所需扩展见
+图~\ref{fig:14-1}。
+
+为 \(\mathsf{error}\) 编写规则时，主要设计决定是怎样在操作语义中形式化
+“异常终止”。这里采用一个简单办法：让 \(\mathsf{error}\) 本身作为程序
+终止的结果。规则 \textsc{E-AppErr1} 与 \textsc{E-AppErr2} 刻画这种
+行为。\textsc{E-AppErr1} 说明，在试图把应用左端归约为值的过程中遇到
+\(\mathsf{error}\) 时，立即让整个应用以 \(\mathsf{error}\) 为结果。
+类似地，\textsc{E-AppErr2} 说明，在把应用参数归约为值的过程中遇到错误
+时，放弃这个应用并立即产生 \(\mathsf{error}\)。
+
+注意，\(\mathsf{error}\) 只加入项语法，没有加入值语法。这保证
+\textsc{E-AppAbs} 与 \textsc{E-AppErr2} 的左端永不重叠。也就是说，
+对项
+\[
+(\lambda x:\tapltype{Nat}.\,0)\ \mathsf{error}
+\]
+不会产生“究竟执行应用得到 \(0\)，还是终止”的歧义；只有终止这一种可能。
+类似地，\textsc{E-AppErr2} 使用元变量 \(v_1\) 而不是遍历任意项的 \(t_1\)，
+迫使求值器先把应用左端归约为值，再因为右端是 \(\mathsf{error}\) 而终止。
+因此：
+\[
+(\mathsf{fix}\,(\lambda x:\tapltype{Nat}.\,x))\ \mathsf{error}
+\]
+会发散而不是终止。这些条件保证求值关系仍然确定。
+
+类型规则 \textsc{T-Error} 也很有意思。我们可能要在任何上下文抛出异常，
+所以允许项 \(\mathsf{error}\) 具有任意类型。在
+\[
+(\lambda x:\tapltype{Bool}.\,x)\ \mathsf{error}
+\]
+中，它具有类型 \(\tapltype{Bool}\)；在
+\[
+(\lambda x:\tapltype{Bool}.\,x)\,
+(\mathsf{error}\ \tapltrue)
+\]
+中，它具有类型 \(\tapltype{Bool}\to\tapltype{Bool}\)。
+
+\(\mathsf{error}\) 的类型如此灵活，会给类型检查算法的实现带来困难，因为
+语言中每个可赋型项具有唯一类型这一性质（定理~\ref{thm:9.3.3}）不再成立。
+可以用多种办法处理。在带子类型化的语言中，可以为 \(\mathsf{error}\)
+指派最小类型 \(\tapltype{Bot}\)（见
+\taplsecref{15.4}{sec:15.4}），再按需提升为
+其他类型。在带参数多态的语言中（见\chapref{23}），可以为它赋予
+多态类型 \(\forall X.\,X\)，该类型可以实例化为任何其他类型。两种技巧都
+能用一个类型紧凑表示 \(\mathsf{error}\) 无穷多个可能类型。
+
+\begin{exercise}[\(\star\)]
+\label{ex:14.1.1}
+要求程序员在每处使用 \(\mathsf{error}\) 时标注预期类型，不是更简单吗？
+\end{exercise}
+
+带异常语言的类型保持性质仍和以往一样：若项具有类型 \(T\)，让它求值一步，
+结果仍具有类型 \(T\)。进展性质则要稍加细化。它原本说明良类型程序必须求值
+为值（或发散）；现在新增了非值范式 \(\mathsf{error}\)，它完全可能成为
+良类型程序的求值结果，所以必须在进展性陈述中允许它。
+
+\begin{theorem}[进展性]
+\label{thm:14.1.2}
+设 \(t\) 是闭的良类型范式。那么，\(t\) 要么是值，要么
+\(t=\mathsf{error}\)。
+\end{theorem}
+
+\section{处理异常}
+\label{sec:14.2}
+
+\(\mathsf{error}\) 的求值规则可以理解为“展开调用栈”：不断丢弃尚未完成的
+函数调用，直到错误一路传播到最外层。真实异常语言的实现正是这样工作：
+调用栈由一组活动记录组成，每个活动函数调用对应一条；抛出异常会从调用栈中
+依次弹出活动记录，直到栈空。
+
+多数异常语言还允许在调用栈中安装异常处理器。抛出异常时，活动记录依次弹出，
+直到遇到异常处理器；随后从该处理器继续求值。换言之，异常充当一次非局部
+控制转移，其目标是最近安装的异常处理器，也就是调用栈中离它最近的处理器。
+
+图~\ref{fig:14-2} 汇总的异常处理器形式与 ML、Java 都很相似。表达式
+\(\mathsf{try}\ t_1\ \mathsf{with}\ t_2\) 意为：“返回 \(t_1\) 的求值
+结果；除非它异常终止，此时改为求值处理器 \(t_2\)。”
+\textsc{E-TryV} 说明，\(t_1\) 归约为值 \(v_1\) 后，可以丢掉
+\(\mathsf{try}\)，因为已经知道用不到它。\textsc{E-TryError} 则说明，
+若 \(t_1\) 的求值结果是 \(\mathsf{error}\)，就用 \(t_2\) 替换整个 try，
+从那里继续求值。\textsc{E-Try} 说明，在 \(t_1\) 归约为值或
+\(\mathsf{error}\) 之前，应当只继续处理 \(t_1\)，而不动 \(t_2\)。
+
+try 的类型规则直接来自操作语义。整个 try 的结果可能是主表达式 \(t_1\)
+的结果，也可能是处理器 \(t_2\) 的结果；只需要求二者具有同一类型 \(T\)，
+这也是整个 try 的类型。
+
+类型安全性质及其证明与上一节相比，本质上没有变化。
+
+\section{携带值的异常}
+\label{sec:14.3}
+
+\S\ref{sec:14.1} 与 \S\ref{sec:14.2} 的机制让函数可以通知调用者“发生了
+某种不寻常的事情”。通常还需要传回额外信息，说明具体发生了哪种事情，因为
+处理器应该采取的行动——恢复后重试，或向用户呈现易懂的错误消息——可能
+取决于这些信息。
+
+图~\ref{fig:14-3} 说明怎样扩充基本异常处理构造，让每个异常携带一个值。
+这个值的类型写作 \(T_{\mathit{exn}}\)。暂且不确定它的具体性质，稍后讨论
+几种选择。
+
+原子项 \(\mathsf{error}\) 被项构造子 \(\mathsf{raise}\ t\) 取代，
+\(t\) 是要传给异常处理器的额外信息。try 的语法不变，但
+\(\mathsf{try}\ t_1\ \mathsf{with}\ t_2\) 中的处理器 \(t_2\) 现在被
+解释为以额外信息为参数的函数。
+
+求值规则 \textsc{E-TryRaise} 实现这种行为：取得 \(t_1\) 中
+\(\mathsf{raise}\) 携带的额外信息，再传给处理器 \(t_2\)。
+\textsc{E-AppRaise1} 与 \textsc{E-AppRaise2} 像
+图~\ref{fig:14-1} 的 \textsc{E-AppErr1} 与 \textsc{E-AppErr2} 一样，
+使异常穿过应用向外传播。不过，这些规则只允许传播额外信息已经是值的异常；
+若试图求值的 \(\mathsf{raise}\) 所携信息本身还需要求值，规则会阻塞，
+迫使我们先用 \textsc{E-Raise} 求值额外信息。\textsc{E-RaiseRaise}
+传播在求值某个异常所要携带的信息时发生的异常。\textsc{E-TryV} 与
+\S\ref{sec:14.2} 一样，说明主表达式归约为值后可以丢弃 try。
+\textsc{E-Try} 则让求值器继续处理 try 体，直到它变为值或
+\(\mathsf{raise}\)。
+
+类型规则反映这些行为变化。在 \textsc{T-Exn} 中，要求额外信息具有类型
+\(T_{\mathit{exn}}\)；整个 \(\mathsf{raise}\) 则可以具有上下文所需的任意
+类型 \(T\)。在 \textsc{T-Try} 中，检查处理器 \(t_2\) 是一个函数：给它
+\(T_{\mathit{exn}}\) 型的额外信息，它产生与 \(t_1\) 相同类型的结果。
+
+最后，考虑 \(T_{\mathit{exn}}\) 的几种选择。
+
+\begin{enumerate}
+  \item 可以令 \(T_{\mathit{exn}}=\tapltype{Nat}\)。这对应 Unix 操作
+    系统函数等使用的 \texttt{errno} 约定：每个系统调用都返回数字“错误码”，
+    其中 \(0\) 表示成功，其他值报告不同的异常条件。
+
+  \item 可以令 \(T_{\mathit{exn}}=\tapltype{String}\)。这样不必查错误码
+    表，异常抛出点也可以按需构造更具描述性的消息。额外灵活性的代价是，
+    处理器可能需要解析这些字符串，才能知道发生了什么。
+
+  \item 若把 \(T_{\mathit{exn}}\) 定义成变体类型，就能既传递更丰富的异常，
+    又避免解析字符串：
+    \[
+    \begin{aligned}
+    T_{\mathit{exn}}=\langle&
+      \mathit{divideByZero}:\tapltype{Unit},
+      \mathit{overflow}:\tapltype{Unit},\\
+      &\mathit{fileNotFound}:\tapltype{String},
+      \mathit{fileNotReadable}:\tapltype{String},\ldots\rangle.
+    \end{aligned}
+    \]
+    处理器可以用简单的 case 表达式区分异常种类；不同异常也能携带不同类型的
+    附加信息。除零等异常无需额外负担；找不到文件则可携带字符串，指出打开
+    哪个文件时发生错误。
+
+    这种方案的问题是很不灵活：要求预先固定任意程序可能抛出的全部异常，
+    即变体类型 \(T_{\mathit{exn}}\) 的标签集合，程序员无法声明应用特有的
+    异常。
+
+  \item 可以进一步把 \(T_{\mathit{exn}}\) 取作
+    \termfirst{可扩展变体类型}{extensible variant type}，为用户定义异常
+    留出空间。ML 采用这种思路，提供名为 \texttt{exn} 的单一可扩展变体
+    类型。\footnote{也可以更进一步，把可扩展变体类型作为一般语言特性；
+    ML 设计者选择只把 \texttt{exn} 当作特例。}在当前体系中，ML 声明
+    \(\mathsf{exception}\ l\ \mathsf{of}\ T\) 可理解成：“保证 \(l\)
+    不同于 \(T_{\mathit{exn}}\) 中已有的全部标签；从现在开始，若声明前的
+    可能变体为 \(l_1:T_1,\ldots,l_n:T_n\)，就令
+    \[
+      T_{\mathit{exn}}=
+      \langle l_1:T_1,\ldots,l_n:T_n,l:T\rangle.
+    \]
+    ”\footnote{异常形式是绑定子，因此需要时总能对它作 \(\alpha\) 变换，
+    保证 \(l\) 不同于 \(T_{\mathit{exn}}\) 中已经使用的标签。}
+
+    ML 抛出异常的语法是 \(\mathsf{raise}\ l(t)\)，其中 \(l\) 是当前作用域
+    定义的异常标签。它可以理解为加标签运算符与简单
+    \(\mathsf{raise}\) 的组合：
+    \[
+    \mathsf{raise}\ l(t)
+    \quad\triangleq\quad
+    \mathsf{raise}\,
+      (\langle l=t\rangle\ \mathsf{as}\ T_{\mathit{exn}}).
+    \]
+    类似地，ML 的 try 可以用简单 try 加 case 去糖：
+    \[
+    \begin{aligned}
+    &\mathsf{try}\ t\ \mathsf{with}\ l(x)\Rightarrow h\\
+    &\quad\triangleq\quad
+    \mathsf{try}\ t\ \mathsf{with}\
+    (\lambda e:T_{\mathit{exn}}.\
+      \mathsf{case}\ e\ \mathsf{of}\
+      \langle l=x\rangle\Rightarrow h
+      \mid y\Rightarrow\mathsf{raise}\ y).
+    \end{aligned}
+    \]
+    case 检查抛出的异常是否带标签 \(l\)。若是，就把异常携带的值绑定到
+    \(x\)，求值处理器 \(h\)；若不是，就落入通配分支，重新抛出异常。异常
+    会继续传播——途中也许被捕获后又抛出——直到到达愿意处理它的处理器，
+    或一路到达最外层并终止整个程序。
+
+  \item Java 使用类而不是可扩展变体来支持用户定义异常。语言提供内建类
+    \texttt{Throwable}；它或其任意子类的实例都可以用于
+    \texttt{throw}（相当于这里的 \(\mathsf{raise}\)）或
+    \texttt{try...catch}（相当于这里的 \(\mathsf{try...with}\)）语句。
+    只需定义 \texttt{Throwable} 的新子类，就能声明新异常。
+
+    这种异常机制与 ML 的机制其实密切对应。粗略地说，Java 异常对象的运行时
+    表示由一个表示其类的标签——直接对应 ML 的可扩展变体标签——和一条实例
+    变量记录——对应标签携带的附加信息——组成。
+
+    Java 异常在几个方面比 ML 更进一步。一是异常标签上存在由子类次序生成的
+    自然偏序；异常 \(l\) 的处理器实际会捕获携带 \(l\) 类或其任意子类对象
+    的所有异常。二是 Java 区分\emph{异常}与\emph{错误}：前者是内建类
+    \texttt{Exception} 的子类，而 \texttt{Exception} 又是
+    \texttt{Throwable} 的子类，应用程序可能希望捕获并尝试从中恢复；后者
+    是同样继承自 \texttt{Throwable} 的 \texttt{Error} 子类，表示通常应
+    直接终止执行的严重条件。两者的关键区别在类型检查规则：方法必须显式声明
+    可能抛出哪些异常，但不必声明可能抛出哪些错误。
+\end{enumerate}
+
+\begin{exercise}[\(\star\star\star\)]
+\label{ex:14.3.1}
+上面第 4 种方案对可扩展变体类型的解释相当非正式。说明怎样把它精确化。
+\end{exercise}
+
+\begin{exercise}[\(\star\star\star\star\)]
+\label{ex:14.3.2}
+上文指出，Java 异常——\texttt{Exception} 的子类——比 ML 异常
+（以及这里定义的异常）受到更严格控制：方法可能抛出的每个异常都必须在方法
+类型中声明。扩展练习~\ref{ex:14.3.1} 的解答，让函数类型除了表示参数与
+结果类型，也表示它可能抛出的异常集合。证明你的系统类型安全。
+\end{exercise}
+
+\begin{exercise}[\(\star\star\star\)]
+\label{ex:14.3.3}
+许多其他控制构造也能用类似本章的技术形式化。熟悉 Scheme 的
+“以当前续延调用”运算符 \texttt{call/cc} 的读者
+（参见 Clinger、Friedman 与 Wand，1985；Kelsey、Clinger 与 Rees，
+1998；Dybvig，1996；Friedman、Wand 与 Haynes，2001），可以尝试以类型
+\(\tapltype{Cont}\ T\) 为基础构造类型规则；该类型表示期待 \(T\) 型参数的
+\(T\)-续延。
+\end{exercise}

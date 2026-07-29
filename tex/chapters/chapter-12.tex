@@ -1,5 +1,259 @@
 % Chapter 12 — Normalization
 % Source: ../source/split/chapters/ch12-normalization_p144-p148.pdf
 % Original print pages: 149--152
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:12}
+% Status: 待独立初审
+
+\chapter{规范化}
+\label{chap:12}
+
+\section*{概述}
+
+本章考察纯简单类型 lambda 演算的另一项基本理论性质：良类型程序的求值保证
+在有限步内停止，也就是说，每个良类型项都是
+\termfirst{可规范化的}{normalizable}。
+
+不同于此前考察的类型安全性质，规范化性质不能推广到完整程序语言，因为这类
+语言几乎总会用一般递归（\S\ref{sec:11.11}）或递归类型
+（\chapref{20}）等构造扩展简单类型 lambda 演算，而这些构造可以
+写出不终止程序。不过，\chapref{30}讨论 System \(F_\omega\) 的
+元理论时，规范化问题会在类型层面再次出现：该系统的类型语言实际上包含一份
+简单类型 lambda 演算；类型检查算法能否终止，将取决于类型表达式上的
+“规范化”操作保证终止这一事实。
+
+研究规范化证明还有一个理由：它们是类型论文献中最优美、也最令人震撼的数学
+成果之一，并且经常像本章这样，使用逻辑关系这一基本证明技术。
+
+有些读者第一次阅读时也许愿意跳过本章；这样做不会妨碍后续章节。完整的章节
+依赖关系见原书前言的图 P-1。
+
+\section{简单类型的规范化}
+\label{sec:12.1}
+
+这里考察以单一基本类型 \(A\) 为基础的简单类型 lambda 演算。该演算的规范化
+证明并非完全平凡，因为项的每一步归约都可能复制子项中的可归约式。
+\footnote{本章研究带一个基本类型 \(A\)（图~\ref{fig:11-1}）的简单类型
+lambda 演算（图~\ref{fig:9-1}）。}
+
+\begin{exercise}[\(\star\)]
+\label{ex:12.1.1}
+若试图直接对良类型项的大小作归纳来证明规范化，会在哪一步失败？
+\end{exercise}
+
+这里的关键问题——许多归纳证明也一样——是找到足够强的归纳假设。为此，
+对每个类型 \(T\)，定义由类型为 \(T\) 的闭项组成的集合
+\(\mathcal R_T\)。我们把这些集合视为谓词，用 \(\mathcal R_T(t)\) 表示
+\(t\in\mathcal R_T\)。\footnote{集合 \(\mathcal R_T\) 有时称为
+\termfirst{饱和集}{saturated set}或
+\termfirst{可归约性候选集}{reducibility candidate}。}
+
+\begin{definition}
+\label{def:12.1.2}
+\[
+\begin{aligned}
+\mathcal R_A(t)
+&\quad\Longleftrightarrow\quad t\text{ 停止},\\
+\mathcal R_{T_1\to T_2}(t)
+&\quad\Longleftrightarrow\quad
+t\text{ 停止，并且对每个 }s:T_1,\
+\mathcal R_{T_1}(s)\text{ 都蕴含 }\mathcal R_{T_2}(t\,s).
+\end{aligned}
+\]
+\end{definition}
+
+这个定义给出了所需的加强归纳假设。我们的主要目标是证明全部程序——即全部
+基本类型的闭项——都停止。然而，基本类型的闭项可能含有函数类型的子项，
+所以还需要知道这些子项的情况。此外，只知道这些子项停止仍不够，因为把已经
+规范化的函数应用于已经规范化的参数会发生替换，从而可能产生更多求值步骤。
+因此，对函数类型的项需要更强的条件：它们不仅自身应当停止，应用于停止的
+参数时还应当产生停止的结果。
+
+定义~\ref{def:12.1.2} 的形式是
+\termfirst{逻辑关系}{logical relation}证明技术的典型形式；这里只处理一元
+关系，严格地说更应称为\termfirst{逻辑谓词}{logical predicate}。若想证明
+基本类型 \(A\) 的全部闭项都具有某项性质 \(P\)，可以对类型作归纳，证明：
+\(A\) 的所有项都具有 \(P\)；\(A\to A\) 的所有项都保持 \(P\)；
+\((A\to A)\to(A\to A)\) 的所有项都保持“保持 \(P\)”这项性质；依此
+类推。具体做法是定义按类型索引的谓词族：在基本类型 \(A\) 上，谓词就是
+\(P\)；在函数类型上，谓词说明函数应当把满足输入类型谓词的值映射为满足
+输出类型谓词的值。
+
+我们用这个定义分两步证明规范化。第一步，观察每个集合
+\(\mathcal R_T\) 的每个元素都可规范化。第二步，证明每个类型为 \(T\) 的
+良类型项都是 \(\mathcal R_T\) 的元素。
+
+第一步直接来自 \(\mathcal R_T\) 的定义。
+
+\begin{lemma}
+\label{lem:12.1.3}
+若 \(\mathcal R_T(t)\)，则 \(t\) 停止。
+\end{lemma}
+
+第二步拆成两个引理。首先，\(\mathcal R_T\) 的成员关系在求值下不变。
+
+\begin{lemma}
+\label{lem:12.1.4}
+若 \(t:T\) 且 \(t\trans t'\)，则
+\(\mathcal R_T(t)\) 当且仅当 \(\mathcal R_T(t')\)。
+\end{lemma}
+
+\begin{proof}
+对类型 \(T\) 的结构作归纳。首先，显然 \(t\) 停止当且仅当 \(t'\) 停止。
+若 \(T=A\)，无需再证。另一方面，设 \(T=T_1\to T_2\)。
+
+对“仅当”方向 \((\Rightarrow)\)，假设 \(\mathcal R_T(t)\)，并任取
+\(s:T_1\) 使 \(\mathcal R_{T_1}(s)\)。由定义，
+\(\mathcal R_{T_2}(t\,s)\)。而 \(t\,s\trans t'\,s\)，于是把关于类型
+\(T_2\) 的归纳假设应用于这一步，得到
+\(\mathcal R_{T_2}(t'\,s)\)。这对任意 \(s\) 都成立，所以由
+\(\mathcal R_T\) 的定义得到 \(\mathcal R_T(t')\)。“当”方向
+\((\Leftarrow)\) 类似。
+\end{proof}
+
+接下来要证明，每个类型为 \(T\) 的项都属于 \(\mathcal R_T\)。这里对类型
+推导作归纳——关于良类型项的证明若完全不在某处对类型推导作归纳，反倒令人
+意外。唯一的技术困难是 lambda 抽象情形。既然是在作归纳，要证明
+\(\lambda x:T_1.\,t_2\) 属于 \(\mathcal R_{T_1\to T_2}\)，自然应当
+使用归纳假设证明 \(t_2\in\mathcal R_{T_2}\)。但
+\(\mathcal R_{T_2}\) 按定义是闭项集合，而 \(t_2\) 可能自由出现 \(x\)，
+所以这种说法没有意义。
+
+解决办法是采用一个标准技巧，适当推广归纳假设：不再只证明涉及闭项的陈述，
+而是覆盖开项 \(t\) 的所有闭实例。
+
+\begin{lemma}
+\label{lem:12.1.5}
+若
+\[
+x_1:T_1,\ldots,x_n:T_n\vdash t:T,
+\]
+且 \(v_1,\ldots,v_n\) 是类型分别为 \(T_1,\ldots,T_n\) 的闭值，并对每个
+\(i\) 都有 \(\mathcal R_{T_i}(v_i)\)，则
+\[
+\mathcal R_T(
+  \taplsubst{x_1}{v_1}{\cdots
+    \taplsubst{x_n}{v_n}{t}\cdots}).
+\]
+\end{lemma}
+
+\begin{proof}
+对 \(x_1:T_1,\ldots,x_n:T_n\vdash t:T\) 的推导作归纳。最有意思的是
+抽象情形。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-Var}：}
+\[
+t=x_i,\qquad T=T_i.
+\]
+立即成立。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-Abs}：}
+\[
+\begin{gathered}
+t=\lambda x:S_1.\,s_2,\qquad
+x_1:T_1,\ldots,x_n:T_n,x:S_1\vdash s_2:S_2,\\
+T=S_1\to S_2.
+\end{gathered}
+\]
+显然，
+\[
+\taplsubst{x_1}{v_1}{\cdots
+  \taplsubst{x_n}{v_n}{t}\cdots}
+\]
+已经是值，因而求值会停止。余下只需证明：任取 \(s:S_1\)，若
+\(\mathcal R_{S_1}(s)\)，则
+\[
+\mathcal R_{S_2}\bigl(
+ (\lambda x:S_1.\,
+   \taplsubst{x_1}{v_1}{\cdots
+    \taplsubst{x_n}{v_n}{s_2}\cdots})\,s\bigr).
+\]
+于是设 \(s\) 是这样的项。由引理~\ref{lem:12.1.3}，存在某个 \(v\)，使
+\(s\transmulti v\)。由引理~\ref{lem:12.1.4}，
+\(\mathcal R_{S_1}(v)\)。现在使用归纳假设，得到
+\[
+\mathcal R_{S_2}\bigl(
+\taplsubst{x_1}{v_1}{\cdots
+ \taplsubst{x_n}{v_n}{
+  \taplsubst{x}{v}{s_2}}\cdots}\bigr).
+\]
+而
+\[
+\begin{aligned}
+&(\lambda x:S_1.\,
+  \taplsubst{x_1}{v_1}{\cdots
+   \taplsubst{x_n}{v_n}{s_2}\cdots})\,s\\
+&\qquad\transmulti
+\taplsubst{x_1}{v_1}{\cdots
+ \taplsubst{x_n}{v_n}{
+  \taplsubst{x}{v}{s_2}}\cdots}.
+\end{aligned}
+\]
+再由引理~\ref{lem:12.1.4} 得到前一个应用项属于
+\(\mathcal R_{S_2}\)。由于 \(s\) 任取，
+\(\mathcal R_{S_1\to S_2}\) 的定义便给出所需结论。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-App}：}
+\[
+\begin{gathered}
+t=t_1\,t_2,\\
+x_1:T_1,\ldots,x_n:T_n\vdash t_1:T_{11}\to T_{12},\\
+x_1:T_1,\ldots,x_n:T_n\vdash t_2:T_{11},\qquad
+T=T_{12}.
+\end{gathered}
+\]
+归纳假设分别给出
+\[
+\mathcal R_{T_{11}\to T_{12}}(
+ \taplsubst{x_1}{v_1}{\cdots\taplsubst{x_n}{v_n}{t_1}\cdots})
+\]
+与
+\[
+\mathcal R_{T_{11}}(
+ \taplsubst{x_1}{v_1}{\cdots\taplsubst{x_n}{v_n}{t_2}\cdots}).
+\]
+由 \(\mathcal R_{T_{11}\to T_{12}}\) 的定义可得二者的应用属于
+\(\mathcal R_{T_{12}}\)，也就是所需结论。
+\end{proof}
+
+现在只需在引理~\ref{lem:12.1.5} 中令 \(t\) 为闭项，再回想每个
+\(\mathcal R_T\) 的元素都可规范化，就得到规范化性质。
+
+\begin{theorem}[规范化]
+\label{thm:12.1.6}
+若 \(\vdash t:T\)，则 \(t\) 可规范化。
+\end{theorem}
+
+\begin{proof}
+由引理~\ref{lem:12.1.5} 得 \(\mathcal R_T(t)\)，再由
+引理~\ref{lem:12.1.3} 得 \(t\) 可规范化。
+\end{proof}
+
+\begin{exercise}[推荐，\(\star\star\star\)]
+\label{ex:12.1.7}
+扩展本章的证明技术，说明简单类型 lambda 演算加入布尔值
+（图~\ref{fig:8-1}）与积（图~\ref{fig:11-5}）之后仍然可规范化。
+\end{exercise}
+
+\section{注记}
+\label{sec:12.2}
+
+理论文献最常把规范化性质表述为采用完全（非确定性）beta 归约之演算的强
+规范化。标准证明方法由 Tait（1967）发明，经 Girard（1972、1989）推广到
+System \(F\)（见\chapref{23}），后来又由 Tait（1975）简化。
+本章的呈现由 Martin Hofmann（私人通信）给出，是把 Tait 的方法改写到按值
+调用系统的版本。逻辑关系证明技术的经典参考文献包括 Howard（1973）、
+Tait（1967）、Friedman（1975）、Plotkin（1973、1980）和 Statman
+（1982、1985a、1985b）。Mitchell（1996）与 Gunter（1992）等语义学教材
+也讨论了这种技术。
+
+规范化技术还导出了求值简单类型项的算法，称为
+\termfirst{以求值实现规范化}{normalization by evaluation}，或
+\termfirst{类型导向的部分求值}{type-directed partial evaluation}
+（Berger，1993；Danvy，1998；另见 Berger 与 Schwichtenberg，1991；
+Filinski，1999、2001；Reynolds，1998a）。
+
+\translatornote{原书称“Tait 的强规范化证明与上述算法精确对应”。作者
+勘误指出，这一说法并不准确：以求值实现规范化对应的是\emph{弱}规范化，
+不能直接与强规范化证明等同。本段据此避免保留原来的等同断言。}

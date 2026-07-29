@@ -1,5 +1,444 @@
 % Chapter 8 — Typed Arithmetic Expressions
 % Source: ../source/split/chapters/ch08-typed-arithmetic-expressions_p089-p097.pdf
 % Original print pages: 91--98
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:8}
+% Status: 待独立初审
+
+\chapter{带类型的算术表达式}
+\label{chap:8}
+
+第~\ref{chap:3}~章曾用一种简单的布尔与算术表达式语言，介绍精确描述语法和
+求值的基本工具。现在我们回到这个简单语言，为它增添静态类型。这里的类型
+系统本身仍然简单得近乎平凡，却很适合用来引入全书将反复出现的概念。
+
+\section{类型}
+\label{sec:8.1}
+
+先回顾算术表达式的语法：
+\[
+\begin{array}{@{}rcll@{}}
+t&::=&\tapltrue&\text{项：常量真}\\
+ &\mid&\taplfalse&\text{常量假}\\
+ &\mid&\taplif{t}{t}{t}&\text{条件表达式}\\
+ &\mid&\taplzero&\text{常量零}\\
+ &\mid&\taplsucc{t}&\text{后继}\\
+ &\mid&\taplpred{t}&\text{前驱}\\
+ &\mid&\tapliszero{t}&\text{零测试}
+\end{array}
+\]
+
+第~\ref{chap:3}~章已经说明，项的求值可能得到一个值
+\[
+\begin{array}{@{}rcll@{}}
+v&::=&\tapltrue&\text{值：真值}\\
+ &\mid&\taplfalse&\text{假值}\\
+ &\mid&nv&\text{数值}\\[2pt]
+nv&::=&\taplzero&\text{数值：零值}\\
+  &\mid&\taplsucc{nv}&\text{后继值}
+\end{array}
+\]
+也可能在某个阶段卡住，例如到达 \(\taplpred{\taplfalse}\)，此时没有任何
+求值规则适用。\footnote{本章研究的是带类型的布尔值与自然数演算
+（见图~\ref{fig:8-2}），相应的 OCaml 实现名为 \texttt{tyarith}。}
+
+卡住的项对应无意义或错误的程序。因此，我们希望不必真正求值，就能判断某个
+项的求值必定不会卡住。为此，需要区分结果为数值的项——只有它们才能作为
+\(\mathsf{pred}\)、\(\mathsf{succ}\) 和 \(\mathsf{iszero}\) 的参数——与
+结果为布尔值的项——只有它们才能充当条件表达式的守卫。我们引入
+\(\tapltype{Nat}\) 和 \(\tapltype{Bool}\) 两种类型，按这种方式对项分类。
+全书将用元变量 \(S,T,U\) 等表示类型。
+
+说“项 \(t\) 具有类型 \(T\)”（或“\(t\) 属于 \(T\)”“\(t\) 是 \(T\)
+的元素”），意指 \(t\) “显然”会求值为形状适当的值。这里的“显然”是指：
+不对 \(t\) 做任何求值，仅凭静态观察即可看出。例如，
+\(\taplif{\tapltrue}{\taplfalse}{\tapltrue}\) 具有类型
+\(\tapltype{Bool}\)，而
+\(\taplpred{(\taplsucc{(\taplpred{(\taplsucc{\taplzero})})})}\)
+具有类型 \(\tapltype{Nat}\)。不过，我们对项的类型分析是保守的，只使用
+静态信息。因此，虽然
+\(\taplif{(\tapliszero{\taplzero})}{\taplzero}{\taplfalse}\)，甚至
+\(\taplif{\tapltrue}{\taplzero}{\taplfalse}\) 的求值事实上都不会卡住，
+我们仍然不能判定它们具有任何类型。
+
+\section{类型关系}
+\label{sec:8.2}
+
+算术表达式的\termfirst{类型关系}{typing relation}写作 \(t:T\)，由一组
+为项指派类型的推导规则定义，汇总于图~\ref{fig:8-1} 和
+图~\ref{fig:8-2}。\footnote{符号 \(\in\) 也经常代替冒号使用。}
+与第~\ref{chap:3}~章一样，我们把布尔值与自然数的规则分列在两幅图中，
+因为后文有时需要分别引用它们。
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.94\linewidth}
+\small
+\[
+\begin{array}{@{}rcll@{}}
+T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}
+\end{array}
+\quad
+\begin{array}{c@{\qquad\qquad}c}
+\inferrule*[right=\textsc{T-True}]{ }{\tapltrue:\tapltype{Bool}}
+&
+\inferrule*[right=\textsc{T-False}]{ }{\taplfalse:\tapltype{Bool}}
+\\[12pt]
+\multicolumn{2}{c}{
+\inferrule*[right=\textsc{T-If}]
+ {t_1:\tapltype{Bool}\\t_2:T\\t_3:T}
+ {\taplif{t_1}{t_2}{t_3}:T}}
+\end{array}
+\]
+\end{minipage}
+\caption{布尔值的类型规则（B）}
+\label{fig:8-1}
+\end{figure}
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.94\linewidth}
+\[
+\begin{array}{@{}rcll@{}}
+T&::=&\cdots&\text{类型}\\
+ &\mid&\tapltype{Nat}&\text{自然数的类型}
+\end{array}
+\qquad
+\begin{array}{c@{\qquad}c}
+\inferrule*[right=\textsc{T-Zero}]{ }{\taplzero:\tapltype{Nat}}
+&
+\inferrule*[right=\textsc{T-Succ}]
+ {t_1:\tapltype{Nat}}{\taplsucc{t_1}:\tapltype{Nat}}
+\\[12pt]
+\inferrule*[right=\textsc{T-Pred}]
+ {t_1:\tapltype{Nat}}{\taplpred{t_1}:\tapltype{Nat}}
+&
+\inferrule*[right=\textsc{T-IsZero}]
+ {t_1:\tapltype{Nat}}{\tapliszero{t_1}:\tapltype{Bool}}
+\end{array}
+\]
+\end{minipage}
+\caption{自然数的类型规则（NB）}
+\label{fig:8-2}
+\end{figure}
+
+图~\ref{fig:8-1} 中的 \textsc{T-True} 和 \textsc{T-False} 把类型
+\(\tapltype{Bool}\) 指派给布尔常量 \(\tapltrue\) 和 \(\taplfalse\)。
+\textsc{T-If} 根据条件表达式各个子表达式的类型，为整个表达式指派类型：
+守卫 \(t_1\) 必须求值为布尔值，\(t_2\) 与 \(t_3\) 则必须求值为同一类型的
+值。规则两次使用同一个元变量 \(T\)，表达了两项约束：条件表达式的结果类型
+就是 then 与 else 分支的类型，并且这个类型可以是任意类型——目前可以是
+\(\tapltype{Nat}\) 或 \(\tapltype{Bool}\)，以后面对类型集合更丰富的演算
+时，也可以是其他类型。
+
+图~\ref{fig:8-2} 中自然数的规则形式相似。\textsc{T-Zero} 为常量
+\(\taplzero\) 指派类型 \(\tapltype{Nat}\)。只要 \(t_1\) 具有类型
+\(\tapltype{Nat}\)，\textsc{T-Succ} 就为 \(\taplsucc{t_1}\) 指派类型
+\(\tapltype{Nat}\)。类似地，\textsc{T-Pred} 与 \textsc{T-IsZero} 说明：
+参数具有类型 \(\tapltype{Nat}\) 时，\(\mathsf{pred}\) 产生
+\(\tapltype{Nat}\)，而 \(\mathsf{iszero}\) 产生 \(\tapltype{Bool}\)。
+
+\begin{definition}
+\label{def:8.2.1}
+形式地说，算术表达式的类型关系是项与类型之间满足图~\ref{fig:8-1} 和
+图~\ref{fig:8-2} 中所有规则实例的最小二元关系。若存在某个 \(T\) 使得
+\(t:T\)，则称项 \(t\) \termfirst{可赋型}{typable}（或
+\termfirst{良类型}{well typed}）。
+\end{definition}
+
+对类型关系进行推理时，我们常会说：“如果形如 \(\taplsucc{t_1}\) 的项
+具有某种类型，那么它必定具有类型 \(\tapltype{Nat}\)。”下面的引理汇集了
+这一类基本事实；每一项都直接来自相应类型规则的形状。
+
+\begin{lemma}[类型关系的反演]
+\label{lem:8.2.2}
+\begin{enumerate}
+  \item 若 \(\tapltrue:R\)，则 \(R=\tapltype{Bool}\)。
+  \item 若 \(\taplfalse:R\)，则 \(R=\tapltype{Bool}\)。
+  \item 若 \(\taplif{t_1}{t_2}{t_3}:R\)，则
+    \(t_1:\tapltype{Bool}\)、\(t_2:R\) 且 \(t_3:R\)。
+  \item 若 \(\taplzero:R\)，则 \(R=\tapltype{Nat}\)。
+  \item 若 \(\taplsucc{t_1}:R\)，则
+    \(R=\tapltype{Nat}\) 且 \(t_1:\tapltype{Nat}\)。
+  \item 若 \(\taplpred{t_1}:R\)，则
+    \(R=\tapltype{Nat}\) 且 \(t_1:\tapltype{Nat}\)。
+  \item 若 \(\tapliszero{t_1}:R\)，则
+    \(R=\tapltype{Bool}\) 且 \(t_1:\tapltype{Nat}\)。
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+由类型关系的定义立即得到。
+\end{proof}
+
+反演引理有时也称为类型关系的\termfirst{生成引理}{generation lemma}：
+给定一个有效的类型陈述，它说明该陈述的证明可能怎样生成。反演引理直接导出
+一个递归算法来计算项的类型，因为它针对每一种句法形式，都告诉我们怎样从
+子项的类型计算整个项的类型（如果存在）。第~\ref{chap:9}~章会详细回到
+这一点。
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:8.2.3}
+证明：良类型项的每个子项都是良类型的。
+\end{exercise}
+
+\S\ref{sec:3.5} 引入了求值推导的概念。类似地，
+\termfirst{类型推导}{typing derivation} 是由类型规则实例构成的树。类型
+关系中的每一对 \((t,T)\) 都有一棵以 \(t:T\) 为结论的类型推导作为依据。
+例如，陈述
+\(\taplif{(\tapliszero{\taplzero})}{\taplzero}
+ {(\taplpred{\taplzero})}:\tapltype{Nat}\)
+的推导树是：
+\[
+\inferrule*[right=\textsc{T-If}]
+ {\inferrule*[right=\textsc{T-IsZero}]
+    {\inferrule*[right=\textsc{T-Zero}]{ }
+      {\taplzero:\tapltype{Nat}}}
+    {\tapliszero{\taplzero}:\tapltype{Bool}}
+  \\
+  \inferrule*[right=\textsc{T-Zero}]{ }
+    {\taplzero:\tapltype{Nat}}
+  \\
+  \inferrule*[right=\textsc{T-Pred}]
+    {\inferrule*[right=\textsc{T-Zero}]{ }
+      {\taplzero:\tapltype{Nat}}}
+    {\taplpred{\taplzero}:\tapltype{Nat}}}
+ {\taplif{(\tapliszero{\taplzero})}{\taplzero}
+   {(\taplpred{\taplzero})}:\tapltype{Nat}}
+\]
+换言之，陈述是关于程序类型的形式断言，类型规则是陈述之间的蕴涵，而推导是
+以类型规则为依据的演绎。
+
+\begin{theorem}[类型的唯一性]
+\label{thm:8.2.4}
+每个项 \(t\) 至多具有一种类型。也就是说，如果 \(t\) 可赋型，它的类型是
+唯一的。此外，用图~\ref{fig:8-1} 和图~\ref{fig:8-2} 中推导规则构造出来
+的这一类型推导也只有一个。
+\end{theorem}
+
+\begin{proof}
+对 \(t\) 作直接的结构归纳。每种情形使用反演引理的相应条目和归纳假设。
+\end{proof}
+
+在本章这个简单类型系统里，每个项只具有一种类型（如果它确实具有类型），
+并且总共只有一棵推导树见证这一事实。以后，这两项性质都会放宽。例如，到
+\chapref{15}讨论带子类型化的类型系统时，同一个项可能具有多种
+类型，而给定项具有给定类型这一陈述通常也可能有多种推导方式。
+
+类型关系的性质常常通过对推导树作归纳来证明，正如求值关系的性质通常通过
+对求值推导作归纳来证明。从下一节开始，我们会看到许多对类型推导作归纳的
+例子。
+
+\section{安全性等于进展性加保持性}
+\label{sec:8.3}
+
+这个类型系统——以及其他任何类型系统——最基本的性质是
+\termfirst{安全性}{safety}（也称\termfirst{可靠性}{soundness}）：
+良类型项不会“出错”。我们已经选定了“出错”的形式含义：到达一个不是最终
+值、求值规则却没有说明下一步该怎么做的“卡住状态”
+（定义~\ref{def:3.5.15}）。因此，我们想知道良类型项不会卡住。证明分为
+两个步骤，通常称为\termfirst{进展性}{progress}定理和
+\termfirst{保持性}{preservation}定理。\footnote{“安全性等于进展性加
+保持性”（并使用一个典范形式引理）这一口号由 Harper 明确提出；Wright 和
+Felleisen（1994）提出了一个变体。}
+
+\begin{description}[style=nextline,leftmargin=2em]
+  \item[进展性] 良类型项不会卡住：它要么是值，要么能按求值规则迈出一步。
+  \item[保持性] 良类型项迈出一步求值后，所得的项仍然是良类型的。
+\end{description}
+
+两项性质合起来告诉我们：良类型项在求值过程中永远不会到达卡住状态。
+
+证明进展性定理之前，先记录关于 \(\tapltype{Bool}\) 与
+\(\tapltype{Nat}\) 的典范形式可能具有何种形状的两个事实；所谓典范形式，
+就是这些类型的良类型值。
+
+\begin{lemma}[典范形式]
+\label{lem:8.3.1}
+\begin{enumerate}
+  \item 若 \(v\) 是类型为 \(\tapltype{Bool}\) 的值，则 \(v\) 是
+    \(\tapltrue\) 或 \(\taplfalse\)。
+  \item 若 \(v\) 是类型为 \(\tapltype{Nat}\) 的值，则 \(v\) 是
+    图~\ref{fig:3-2} 文法所定义的数值。
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+对第 1 项，根据图~\ref{fig:3-1} 和图~\ref{fig:3-2} 的文法，这个语言中
+的值可能具有四种形式：\(\tapltrue\)、\(\taplfalse\)、\(\taplzero\) 和
+\(\taplsucc{nv}\)，其中 \(nv\) 为数值。前两种立即给出所需结论。后两种
+不可能出现，因为已经假定 \(v\) 的类型是 \(\tapltype{Bool}\)，而反演
+引理第 4、5 项告诉我们，\(\taplzero\) 和 \(\taplsucc{nv}\) 只能具有
+类型 \(\tapltype{Nat}\)，不能具有类型 \(\tapltype{Bool}\)。第 2 项
+类似。
+\end{proof}
+
+\begin{theorem}[进展性]
+\label{thm:8.3.2}
+设 \(t\) 是良类型项，即对某个 \(T\) 有 \(t:T\)。那么，\(t\) 要么是值，
+要么存在某个 \(t'\) 使 \(t\trans t'\)。
+\end{theorem}
+
+\begin{proof}
+对 \(t:T\) 的推导作归纳。\textsc{T-True}、\textsc{T-False} 和
+\textsc{T-Zero} 的情形立即成立，因为这些情形下 \(t\) 是值。其余情形
+如下。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-If}：}
+\[
+t=\taplif{t_1}{t_2}{t_3}
+\qquad t_1:\tapltype{Bool}\qquad t_2:T\qquad t_3:T.
+\]
+由归纳假设，\(t_1\) 要么是值，要么存在 \(t_1'\) 使
+\(t_1\trans t_1'\)。若 \(t_1\) 是值，典范形式引理
+（引理~\ref{lem:8.3.1}）保证它必为 \(\tapltrue\) 或
+\(\taplfalse\)，因而 \textsc{E-IfTrue} 或 \textsc{E-IfFalse} 适用于
+\(t\)。另一方面，若 \(t_1\trans t_1'\)，则由 \textsc{E-If}，
+\[
+\taplif{t_1}{t_2}{t_3}\trans\taplif{t_1'}{t_2}{t_3}.
+\]
+
+\medskip\noindent
+\textbf{情形 \rulename{T-Succ}：}
+\[
+t=\taplsucc{t_1}\qquad t_1:\tapltype{Nat}.
+\]
+由归纳假设，\(t_1\) 要么是值，要么存在 \(t_1'\) 使
+\(t_1\trans t_1'\)。若 \(t_1\) 是值，典范形式引理说明它必为数值，
+于是 \(t\) 也是数值。另一方面，若 \(t_1\trans t_1'\)，则由
+\textsc{E-Succ}，\(\taplsucc{t_1}\trans\taplsucc{t_1'}\)。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-Pred}：}
+\[
+t=\taplpred{t_1}\qquad t_1:\tapltype{Nat}.
+\]
+由归纳假设，\(t_1\) 要么是值，要么存在 \(t_1'\) 使
+\(t_1\trans t_1'\)。若 \(t_1\) 是值，典范形式引理说明它必为数值，
+即 \(\taplzero\)，或对某个 \(nv_1\) 为 \(\taplsucc{nv_1}\)；于是
+\textsc{E-PredZero} 或 \textsc{E-PredSucc} 适用于 \(t\)。另一方面，
+若 \(t_1\trans t_1'\)，则由 \textsc{E-Pred}，
+\(\taplpred{t_1}\trans\taplpred{t_1'}\)。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-IsZero}：} 类似。
+\end{proof}
+
+对这个系统来说，求值保持类型的证明也相当直接。
+
+\begin{theorem}[保持性]
+\label{thm:8.3.3}
+若 \(t:T\) 且 \(t\trans t'\)，则 \(t':T\)。
+\end{theorem}
+
+\begin{proof}
+对 \(t:T\) 的推导作归纳。在归纳的每一步，假定所需性质对所有子推导成立
+（即只要 \(s:S\) 是由当前推导的某个子推导证明的，而且
+\(s\trans s'\)，就有 \(s':S\)），再对推导的最后一条规则作分类讨论。
+下面只列出一部分情形；其余类似。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-True}：}
+\[
+t=\tapltrue\qquad T=\tapltype{Bool}.
+\]
+若最后一条规则是 \textsc{T-True}，由规则形状可知 \(t\) 必为常量
+\(\tapltrue\)，\(T\) 必为 \(\tapltype{Bool}\)。但 \(t\) 是值，所以对
+任何 \(t'\) 都不可能有 \(t\trans t'\)；定理要求因此空泛成立。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-If}：}
+\[
+t=\taplif{t_1}{t_2}{t_3}
+\qquad t_1:\tapltype{Bool}\qquad t_2:T\qquad t_3:T.
+\]
+查看左端为条件表达式的求值规则（图~\ref{fig:3-1}），发现
+\(t\trans t'\) 可能由三条规则导出：\textsc{E-IfTrue}、
+\textsc{E-IfFalse} 与 \textsc{E-If}。分别讨论如下；省略与
+\textsc{E-IfTrue} 类似的 \textsc{E-IfFalse} 情形。
+
+\smallskip\noindent
+\emph{子情形 \rulename{E-IfTrue}：}
+\(t_1=\tapltrue\) 且 \(t'=t_2\)。由 \textsc{T-If} 情形的假设已经知道
+\(t_2:T\)，即 \(t':T\)，所以证明完成。
+
+\smallskip\noindent
+\emph{子情形 \rulename{E-If}：}
+对某个 \(t_1'\)，有 \(t_1\trans t_1'\) 且
+\(t'=\taplif{t_1'}{t_2}{t_3}\)。原类型推导包含结论为
+\(t_1:\tapltype{Bool}\) 的子推导。把归纳假设用于它，得到
+\(t_1':\tapltype{Bool}\)。再结合 \(t_2:T\) 与 \(t_3:T\)，由
+\textsc{T-If} 得
+\(\taplif{t_1'}{t_2}{t_3}:T\)，即 \(t':T\)。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-Zero}：}
+\[
+t=\taplzero\qquad T=\tapltype{Nat}.
+\]
+不可能发生，理由与上面的 \textsc{T-True} 情形相同。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-Succ}：}
+\[
+t=\taplsucc{t_1}\qquad T=\tapltype{Nat}\qquad
+t_1:\tapltype{Nat}.
+\]
+检查图~\ref{fig:3-2} 的求值规则可知，只有 \textsc{E-Succ} 能导出
+\(t\trans t'\)。由其形状，对某个 \(t_1'\) 有
+\(t_1\trans t_1'\) 且 \(t'=\taplsucc{t_1'}\)。又因
+\(t_1:\tapltype{Nat}\)，由归纳假设得
+\(t_1':\tapltype{Nat}\)，再用 \textsc{T-Succ} 得
+\(\taplsucc{t_1'}:\tapltype{Nat}\)，即 \(t':T\)。
+\end{proof}
+
+\begin{exercise}[\(\star\star\star\)]
+\label{ex:8.3.4}
+重组上述证明，使其对求值推导而非类型推导作归纳。
+\end{exercise}
+
+保持性定理常称为\termfirst{主体归约}{subject reduction}（或
+\termfirst{主体求值}{subject evaluation}）。其直觉是把类型陈述 \(t:T\)
+看成句子“\(t\) 具有类型 \(T\)”；项 \(t\) 是这个句子的主体，而主体归约
+性质说明：对主体进行归约时，句子的真实性得以保持。
+
+类型的唯一性在一些类型系统中成立，在另一些系统中不成立；相比之下，进展性
+与保持性将是本书所考察的所有类型系统的基本要求。\footnote{有些语言不满足
+这些性质，却仍然可以视为类型安全。例如，若采用小步风格形式化 Java 的操作
+语义（Flatt、Krishnamurthi 和 Felleisen，1998a；Igarashi、Pierce 和
+Wadler，1999），这里给出的保持性形式会失效（详见\chapref{19}）。
+不过，这应视为形式化方式造成的现象，而不是语言本身的缺陷；例如改用大步
+语义呈现时，它便会消失。}
+
+\begin{exercise}[\(\star\)]
+\label{ex:8.3.5}
+求值规则 \textsc{E-PredZero}（图~\ref{fig:3-2}）有些违反直觉：我们可能
+觉得零的前驱应当没有定义，而不是定义为零。只需从单步求值的定义中删去这条
+规则，就能达到这个目的吗？
+\end{exercise}
+
+\begin{exercise}[推荐，\(\star\star\)]
+\label{ex:8.3.6}
+看到主体归约性质之后，自然会问相反的性质——
+\termfirst{主体扩张}{subject expansion}——是否也成立。若
+\(t\trans t'\) 且 \(t':T\)，是否总有 \(t:T\)？若是，请证明；若不是，
+请给出反例。
+\end{exercise}
+
+\begin{exercise}[推荐，\(\star\star\star\)]
+\label{ex:8.3.7}
+假设求值关系采用练习~\ref{ex:3.5.17} 那样的大步风格定义。类型安全性的
+直觉性质应如何形式化？
+\end{exercise}
+
+\begin{exercise}[推荐，\(\star\star\star\)]
+\label{ex:8.3.8}
+假设按照练习~\ref{ex:3.5.16}，在求值关系中加入把无意义项归约到显式
+\(\taplwrong\) 状态的规则。此时类型安全性又应如何形式化？
+\end{exercise}
+
+\bilingualepigraph
+  {从无类型宇宙通向有类型宇宙的道路，已在许多不同领域走过许多次，
+   而且大体都是出于同样的理由。}
+  {The road from untyped to typed universes has been followed many times,
+   in many different fields, and largely for the same reasons.}
+  {Luca Cardelli 与 Peter Wegner（1985）}

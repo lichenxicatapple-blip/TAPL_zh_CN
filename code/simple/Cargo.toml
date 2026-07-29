@@ -1,0 +1,18 @@
+[package]
+name = "tapl-simple"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Rust companion implementation for TAPL Chapters 8 through 14"
+
+[lib]
+name = "tapl_simple"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tapl-simple"
+path = "src/main.rs"
+
+[lints]
+workspace = true

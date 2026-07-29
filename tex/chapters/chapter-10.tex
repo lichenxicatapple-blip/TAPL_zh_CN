@@ -1,5 +1,169 @@
 % Chapter 10 — An ML Implementation of Simple Types
 % Source: ../source/split/chapters/ch10-ml-simple-types_p113-p116.pdf
 % Original print pages: 113--116
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:10}
+% Status: 待独立初审
+
+\chapter{简单类型的 ML 实现}
+\label{chap:10}
+
+把 \(\lambda_{\to}\) 具体实现为 ML 程序，所遵循的思路与第~\ref{chap:7}~章
+实现无类型 lambda 演算时相同。主要增加的是函数 \texttt{typeof}，它在给定
+上下文中计算给定项的类型。不过在介绍它之前，还需要一些操纵上下文的底层
+机制。
+
+\translatornote{原书的 OCaml 程序完整保留在正文中。本译本另在
+\texttt{code/simple/} 提供第 8--14 章语言机制的 Rust 参考实现；其中与
+本章直接对应的部分包括简单类型、带类型 de Bruijn 项、上下文查询、类型
+检查和小步求值。该工程与作者工具之间的具体语法差异和验证范围，见该目录的
+README。}
+
+\section{上下文}
+\label{sec:10.1}
+
+回想第~\ref{chap:7}~章，上下文就是变量名与绑定之对组成的列表：
+\begin{lstlisting}
+type context = (string * binding) list
+\end{lstlisting}
+
+在第~\ref{chap:7}~章中，上下文只用于解析和打印时在项的有名形式与无名形式
+之间转换。为此，只需知道变量的名字；\texttt{binding} 类型被定义成一个
+只有单个构造子的平凡数据类型，不携带任何信息：
+\begin{lstlisting}
+type binding = NameBind
+\end{lstlisting}
+
+实现类型检查器时，需要用上下文携带关于变量的类型假设。因此，我们为
+\texttt{binding} 类型加入一个名为 \texttt{VarBind} 的新构造子：
+\begin{lstlisting}
+type binding =
+    NameBind
+  | VarBind of ty
+\end{lstlisting}
+\footnote{这里描述的实现对应带布尔值（图~\ref{fig:8-1}）的简单类型
+lambda 演算（图~\ref{fig:9-1}）。本章代码可在作者网站仓库的
+\texttt{simplebool} 实现中找到。}
+
+每个 \texttt{VarBind} 构造子都携带相应变量的类型假设。旧的
+\texttt{NameBind} 仍然保留，供不关心类型假设的打印和解析函数使用。
+（另一种实现策略是定义两套完全不同的上下文类型：一套用于解析和打印，
+另一套用于类型检查。）
+
+\texttt{typeof} 使用 \texttt{addbinding} 函数，把新的变量绑定
+\texttt{(x,bind)} 加入上下文 \texttt{ctx}。上下文由列表表示，所以
+\texttt{addbinding} 实质上就是列表的 cons 操作：
+\begin{lstlisting}
+let addbinding ctx x bind = (x,bind)::ctx
+\end{lstlisting}
+
+反过来，函数 \texttt{getTypeFromContext} 从上下文 \texttt{ctx} 中提取
+与特定变量 \texttt{i} 关联的类型假设。若 \texttt{i} 越界，则使用文件
+位置信息 \texttt{fi} 打印错误消息：
+\begin{lstlisting}
+let getTypeFromContext fi ctx i =
+  match getbinding fi ctx i with
+      VarBind(tyT) -> tyT
+    | _ -> error fi
+      ("getTypeFromContext: Wrong kind of binding for variable "
+      ^ (index2name fi ctx i))
+\end{lstlisting}
+
+这个模式匹配还提供了一项内部一致性检查：正常情况下，调用
+\texttt{getTypeFromContext} 时，上下文中的第 \texttt{i} 个绑定应当确实
+是 \texttt{VarBind}。不过，后续章节会加入其他形式的绑定，特别是类型变量
+的绑定；届时可能用错误种类的变量调用 \texttt{getTypeFromContext}。在这种
+情况下，它使用底层的 \texttt{error} 函数打印消息，并传入一个
+\texttt{info}，以便报告错误发生的文件位置。
+\begin{lstlisting}
+val error : info -> string -> 'a
+\end{lstlisting}
+
+\texttt{error} 的结果类型是\emph{类型变量} \texttt{'a}，可以实例化为
+任意 ML 类型。这是合理的，因为该函数无论如何也不会返回：它打印消息后便
+终止程序。这里必须假定 \texttt{error} 的结果是 \texttt{ty}，因为模式
+匹配的另一分支返回的正是 \texttt{ty}。
+
+注意，类型假设是按索引查找的，因为项在内部采用无名形式表示，变量表示为
+数字索引。函数 \texttt{getbinding} 只是查找给定上下文中的第
+\texttt{i} 个绑定：
+\begin{lstlisting}
+val getbinding : info -> context -> int -> binding
+\end{lstlisting}
+其定义可在本书网站的 \texttt{simplebool} 实现中找到。
+
+\section{项与类型}
+\label{sec:10.2}
+
+类型语法直接从图~\ref{fig:8-1} 与图~\ref{fig:9-1} 的抽象语法转写为
+ML 数据类型：
+\begin{lstlisting}
+type ty =
+    TyBool
+  | TyArr of ty * ty
+\end{lstlisting}
+
+项的表示与无类型 lambda 演算所用的形式相同，只是在
+\texttt{TmAbs} 分支中加入类型标注：
+\begin{lstlisting}
+type term =
+    TmTrue of info
+  | TmFalse of info
+  | TmIf of info * term * term * term
+  | TmVar of info * int * int
+  | TmAbs of info * string * ty * term
+  | TmApp of info * term * term
+\end{lstlisting}
+
+\section{类型检查}
+\label{sec:10.3}
+
+类型检查函数 \texttt{typeof} 可以看作 \(\lambda_{\to}\) 类型规则
+（图~\ref{fig:8-1} 与图~\ref{fig:9-1}）的直接翻译；更准确地说，它是反演
+引理~\ref{lem:9.3.1} 的转写。后一种说法更准确，是因为反演引理针对每一种
+句法形式，精确说明这种形式的项成为良类型项必须满足什么条件。类型规则只
+说明特定形式的项在特定条件下是良类型的；单看一条类型规则，永远不能断定
+某个项不是良类型的，因为总可能有另一条规则能为这个项赋型。（目前这看起来
+也许只是没有实质区别的措辞差异，因为反演引理直接来自类型规则。但在后面的
+系统中，证明反演引理会比在 \(\lambda_{\to}\) 中费力得多，这项区别便会
+变得重要。）
+
+\begin{lstlisting}
+let rec typeof ctx t =
+  match t with
+    TmTrue(fi) ->
+      TyBool
+  | TmFalse(fi) ->
+      TyBool
+  | TmIf(fi,t1,t2,t3) ->
+      if (=) (typeof ctx t1) TyBool then
+        let tyT2 = typeof ctx t2 in
+        if (=) tyT2 (typeof ctx t3) then tyT2
+        else error fi "arms of conditional have different types"
+      else error fi "guard of conditional not a boolean"
+  | TmVar(fi,i,_) ->
+      getTypeFromContext fi ctx i
+  | TmAbs(fi,x,tyT1,t2) ->
+      let ctx' = addbinding ctx x (VarBind(tyT1)) in
+      let tyT2 = typeof ctx' t2 in
+      TyArr(tyT1, tyT2)
+  | TmApp(fi,t1,t2) ->
+      let tyT1 = typeof ctx t1 in
+      let tyT2 = typeof ctx t2 in
+      (match tyT1 with
+         TyArr(tyT11,tyT12) ->
+           if (=) tyT2 tyT11 then tyT12
+           else error fi "parameter type mismatch"
+       | _ -> error fi "arrow type expected")
+\end{lstlisting}
+
+这里有两个 OCaml 细节值得一提。第一，等号运算符 \texttt{=} 被写在括号中，
+因为这里把它放在前缀位置使用，而不是通常的中缀位置。这样更方便与后续版本的
+\texttt{typeof} 比较；到那时，比较类型需要比简单相等更精细的操作。
+
+第二，等号运算符计算复合值的结构相等，而不是指针相等。也就是说：
+\begin{lstlisting}
+let t = TmApp(t1,t2) in
+let t' = TmApp(t1,t2) in
+(=) t t'
+\end{lstlisting}
+保证得到 \texttt{true}，尽管绑定到 \texttt{t} 与 \texttt{t'} 的两个
+\texttt{TmApp} 实例在不同时刻分配，位于不同的内存地址。
