@@ -16,10 +16,25 @@
 \newcommand{\SystemF}{\ensuremath{\mathrm{F}}}
 \newcommand{\SystemFomega}{\ensuremath{\mathrm{F}_{\omega}}}
 \newcommand{\SystemFomegasub}{\ensuremath{\mathrm{F}_{\omega<:}}}
+\newtcolorbox{tapltranslatornotebox}{
+  breakable,
+  colback=TAPLTranslatorNoteBackground,
+  colframe=TAPLTranslatorNoteBorder,
+  boxrule=0.35pt,
+  arc=1pt,
+  boxsep=0pt,
+  left=8pt,
+  right=8pt,
+  top=7pt,
+  bottom=7pt,
+  before skip=8pt plus 2pt minus 2pt,
+  after skip=8pt plus 2pt minus 2pt,
+  fontupper=\footnotesize
+}
 \newcommand{\translatornote}[1]{%
-  \par\smallskip
-  \noindent{\footnotesize\textbf{译者注：}#1\par}
-  \smallskip
+  \begin{tapltranslatornotebox}
+    \textbf{译者注：}#1
+  \end{tapltranslatornotebox}
 }
 \newcommand{\bilingualepigraph}[3]{%
   \begin{flushright}
