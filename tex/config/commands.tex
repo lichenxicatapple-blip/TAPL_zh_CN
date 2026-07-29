@@ -16,6 +16,24 @@
 \newcommand{\SystemF}{\ensuremath{\mathrm{F}}}
 \newcommand{\SystemFomega}{\ensuremath{\mathrm{F}_{\omega}}}
 \newcommand{\SystemFomegasub}{\ensuremath{\mathrm{F}_{\omega<:}}}
+\newcommand{\translatornote}[1]{%
+  \par\smallskip
+  \noindent{\footnotesize\textbf{译者注：}#1\par}
+  \smallskip
+}
+\newcommand{\bilingualepigraph}[3]{%
+  \begin{flushright}
+    \begin{minipage}{0.82\textwidth}
+      \itshape
+      #1\par
+      \smallskip
+      {\small #2\par}
+      \medskip
+      \raggedleft
+      #3\par
+    \end{minipage}
+  \end{flushright}
+}
 \newcommand{\chapref}[1]{%
   \ifcsname r@chap:#1\endcsname
     \hyperref[chap:#1]{第~\ref*{chap:#1}~章}%

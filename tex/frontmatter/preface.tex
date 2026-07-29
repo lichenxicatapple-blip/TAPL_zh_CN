@@ -1,7 +1,7 @@
 % Preface
 % Local source: ../source/split/frontmatter/03-preface_p005-p016.pdf
 % Original print pages: xiii--xxi
-% Status: 修订中
+% Status: 独立复核
 
 \begingroup
 \renewcommand{\thefigure}{P-\arabic{figure}}
@@ -34,23 +34,25 @@
 
 第二个主要目标是注重\textbf{实用}。本书集中讨论类型系统在程序语言中的
 应用，为此舍弃了一些在更偏数学的带类型 lambda 演算教材中很可能会出现的
-主题，例如指称语义。全书底层的计算模型采用按值调用的 lambda 演算；它与
-当今大多数程序语言相契合，也很容易在此基础上加入引用、异常等会影响程序
-状态或执行流程的语言机制。对于每一种语言特性，我们主要关心的是：考虑这一
-特性的\emph{实际动机}；证明包含这一特性的语言具有\emph{安全性}所需的
-技术；以及它所引出的\emph{实现问题}，尤其是类型检查算法的设计与分析。
+主题，例如指称语义。全书底层的计算模型采用按值调用（call-by-value）的
+lambda 演算；它与当今大多数程序语言相契合，也很容易在此基础上加入引用、
+异常等会影响程序状态或执行流程的语言机制。对于每一种语言特性，我们主要
+关心的是：考虑这一特性的\emph{实际动机}；证明包含这一特性的语言具有
+\emph{安全性}所需的技术；以及它所引出的\emph{实现问题}，尤其是类型检查
+算法的设计与分析。
 
 另一个目标是尊重本领域的\textbf{多样性}。本书覆盖了许多单独的主题和若干
 已经得到充分理解的组合，但并不试图把所有内容统一到一个系统之中。对于其中
-一些主题的子集，人们已经给出了统一的表述；例如，\emph{纯类型系统}可以用
-统一的记法优雅而紧凑地处理多种“箭头类型”。然而，整个领域的发展仍然太快，
-尚不足以得到完整的系统化整理。
+一些主题的子集，人们已经给出了统一的表述。例如，\emph{纯类型系统（pure
+type system）}采用统一的记法，可以优雅而紧凑地处理多种广义函数类型
+（原文称“arrow types”）。然而，整个领域的发展仍然太快，尚不足以得到
+完整的系统化整理。
 
 无论用于课堂教学还是自学，本书都力求\textbf{便于使用}。书中为大多数练习
 给出了完整解答。核心定义被组织成自包含的图，便于查阅。概念与系统之间的
 依赖关系也尽可能明确地标示出来。此外，本书还配有详尽的参考文献和索引。
 
-最后一项组织原则是\textbf{诚实}。除少数仅顺带提及的系统外，本书讨论的
+最后一项组织原则是\textbf{求实}。除少数仅顺带提及的系统外，本书讨论的
 所有系统都有实现。每章都配有类型检查器和解释器，用来对示例进行机械检查。
 这些实现可以从本书网站获得，可用于编程练习、扩展实验和规模更大的课程项目。
 
@@ -70,15 +72,17 @@
 的算术表达式，以较为平缓的方式引入类型安全性这一核心思想；另有一章为
 选读内容，使用 Tait 方法证明简单类型 lambda 演算的规范化性质。第三部分
 讨论子类型化这一基本机制，其中包括对元理论的详细研究和两个篇幅较长的案例
-研究。第四部分讨论递归类型，涵盖较简单的\emph{同构递归}形式和更为棘手的
-\emph{等递归}形式。本部分两章中的第二章在余归纳这一数学框架下，研究一个
-包含等递归类型和子类型化的系统的元理论。第五部分转向多态：先讨论 ML 风格
-的类型重构，
-再讨论 \SystemF{} 中能力更强的非直谓多态、存在量化及其与抽象数据类型的
-联系，最后讨论在带有有界量化的系统中如何组合多态与子类型化。第六部分讨论
-类型算子：第一章介绍基本概念；第二章展开 \SystemFomega{} 及其元理论；
-第三章把类型算子与有界量化结合起来，得到 \SystemFomegasub{}；最后一章
-以一个收束全书的案例研究作结。
+研究。第四部分讨论递归类型，涵盖较简单的
+\emph{同构递归（iso-recursive）}形式和更为棘手的
+\emph{等递归（equi-recursive）}形式。本部分两章中的第二章在
+余归纳（coinduction）这一数学框架下，研究一个包含等递归类型和子类型化的
+系统的元理论。第五部分转向多态：先讨论 ML 风格的类型重构，再讨论
+System \SystemF{} 中的非直谓多态（impredicative polymorphism），其表达
+能力强于前述 ML 风格的多态；接着讨论存在量化及其与抽象数据类型的联系，
+最后讨论在带有有界量化的系统中如何组合多态与子类型化。第六部分讨论类型
+算子：第一章介绍基本概念；第二章展开 \SystemFomega{} 及其元理论；第三章
+把类型算子与有界量化结合起来，得到 \SystemFomegasub{}；最后一章以一个
+收束全书的案例研究作结。
 
 各章之间的主要依赖关系如\cref{fig:preface-dependencies}所示。灰色箭头
 表示后面的章节中只有一部分依赖前面的章节。
@@ -109,9 +113,10 @@
 的方法被完全略去；这些方法已经有优秀的专著介绍，而且在这里讨论它们会
 削弱本书鲜明的实用取向和实现取向。类型系统与逻辑之间丰富的联系在少数
 地方有所提示，但没有详细展开；它们虽然重要，却会把讨论带得太远。许多
-程序语言和类型系统的高级特性也只是顺带提及，例如依赖类型、交类型和
-Curry--Howard 对应；书中关于这些主题的简短小节可以作为进一步阅读的
-起点。最后，除了对一个类似 Java 的核心语言所作的短暂考察
+程序语言和类型系统的高级特性也只是顺带提及，例如依赖类型、
+交类型（intersection type）和 Curry--Howard 对应；书中关于这些主题的
+简短小节可以作为进一步阅读的起点。最后，除了对一个类似 Java 的核心语言
+所作的短暂考察
 （\chapref{19}）之外，本书完全集中于基于 lambda 演算的系统。不过，在
 这一环境下发展出的概念和机制，可以直接迁移到带类型的并发语言、类型化
 汇编语言和专用对象演算等相关领域。
@@ -122,12 +127,12 @@ Curry--Howard 对应；书中关于这些主题的简短小节可以作为进一
 尤其应系统而严谨地学习过本科层次的离散数学、算法和初等逻辑课程。
 
 读者应熟悉至少一种高阶函数式程序设计语言（Scheme、ML、Haskell 等），
-并掌握程序语言与编译器的基本概念，例如抽象语法、BNF 文法、求值和抽象机。
-许多优秀的本科教材都介绍了这些材料；我尤其喜欢 Friedman、Wand 和
-Haynes 的 \emph{Essentials of Programming Languages}（2001），以及
-Scott 的 \emph{Programming Language Pragmatics}（1999）。在若干章节中，
-具有 Java（Arnold 和 Gosling，1996）等面向对象语言的使用经验也会有所
-帮助。
+并掌握程序语言与编译器的基本概念，例如抽象语法、BNF 文法、求值和
+抽象机（abstract machine）。许多优秀的本科教材都介绍了这些材料；我尤其
+喜欢 Friedman、Wand 和 Haynes 的
+\emph{Essentials of Programming Languages}（2001），以及 Scott 的
+\emph{Programming Language Pragmatics}（1999）。在若干章节中，具有
+Java（Arnold 和 Gosling，1996）等面向对象语言的使用经验也会有所帮助。
 
 具体实现类型检查器的章节给出了相当数量的 OCaml（亦称 Objective Caml）
 代码片段。OCaml 是 ML 的一种流行方言。事先了解 OCaml 有助于阅读这些
@@ -135,13 +140,10 @@ Scott 的 \emph{Programming Language Pragmatics}（1999）。在若干章节中�
 首次出现时加以解释。这些章节形成了一条与全书其余部分相对独立的线索；
 读者如果愿意，也可以将其全部跳过。
 
-\begin{quote}
-\small
-\noindent\textbf{译者注：}原书的程序实现采用 OCaml。本译本保留原书的
-OCaml 代码及相关说明，并将在配套代码工程中，按章提供与书中语法、求值规则
-和类型检查算法相对应的 Rust 参考实现。Rust 版本属于译者增补材料，不替代
-原书实现；所提供的版本将经过编译和测试，并在各章标明其实现范围和验证状态。
-\end{quote}
+\translatornote{原书的程序实现采用 OCaml。本译本保留原书的 OCaml 代码及
+相关说明，并将在配套代码工程中，按章提供与书中语法、求值规则和类型检查
+算法相对应的 Rust 参考实现。Rust 版本属于译者增补材料，不替代原书实现；
+所提供的版本将经过编译和测试，并在各章标明其实现范围和验证状态。}
 
 目前最好的 OCaml 教材是 Cousineau 和 Mauny 的著作（1998）。OCaml
 发行版附带的教程材料也很容易阅读，可从
@@ -194,7 +196,7 @@ Ullman（1997）的著作。
     23 & \SystemFomega{} 的元理论 & 30 \\
     24 & 高阶子类型化 & 31 \\
     25 & 纯函数式对象 & 32 \\
-    26 & 机动课 & \\
+    26 & 预留课时 & \\
     \bottomrule
   \end{tabularx}
   \caption{高级研究生课程示例大纲}
@@ -213,8 +215,8 @@ Ullman（1997）的著作。
 本书也适合用作更一般的程序语言理论研究生课程的主教材。这类课程可以用
 半个到三分之二个学期学习本书的大部分内容，把剩余时间用于其他教学单元，
 例如：基于 Milner 的 $\pi$ 演算著作（1999）讨论并发理论；介绍 Hoare
-逻辑和公理语义（例如 Winskel，1993）；或者概览续延、模块系统等高级语言
-特性。
+逻辑和公理语义（例如 Winskel，1993）；或者概览续延（continuation）、
+模块系统等高级语言特性。
 
 如果课程十分重视学期项目，可以推迟讲授部分理论材料，例如规范化，或许
 还有若干元理论章节。这样，学生在选择项目主题之前就能接触更为广泛的示例。
@@ -320,36 +322,22 @@ MIT Press 的 Bob Prior 及其团队专业地引导书稿完成了出版过程�
 
 \clearpage
 \vspace*{\fill}
-\begin{flushright}
-  \begin{minipage}{0.78\textwidth}
-    \itshape
-    程序证明太过乏味，数学共同体赖以检验证明的社会性机制无法在这里运作。
+\bilingualepigraph
+  {程序证明太过乏味，数学共同体赖以检验证明的社会性机制无法在这里运作。}
+  {Proofs of programs are too boring for the social process of mathematics
+   to work.}
+  {——Richard DeMillo、Richard Lipton 和 Alan Perlis，1979}
 
-    \raggedleft
-    ——Richard DeMillo、Richard Lipton 和 Alan Perlis，1979
-  \end{minipage}
-\end{flushright}
+\bilingualepigraph
+  {……所以，验证就不应依赖这种社会性机制。}
+  {\ldots{} So don't rely on social processes for verification.}
+  {——David Dill，1999}
 
-\begin{flushright}
-  \begin{minipage}{0.78\textwidth}
-    \itshape
-    ……所以，验证就不应依赖这种社会性机制。
-
-    \raggedleft
-    ——David Dill，1999
-  \end{minipage}
-\end{flushright}
-
-\begin{flushright}
-  \begin{minipage}{0.78\textwidth}
-    \itshape
-    只有当不理解形式化方法的人也能使用它们时，形式化方法才会产生重大
-    影响。
-
-    \raggedleft
-    ——据传为 Tom Melham 所言
-  \end{minipage}
-\end{flushright}
+\bilingualepigraph
+  {只有当不理解形式化方法的人也能使用它们时，形式化方法才会产生重大影响。}
+  {Formal methods will never have a significant impact until they can be used
+   by people that don't understand them.}
+  {——据传为 Tom Melham 所言}
 \vspace*{\fill}
 
 \endgroup
