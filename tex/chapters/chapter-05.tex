@@ -1,5 +1,1126 @@
 % Chapter 5 — The Untyped Lambda-Calculus
 % Source: ../source/split/chapters/ch05-untyped-lambda-calculus_p058-p076.pdf
 % Original print pages: 51--74
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:5}
+% Status: 自检中
+
+\chapter{无类型 lambda 演算}
+\label{chap:5}
+
+本章回顾无类型 lambda 演算（也称纯 lambda 演算）的定义与若干基本性质。
+它是本书后续大多数类型系统底层的“计算基质”。
+
+20 世纪 60 年代中期，Peter Landin 指出，要理解一种复杂程序语言，可以把
+它表述为一个捕捉语言本质机制的微型核心演算，再配上一组便利的派生形式；
+这些派生形式的行为通过把它们翻译到核心中来理解（Landin，1964、1965、
+1966；另见 Tennent，1981）。Landin 使用的核心语言是 lambda 演算——
+Alonzo Church 在 20 世纪 20 年代发明的一套形式系统（Church，1936、
+1941），其中所有计算都归结为函数定义与函数应用两种基本操作。继 Landin
+的洞见以及 John McCarthy 关于 Lisp 的开创性工作（1959、1981）之后，
+lambda 演算被广泛用于程序语言特性的规约、语言设计与实现，以及类型系统
+研究。它的重要性来自双重身份：既是一种可以描述计算的简单程序语言，又是
+一个能够对其作出严格数学论断的数学对象。
+
+用于类似目的的核心演算很多，lambda 演算只是其中之一。Milner、Parrow 和
+Walker 的 \(\pi\) 演算（1992、1991）已经成为定义基于消息的并发语言语义
+的一种常用核心语言；Abadi 和 Cardelli 的对象演算（1996）则提炼了面向
+对象语言的核心特性。我们为 lambda 演算发展的大多数概念和技术，都能相当
+直接地迁移到这些演算。第 19 章会展开一个这样的案例研究。
+\footnote{本章示例或者属于纯无类型 lambda 演算 \(\lambda\)
+（图~\ref{fig:5-3}），或者属于用布尔值与算术运算扩展后的
+\(\lambda_{\mathcal{NB}}\)（图~\ref{fig:3-2}）。相应的 OCaml 实现是
+\texttt{fulluntyped}。}
+
+lambda 演算可以从许多方向加以丰富。首先，对于数字、元组、记录等已经能在
+核心语言中模拟的特性，加入专门的具体语法常常更方便。更有意思的是，还可以
+加入可变引用单元、非局部异常处理等更复杂的特性；它们只有借助相当繁重的
+翻译才能在核心语言中模拟。这类扩展最终会形成 ML（Gordon、Milner 和
+Wadsworth，1979；Milner、Tofte 和 Harper，1990；Weis、Aponte、Laville、
+Mauny 和 Suárez，1989；Milner、Tofte、Harper 和 MacQueen，1997）、
+Haskell（Hudak 等，1992）或 Scheme（Sussman 和 Steele，1975；Kelsey、
+Clinger 和 Rees，1998）这样的语言。后面各章会看到，核心语言的扩展往往
+也伴随着类型系统的扩展。
+
+\section{基础}
+\label{sec:5.1}
+
+\termfirst{过程抽象}{procedural abstraction}（或函数抽象）是几乎所有程序
+语言的关键特性。我们不必一遍遍写同一项计算，而是写一个过程或函数，用一个
+或多个具名参数对计算作一般描述，再按需实例化该函数，每次为参数提供具体值。
+例如，程序员会很自然地把冗长重复的表达式
+\[
+ (5*4*3*2*1)+(7*6*5*4*3*2*1)-(3*2*1)
+\]
+改写为
+\[
+ \mathit{factorial}(5)+\mathit{factorial}(7)-\mathit{factorial}(3),
+\]
+其中
+\[
+ \mathit{factorial}(n)
+ =\mathsf{if}\ n=0\ \mathsf{then}\ 1\
+  \mathsf{else}\ n*\mathit{factorial}(n-1).
+\]
+
+对每个非负数 \(n\)，用参数 \(n\) 实例化函数 \(\mathit{factorial}\)，
+就得到 \(n\) 的阶乘。如果用“\(\lambda n.\,\ldots\)”简写“对每个 \(n\)
+都产生……的函数”，就可以把定义重写成
+\[
+ \mathit{factorial}
+ =\lambda n.\,
+  \mathsf{if}\ n=0\ \mathsf{then}\ 1\
+  \mathsf{else}\ n*\mathit{factorial}(n-1).
+\]
+于是 \(\mathit{factorial}(0)\) 的意思是“把函数
+\(\lambda n.\,\mathsf{if}\ n=0\ \mathsf{then}\ 1\ \mathsf{else}\ldots\)
+应用于参数 \(0\)”；也就是“在函数体
+\(\mathsf{if}\ n=0\ \mathsf{then}\ 1\ \mathsf{else}\ldots\) 中，用 \(0\)
+替换参数变量 \(n\) 后得到的值”；也就是
+\(\mathsf{if}\ 0=0\ \mathsf{then}\ 1\ \mathsf{else}\ldots\)；也就是 \(1\)。
+
+lambda 演算（或 \(\lambda\) 演算）以最纯粹的形式体现这种函数定义与应用。
+在 lambda 演算中，一切都是函数：函数接受的参数本身是函数，返回的结果仍是
+函数。
+
+lambda 演算的语法只有三类项。\footnote{“lambda 项”泛指 lambda 演算中的
+任意项；以 \(\lambda\) 开头的 lambda 项常称为 lambda 抽象。} 变量 \(x\)
+本身是项；从项 \(t_1\) 中抽象出变量 \(x\)，写作 \(\lambda x.\,t_1\)，
+也是项；把项 \(t_1\) 应用于另一个项 \(t_2\)，写作 \(t_1\,t_2\)，仍是项。
+这三种构造方式概括为：
+\[
+\begin{array}{@{}rcll@{}}
+ t&::=&x&\text{项：变量}\\
+  &\mid&\lambda x.\,t&\text{抽象}\\
+  &\mid&t\ t&\text{应用}
+\end{array}
+\]
+下面几个小节讨论这个定义中的一些细节。
+
+\subsection*{抽象语法与具体语法}
+
+讨论程序语言语法时，把结构分成两个层次很有用。\footnote{完整语言的定义
+有时使用更多层次。例如，沿用 Landin 的思路，常把某些语言构造定义为
+\termfirst{派生形式}{derived form}，通过翻译成其他更基本特性的组合来规定
+其行为。只包含这些核心特性的受限子语言称为
+\termfirst{内部语言}{internal language, IL}，包含全部派生形式的完整语言
+称为\termfirst{外部语言}{external language, EL}。从 EL 到 IL 的变换至少
+在概念上是解析之后的独立阶段。第 11.3 节讨论派生形式。}
+语言的\termfirst{具体语法}{concrete syntax}（或表层语法）指程序员直接
+读写的字符串；\termfirst{抽象语法}{abstract syntax}则是在内部把程序表示
+为带标签的树，这种树称为\termfirst{抽象语法树}{abstract syntax tree,
+AST}。树表示使项的结构一目了然，因此非常适合严格的语言定义、关于语言的
+证明，以及编译器和解释器内部的复杂变换。
+
+从具体语法到抽象语法的变换分两步。首先，
+\termfirst{词法分析器}{lexical analyzer, lexer}把程序员书写的字符串转换
+成词法单元序列，包括标识符、关键字、常量、标点等。词法分析器会删除注释，
+处理空白、大小写约定，以及数值和字符串常量的格式。随后，
+\termfirst{解析器}{parser}把词法单元序列转换成抽象语法树。解析时，运算符
+优先级和结合性等约定减少了表层程序为明确复合表达式结构而使用括号的需要。
+例如，\texttt{*} 比 \texttt{+} 结合得更紧，所以解析器把不带括号的
+\(1+2*3\) 解释成左边这棵抽象语法树，而不是右边那棵：
+\[
+\begin{tikzpicture}[
+  level distance=8mm,
+  sibling distance=13mm,
+  every node/.style={font=\small},
+  baseline=(current bounding box.center)
+]
+\node {\(+\)}
+ child {node {\(1\)}}
+ child {node {\(*\)} child {node {\(2\)}} child {node {\(3\)}}};
+\end{tikzpicture}
+\qquad\qquad
+\begin{tikzpicture}[
+  level distance=8mm,
+  sibling distance=13mm,
+  every node/.style={font=\small},
+  baseline=(current bounding box.center)
+]
+\node {\(*\)}
+ child {node {\(+\)} child {node {\(1\)}} child {node {\(2\)}}}
+ child {node {\(3\)}};
+\end{tikzpicture}
+\]
+
+本书关注抽象语法，而不是具体语法。上面的 lambda 项文法应理解为描述合法
+树结构，而不是词法单元或字符组成的字符串。当然，在示例、定义、定理和证明
+中书写项时，仍要使用具体的线性记法，但我们心里始终把握的是它们底层的抽象
+语法树。
+
+为了在线性形式中少写括号，我们采用两项约定。第一，应用向左结合，也就是说，
+\(s\,t\,u\) 与 \((s\,t)\,u\) 表示同一棵树：
+\[
+\begin{tikzpicture}[
+  level distance=8mm,
+  sibling distance=14mm,
+  every node/.style={font=\small}
+]
+\node {应用}
+ child {node {应用} child {node {\(s\)}} child {node {\(t\)}}}
+ child {node {\(u\)}};
+\end{tikzpicture}
+\]
+第二，抽象的函数体尽量向右延伸。例如，
+\(\lambda x.\,\lambda y.\,x\,y\,x\) 与
+\(\lambda x.\,(\lambda y.\,((x\,y)\,x))\) 表示同一棵树：
+\[
+\begin{tikzpicture}[
+  level distance=8mm,
+  sibling distance=14mm,
+  every node/.style={font=\small}
+]
+\node {\(\lambda x\)}
+ child {node {\(\lambda y\)}
+   child {node {应用}
+     child {node {应用} child {node {\(x\)}} child {node {\(y\)}}}
+     child {node {\(x\)}}}};
+\end{tikzpicture}
+\]
+
+\subsection*{变量与元变量}
+
+上面的语法定义还有一个细节，涉及元变量。我们继续用元变量 \(t\)
+（以及带或不带下标的 \(s,u\)）表示任意项；\footnote{本章中 \(t\) 自然
+表示 lambda 项，而不是算术表达式。全书的 \(t\) 总是表示当前所讨论演算中
+的项；每章首页的脚注会指明具体系统。} 同样，用 \(x\)（以及 \(y,z\)）
+表示任意变量。注意，\(x\) 在这里是一个取值范围为“变量”的元变量！更麻烦
+的是，可用的短名称有限，我们还想用 \(x,y\) 等作为对象语言变量。不过，
+上下文总能明确区分两者。例如，在句子“项
+\(\lambda x.\,\lambda y.\,x\,y\) 形如 \(\lambda z.\,s\)，其中
+\(z=x\)，\(s=\lambda y.\,x\,y\)”中，\(z,s\) 是元变量，\(x,y\) 则是
+对象语言变量。
+
+\subsection*{作用域}
+
+最后还必须说明 lambda 演算中变量的作用域。
+
+若变量 \(x\) 的某次出现位于抽象 \(\lambda x.\,t\) 的函数体 \(t\) 中，
+就称这次出现是\termfirst{受约束的}{bound}。更准确地说，它被该抽象约束；
+等价地，也可以说 \(\lambda x\) 是\termfirst{绑定子}{binder}，其作用域
+是 \(t\)。若 \(x\) 的某次出现没有被外层关于 \(x\) 的抽象约束，就称它是
+\termfirst{自由的}{free}。例如，\(x\,y\) 与
+\(\lambda y.\,x\,y\) 中的 \(x\) 自由；\(\lambda x.\,x\) 以及
+\(\lambda z.\,\lambda x.\,\lambda y.\,x\,(y\,z)\) 中的 \(x\) 受约束。
+在 \((\lambda x.\,x)\,x\) 中，第一次出现的 \(x\) 受约束，第二次自由。
+
+没有自由变量的项称为\termfirst{闭项}{closed term}；闭项也称为
+\termfirst{组合子}{combinator}。最简单的组合子是恒等函数：
+\[
+ \mathit{id}=\lambda x.\,x.
+\]
+它什么也不做，只把参数原样返回。
+
+\subsection*{操作语义}
+
+纯 lambda 演算没有内建常量或原始运算符：没有数字、算术运算、条件式、
+记录、循环、顺序、I/O 等。项进行“计算”的唯一方式，就是把函数应用于参数
+（参数本身也是函数）。每一步计算都会改写一个左侧为抽象的应用：用右侧分量
+替换抽象函数体中的受约束变量。写作
+\[
+  (\lambda x.\,t_{12})\,t_2
+  \trans
+  \taplsubst{x}{t_2}{t_{12}},
+\]
+其中 \(\taplsubst{x}{t_2}{t_{12}}\) 表示“把 \(t_{12}\) 中 \(x\) 的所有
+自由出现替换为 \(t_2\) 所得到的项”。例如，
+\((\lambda x.\,x)\,y\) 求值为 \(y\)，而
+\((\lambda x.\,x\,(\lambda x.\,x))\,(u\,r)\) 求值为
+\(u\,r\,(\lambda x.\,x)\)。沿用 Church 的术语，形如
+\((\lambda x.\,t_{12})\,t_2\) 的项称为
+\termfirst{可归约式}{redex, reducible expression}；按照上述规则改写
+可归约式的操作称为 \termfirst{\(\beta\) 归约}{beta-reduction}。
+
+程序语言设计者与理论研究者多年来研究了 lambda 演算的多种求值策略。每种
+策略都规定一个项中的哪些可归约式能够在下一步触发。\footnote{有人把
+“归约”和“求值”当作同义词；也有人只把涉及某种“值”概念的策略称为
+求值，其他策略则称为归约。}
+
+\begin{itemize}
+  \item 在\termfirst{完全 \(\beta\) 归约}{full beta-reduction}下，任何
+    可归约式随时都可归约。每一步从当前项中任意位置选取一个可归约式并归约。
+    例如
+    \[
+      (\lambda x.\,x)\,
+      ((\lambda x.\,x)\,(\lambda z.\,(\lambda x.\,x)\,z))
+    \]
+    可以更易读地写成
+    \(\mathit{id}\,(\mathit{id}\,(\lambda z.\,\mathit{id}\,z))\)，其中含有
+    三个可归约式。完全 \(\beta\) 归约可以先选最内层，再选中间，最后选
+    最外层：
+    \[
+    \begin{aligned}
+      \mathit{id}\,(\mathit{id}\,(\lambda z.\,\mathit{id}\,z))
+      &\trans \mathit{id}\,(\mathit{id}\,(\lambda z.\,z))\\
+      &\trans \mathit{id}\,(\lambda z.\,z)\\
+      &\trans \lambda z.\,z
+      \not\trans.
+    \end{aligned}
+    \]
+
+  \item 在\termfirst{正规序策略}{normal-order strategy}下，总是先归约最左、
+    最外层的可归约式。上面的项会按如下方式归约：
+    \[
+    \begin{aligned}
+      \mathit{id}\,(\mathit{id}\,(\lambda z.\,\mathit{id}\,z))
+      &\trans \mathit{id}\,(\lambda z.\,\mathit{id}\,z)\\
+      &\trans \lambda z.\,\mathit{id}\,z\\
+      &\trans \lambda z.\,z
+      \not\trans.
+    \end{aligned}
+    \]
+    在这种策略以及下面几种策略下，求值关系实际上都是偏函数：每个项 \(t\)
+    至多能一步求值为一个 \(t'\)。
+
+  \item \termfirst{按名调用}{call-by-name}策略限制更强，不允许在抽象内部
+    归约。从同一个项出发，前两步与正规序相同，但会在最后一步之前停止，
+    把 \(\lambda z.\,\mathit{id}\,z\) 视为范式：
+    \[
+    \begin{aligned}
+      \mathit{id}\,(\mathit{id}\,(\lambda z.\,\mathit{id}\,z))
+      &\trans \mathit{id}\,(\lambda z.\,\mathit{id}\,z)\\
+      &\trans \lambda z.\,\mathit{id}\,z
+      \not\trans.
+    \end{aligned}
+    \]
+    一些著名程序语言采用了按名调用的变体，尤其是 Algol-60
+    （Naur 等，1963）和 Haskell（Hudak 等，1992）。Haskell 实际采用称为
+    \termfirst{按需调用}{call-by-need}的优化版本（Wadsworth，1971；
+    Ariola 等，1995）：参数第一次求值时，它不是在每次使用处重新求值，而是
+    用求得的值覆盖参数的所有出现，以避免后续重复求值。该策略要求项的运行时
+    表示保留一定程度的共享；实际上，它是抽象语法图而不是抽象语法树上的
+    归约关系。
+
+  \item 大多数语言使用\termfirst{按值调用}{call-by-value}策略：只归约
+    最外层可归约式，而且只有当可归约式右侧已经归约为值——即已经完成计算、
+    不能再继续归约的项——时才进行归约。\footnote{在这个最精简的演算中，
+    只有 lambda 抽象是值。更丰富的演算还会有其他值，如数值常量与布尔
+    常量、字符串、值的元组、值的记录、值的列表等。} 上例按此策略归约为：
+    \[
+    \begin{aligned}
+      \mathit{id}\,(\mathit{id}\,(\lambda z.\,\mathit{id}\,z))
+      &\trans \mathit{id}\,(\lambda z.\,\mathit{id}\,z)\\
+      &\trans \lambda z.\,\mathit{id}\,z
+      \not\trans.
+    \end{aligned}
+    \]
+    按值调用是\termfirst{严格的}{strict}：函数参数无论是否会在函数体中
+    使用，都总要先求值。相反，按名调用与按需调用等
+    \termfirst{非严格}{non-strict}（或惰性）策略，只求值实际使用的参数。
+\end{itemize}
+
+讨论类型系统时，选择哪种求值策略其实差别不大。各种类型特性的动机，以及
+处理这些动机的技术，在各策略下大致相同。本书采用按值调用，一方面因为多数
+著名语言都采用它，另一方面因为它最容易扩展引用（第 13 章）、异常
+（第 14 章）等特性。
+
+\section{用 lambda 演算编程}
+\label{sec:5.2}
+
+lambda 演算的能力远比其微型定义看上去强大。本节发展若干标准编程示例，
+帮助读者熟悉这个系统。它们并不是要暗示应当把 lambda 演算本身当作成熟的
+程序语言；所有广泛使用的高级语言都有更清晰、更高效的方式完成同样任务。
+
+\subsection*{多个参数}
+
+首先注意，lambda 演算没有内建的多参数函数。当然，加入这种特性并不难，
+但利用返回函数的高阶函数实现同样效果更容易。假设项 \(s\) 含有两个自由
+变量 \(x,y\)，我们想写一个函数 \(f\)：对每对参数 \((v,w)\)，它都返回
+在 \(s\) 中以 \(v\) 替换 \(x\)、以 \(w\) 替换 \(y\) 的结果。在更丰富的
+程序语言中可能写 \(f=\lambda(x,y).\,s\)；这里改写为
+\[
+ f=\lambda x.\,\lambda y.\,s.
+\]
+也就是说，给 \(f\) 一个作为 \(x\) 值的 \(v\)，它返回另一个函数；再给该
+函数一个作为 \(y\) 值的 \(w\)，就得到所需结果。参数逐个应用，写作
+\(f\,v\,w\)，即 \((f\,v)\,w\)。它先归约为
+\((\lambda y.\,\taplsubst{x}{v}{s})\,w\)，再归约为
+\(\taplsubst{y}{w}{\taplsubst{x}{v}{s}}\)。这种把多参数函数变换为高阶
+函数的做法，为纪念与 Church 同时代的 Haskell Curry，称为
+\termfirst{柯里化}{currying}。
+
+\subsection*{Church 布尔值}
+
+布尔值与条件式也很容易在 lambda 演算中编码。定义
+\[
+\begin{aligned}
+ \mathit{tru}&=\lambda t.\,\lambda f.\,t,\\
+ \mathit{fls}&=\lambda t.\,\lambda f.\,f.
+\end{aligned}
+\]
+（使用缩写名，是为了避免与第 3 章的原始布尔常量 \(\tapltrue\)、
+\(\taplfalse\) 混淆。）
+
+\(\mathit{tru}\) 与 \(\mathit{fls}\) 可以视为表示布尔值“真”和“假”：
+它们可以执行测试布尔值真假的操作。具体来说，可以用应用定义组合子
+\(\mathit{test}\)，使 \(\mathit{test}\ b\ v\ w\) 在 \(b\) 为
+\(\mathit{tru}\) 时归约为 \(v\)，在 \(b\) 为 \(\mathit{fls}\) 时归约为
+\(w\)：
+\[
+ \mathit{test}=\lambda l.\,\lambda m.\,\lambda n.\,l\,m\,n.
+\]
+\(\mathit{test}\) 实际上没有做多少事：
+\(\mathit{test}\ b\ v\ w\) 只是归约为 \(b\,v\,w\)。布尔值 \(b\) 自己
+就是条件式：它接受两个参数，并在自身为 \(\mathit{tru}\) 时选择第一个，
+为 \(\mathit{fls}\) 时选择第二个。例如：
+\[
+\begin{aligned}
+ \mathit{test}\ \mathit{tru}\ v\ w
+ &= (\lambda l.\,\lambda m.\,\lambda n.\,l\,m\,n)\ \mathit{tru}\ v\ w\\
+ &\trans(\lambda m.\,\lambda n.\,\mathit{tru}\ m\ n)\ v\ w\\
+ &\trans(\lambda n.\,\mathit{tru}\ v\ n)\ w\\
+ &\trans\mathit{tru}\ v\ w\\
+ &= (\lambda t.\,\lambda f.\,t)\ v\ w\\
+ &\trans(\lambda f.\,v)\ w\\
+ &\trans v.
+\end{aligned}
+\]
+
+逻辑合取等布尔运算也可以定义为函数：
+\[
+ \mathit{and}=\lambda b.\,\lambda c.\,b\,c\,\mathit{fls}.
+\]
+也就是说，给 \(\mathit{and}\) 两个布尔值 \(b,c\)：若 \(b\) 是
+\(\mathit{tru}\)，返回 \(c\)；若 \(b\) 是 \(\mathit{fls}\)，返回
+\(\mathit{fls}\)。所以仅当二者都是 \(\mathit{tru}\) 时，
+\(\mathit{and}\ b\ c\) 才得到 \(\mathit{tru}\)：
+\[
+\begin{array}{@{}l@{\quad\blacktriangleright\quad}l@{}}
+ \mathit{and}\ \mathit{tru}\ \mathit{tru}
+   &(\lambda t.\,\lambda f.\,t)\\
+ \mathit{and}\ \mathit{tru}\ \mathit{fls}
+   &(\lambda t.\,\lambda f.\,f)
+\end{array}
+\]
+
+\begin{exercise}[\(\star\)]
+\label{ex:5.2.1}
+定义逻辑或函数和逻辑非函数。
+\end{exercise}
+
+\subsection*{序对}
+
+利用布尔值，可以把值的序对编码为项：
+\[
+\begin{aligned}
+ \mathit{pair}&=\lambda f.\,\lambda s.\,\lambda b.\,b\,f\,s,\\
+ \mathit{fst}&=\lambda p.\,p\,\mathit{tru},\\
+ \mathit{snd}&=\lambda p.\,p\,\mathit{fls}.
+\end{aligned}
+\]
+也就是说，\(\mathit{pair}\ v\ w\) 是一个函数；把它应用于布尔值 \(b\)，
+就把 \(b\) 应用于 \(v,w\)。根据布尔值的定义，当 \(b\) 是
+\(\mathit{tru}\) 时得到 \(v\)，为 \(\mathit{fls}\) 时得到 \(w\)，所以
+只需提供相应布尔值，就能实现第一、第二投影 \(\mathit{fst}\)、
+\(\mathit{snd}\)。验证
+\(\mathit{fst}\,(\mathit{pair}\ v\ w)\transmulti v\)：
+\[
+\begin{aligned}
+ \mathit{fst}\,(\mathit{pair}\ v\ w)
+ &=\mathit{fst}\,((\lambda f.\,\lambda s.\,\lambda b.\,b\,f\,s)\ v\ w)\\
+ &\trans\mathit{fst}\,((\lambda s.\,\lambda b.\,b\,v\,s)\ w)\\
+ &\trans\mathit{fst}\,(\lambda b.\,b\,v\,w)\\
+ &=(\lambda p.\,p\,\mathit{tru})\,(\lambda b.\,b\,v\,w)\\
+ &\trans(\lambda b.\,b\,v\,w)\,\mathit{tru}\\
+ &\trans\mathit{tru}\ v\ w\\
+ &\transmulti v.
+\end{aligned}
+\]
+
+\subsection*{Church 数}
+
+用 lambda 项表示数字，只比前面的编码稍微复杂一些。定义 Church 数
+\(c_0,c_1,c_2,\ldots\)：
+\[
+\begin{aligned}
+ c_0&=\lambda s.\,\lambda z.\,z,\\
+ c_1&=\lambda s.\,\lambda z.\,s\,z,\\
+ c_2&=\lambda s.\,\lambda z.\,s\,(s\,z),\\
+ c_3&=\lambda s.\,\lambda z.\,s\,(s\,(s\,z)),\\
+ &\ \vdots
+\end{aligned}
+\]
+数字 \(n\) 由组合子 \(c_n\) 表示；它接受两个参数 \(s,z\)（分别代表
+“后继”和“零”），把 \(s\) 对 \(z\) 应用 \(n\) 次。和布尔值、序对一样，
+这种编码让数字成为主动实体：数字 \(n\) 被表示为把某件事做 \(n\) 次的
+函数，可看作一种主动的一元数。
+
+读者或许已经发现，\(c_0\) 和 \(\mathit{fls}\) 实际是同一个项。在汇编语言
+中也常见这种“双关”：同一个位模式根据解释方式不同，可以表示整数、浮点数、
+地址或四个字符等；低级语言 C 同样把 \(0\) 与假等同起来。
+
+Church 数的后继函数可以定义为：
+\[
+ \mathit{scc}=\lambda n.\,\lambda s.\,\lambda z.\,s\,(n\,s\,z).
+\]
+\(\mathit{scc}\) 是接受 Church 数 \(n\) 并返回另一个 Church 数的组合子，
+也就是返回一个接受 \(s,z\) 并把 \(s\) 反复应用于 \(z\) 的函数。先把
+\(s,z\) 传给 \(n\)，再把 \(s\) 显式多应用一次，就得到正确的应用次数。
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:5.2.2}
+换一种方式定义 Church 数的后继函数。
+\end{exercise}
+
+类似地，Church 数加法由项 \(\mathit{plus}\) 完成。它接受两个 Church 数
+\(m,n\)，返回另一个 Church 数；返回的函数接受 \(s,z\)，先让 \(n\)
+把 \(s\) 对 \(z\) 迭代 \(n\) 次，再让 \(m\) 把 \(s\) 多迭代 \(m\) 次：
+\[
+ \mathit{plus}
+ =\lambda m.\,\lambda n.\,\lambda s.\,\lambda z.\,m\,s\,(n\,s\,z).
+\]
+
+乘法的实现使用另一个技巧：\(\mathit{plus}\) 逐个接受参数，所以只把
+\(n\) 应用于它，得到的是“把 \(n\) 加到任意给定参数上”的函数。把这个
+函数作为 \(m\) 的第一个参数、\(c_0\) 作为第二个参数，意思就是“从零开始，
+迭代 \(m\) 次把 \(n\) 加到参数上的函数”，即“把 \(m\) 个 \(n\) 加起来”：
+\[
+ \mathit{times}=\lambda m.\,\lambda n.\,m\,(\mathit{plus}\ n)\,c_0.
+\]
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:5.2.3}
+能否不借助 \(\mathit{plus}\) 定义 Church 数乘法？
+\end{exercise}
+
+\begin{exercise}[推荐，\(\star\star\)]
+\label{ex:5.2.4}
+定义一个计算一个数的另一个数次幂的项。
+\end{exercise}
+
+为了测试 Church 数是否为零，需要找出一对适当参数 \(zz,ss\)：把 \(ss\)
+对 \(zz\) 应用一次或多次应得到 \(\mathit{fls}\)，一次也不应用则得到
+\(\mathit{tru}\)。显然应取 \(zz=\mathit{tru}\)；\(ss\) 则取为丢弃参数、
+总返回 \(\mathit{fls}\) 的函数：
+\[
+ \mathit{iszro}=\lambda m.\,m\,(\lambda x.\,\mathit{fls})\,\mathit{tru}.
+\]
+\[
+\begin{array}{@{}l@{\quad\blacktriangleright\quad}l@{}}
+ \mathit{iszro}\ c_1&(\lambda t.\,\lambda f.\,f)\\
+ \mathit{iszro}\,(\mathit{times}\ c_0\ c_2)&
+   (\lambda t.\,\lambda f.\,t)
+\end{array}
+\]
+
+令人意外的是，Church 数减法比加法困难得多。下面这个颇有技巧的“前驱函数”
+可以完成它：参数为 \(c_0\) 时返回 \(c_0\)，参数为 \(c_{i+1}\) 时返回
+\(c_i\)：
+\[
+\begin{aligned}
+ zz&=\mathit{pair}\ c_0\ c_0,\\
+ ss&=\lambda p.\,
+   \mathit{pair}\,(\mathit{snd}\ p)\,
+   (\mathit{plus}\ c_1\ (\mathit{snd}\ p)),\\
+ \mathit{prd}&=\lambda m.\,\mathit{fst}\,(m\ ss\ zz).
+\end{aligned}
+\]
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  node distance=9mm,
+  every node/.style={font=\small},
+  pair/.style={draw,rounded corners=1pt,inner xsep=8pt,inner ysep=3pt},
+  >=Stealth
+]
+  \node[pair] (p0) {\(\mathit{pair}\ c_0\ c_0\)};
+  \node[pair,below=of p0] (p1) {\(\mathit{pair}\ c_0\ c_1\)};
+  \node[pair,below=of p1] (p2) {\(\mathit{pair}\ c_1\ c_2\)};
+  \node[pair,below=of p2] (p3) {\(\mathit{pair}\ c_2\ c_3\)};
+  \node[pair,below=of p3] (p4) {\(\mathit{pair}\ c_3\ c_4\)};
+  \draw[->] (p0) -- node[right]{\(ss\)：复制并加一} (p1);
+  \draw[->] (p1) -- node[right]{\(ss\)：复制并加一} (p2);
+  \draw[->] (p2) -- node[right]{\(ss\)：复制并加一} (p3);
+  \draw[->] (p3) -- node[right]{\(ss\)：复制并加一} (p4);
+  \node[below=3mm of p4] {\(\vdots\)};
+\end{tikzpicture}
+\caption{前驱函数的“内层循环”}
+\label{fig:5-1}
+\end{figure}
+
+该定义把 \(m\) 当作函数，从初始值 \(zz\) 出发应用 \(m\) 份 \(ss\)。
+每份 \(ss\) 都接受一个数对 \(\mathit{pair}\ c_i\ c_j\)，返回
+\(\mathit{pair}\ c_j\ c_{j+1}\)（见图~\ref{fig:5-1}）。所以把 \(ss\)
+对 \(\mathit{pair}\ c_0\ c_0\) 应用 \(m\) 次：当 \(m=0\) 时得到
+\(\mathit{pair}\ c_0\ c_0\)；当 \(m>0\) 时得到
+\(\mathit{pair}\ c_{m-1}\ c_m\)。两种情况下，\(m\) 的前驱都在第一分量。
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:5.2.5}
+用 \(\mathit{prd}\) 定义减法函数。
+\end{exercise}
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:5.2.6}
+计算 \(\mathit{prd}\ c_n\) 大约需要多少步求值？请给出关于 \(n\) 的函数。
+\end{exercise}
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:5.2.7}
+写一个函数 \(\mathit{equal}\)，测试两个数是否相等并返回 Church 布尔值。
+例如：
+\[
+\begin{array}{@{}l@{\quad\blacktriangleright\quad}l@{}}
+ \mathit{equal}\ c_3\ c_3&(\lambda t.\,\lambda f.\,t)\\
+ \mathit{equal}\ c_3\ c_2&(\lambda t.\,\lambda f.\,f)
+\end{array}
+\]
+\end{exercise}
+
+列表、树、数组、变体和记录等其他常见数据类型，也可以用类似技术编码。
+
+\begin{exercise}[推荐，\(\star\star\star\)]
+\label{ex:5.2.8}
+列表可以由它的 fold 函数在 lambda 演算中表示（OCaml 把这个函数称为
+\texttt{fold\_right}，有时也称为 \texttt{reduce}）。例如，列表
+\([x,y,z]\) 变成一个接受 \(c,n\) 两个参数并返回
+\(c\,x\,(c\,y\,(c\,z\,n))\) 的函数。空表 \(\mathit{nil}\) 应如何表示？
+写一个函数 \(\mathit{cons}\)：它接受元素 \(h\) 和列表（即 fold 函数）
+\(t\)，返回在 \(t\) 前添加 \(h\) 后所得列表的同类表示。再写
+\(\mathit{isnil}\) 和 \(\mathit{head}\)，它们各接受一个列表参数。最后，
+为这种列表表示写出 \(\mathit{tail}\) 函数；这要难得多，需要使用类似数值
+前驱函数 \(\mathit{prd}\) 的技巧。
+\end{exercise}
+
+\subsection*{扩充演算}
+
+我们已经看到，布尔值、数字及其运算都能在纯 lambda 演算中编码。严格说来，
+所有编程工作都可以不离开纯系统。不过，处理示例时，加入原始布尔值和数字
+（也许还有其他数据类型）往往更方便。需要明确所用系统时，我们用
+\(\lambda\) 表示图~\ref{fig:5-3}定义的纯 lambda 演算，用
+\(\lambda_{\mathcal{NB}}\) 表示加入图~\ref{fig:3-1} 和图~\ref{fig:3-2} 的布尔与算术
+表达式后的系统。
+
+在 \(\lambda_{\mathcal{NB}}\) 中，写程序时有两套布尔值实现和两套数字实现
+可供选择：原始值与本章的编码。它们之间很容易相互转换。要把 Church 布尔值
+变成原始布尔值，只需把它应用于 \(\tapltrue,\taplfalse\)：
+\[
+ \mathit{realbool}=\lambda b.\,b\ \tapltrue\ \taplfalse.
+\]
+反方向则使用 if 表达式：
+\[
+ \mathit{churchbool}
+ =\lambda b.\,\taplif{b}{\mathit{tru}}{\mathit{fls}}.
+\]
+这些转换还可以嵌入更高层运算。例如，下面的 Church 数相等函数返回原始
+布尔值：
+\[
+ \mathit{realeq}
+ =\lambda m.\,\lambda n.\,(\mathit{equal}\ m\ n)\ \tapltrue\ \taplfalse.
+\]
+
+类似地，把 Church 数应用于 \(\mathsf{succ}\) 和 \(\taplzero\)，就能转换
+成对应的原始数字：
+\[
+ \mathit{realnat}=\lambda m.\,m\,(\lambda x.\,\taplsucc{x})\,\taplzero.
+\]
+不能把 \(m\) 直接应用于 \(\mathsf{succ}\)，因为按照算术表达式语法，
+\(\mathsf{succ}\) 单独出现没有句法意义，必须总应用于某个东西。把它封装在
+一个只返回参数后继的小函数里，就能绕开这一点。
+
+原始布尔值和数字之所以方便示例，主要与求值次序有关。例如考察
+\(\mathit{scc}\ c_1\)。按照前文，可能以为它会求值为 Church 数 \(c_2\)，
+实际却得到：
+\[
+ \mathit{scc}\ c_1
+ \quad\blacktriangleright\quad
+ \lambda s.\,\lambda z.\,
+ s\,((\lambda s'.\,\lambda z'.\,s'\,z')\,s\,z).
+\]
+该项包含一个可归约式，再归约两步就会得到 \(c_2\)；但按值调用规则此时
+不允许归约它，因为它位于 lambda 抽象之下。
+
+这并不存在根本问题。所得项显然在行为上等价于 \(c_2\)：把它们分别应用于
+任意一对参数 \(v,w\)，都会得到相同结果。不过，残留的计算让人不易检查
+\(\mathit{scc}\) 是否按预期工作。算术计算更复杂时，问题更加严重。例如，
+\(\mathit{times}\ c_2\ c_2\) 求值后不是 \(c_4\)，而是下面这个庞然大物：
+\begin{lstlisting}
+(lambda s.
+   lambda z.
+     (lambda s'. lambda z'. s' (s' z')) s
+       ((lambda s'.
+           lambda z'.
+             (lambda s''. lambda z''. s'' (s'' z'')) s'
+               ((lambda s''. lambda z''. z'') s' z'))
+        s
+        z))
+\end{lstlisting}
+
+检查它是否表现为 \(c_4\) 的一种办法，是测试两者是否相等：
+\[
+ \mathit{equal}\ c_4\,(\mathit{times}\ c_2\ c_2)
+ \quad\blacktriangleright\quad
+ \lambda t.\,\lambda f.\,t.
+\]
+更直接的办法，是把 \(\mathit{times}\ c_2\ c_2\) 转换为原始数字：
+\[
+ \mathit{realnat}\,(\mathit{times}\ c_2\ c_2)
+ \quad\blacktriangleright\quad 4.
+\]
+转换过程提供了 \(\mathit{times}\ c_2\ c_2\) 正在等待的两个额外参数，
+从而强制执行其函数体中所有潜伏的计算。
+
+\subsection*{递归}
+
+回忆一下，不能在求值关系下迈出一步的项称为范式。有趣的是，有些项不能求值
+到范式。例如，发散组合子
+\[
+ \mathit{omega}=(\lambda x.\,x\,x)\,(\lambda x.\,x\,x)
+\]
+只含一个可归约式，而归约它恰好又得到 \(\mathit{omega}\) 自己！没有范式
+的项称为\termfirst{发散}{diverge}。
+
+\(\mathit{omega}\) 有一个有用的推广，称为
+\termfirst{不动点组合子}{fixed-point combinator}；\footnote{它常称为
+按值调用的 \(Y\) 组合子。Plotkin（1975）称它为 \(Z\)。} 它可以帮助定义
+阶乘等递归函数：
+\[
+ \mathit{fix}
+ =\lambda f.\,
+   (\lambda x.\,f\,(\lambda y.\,x\,x\,y))\,
+   (\lambda x.\,f\,(\lambda y.\,x\,x\,y)).
+\]
+\footnote{更简单的按名调用不动点组合子
+\[
+ Y=\lambda f.\,(\lambda x.\,f\,(x\,x))\,(\lambda x.\,f\,(x\,x))
+\]
+在按值调用环境下没有用，因为对任何 \(g\)，表达式 \(Y\,g\) 都发散。}
+
+与 \(\mathit{omega}\) 一样，\(\mathit{fix}\) 的结构精细而重复，单看定义
+很难理解。建立直观的最好方式，或许是观察它如何作用于具体示例。
+\footnote{也可以从第一原则推导 \(\mathit{fix}\) 的定义（例如 Friedman 和
+Felleisen，1996，第 9 章），但这种推导同样相当复杂。}
+假设要写形如
+\[
+ h=\underbrace{h_{\mathrm{body}}}_{\text{其中含有 }h}
+\]
+的递归函数定义，也就是等号右侧
+的项要使用正在定义的函数本身，如第 52 页的阶乘定义。意图是在出现递归定义
+的位置把它“展开”。例如，阶乘在直观上是：
+\[
+\begin{aligned}
+ &\mathsf{if}\ n=0\ \mathsf{then}\ 1\\
+ &\mathsf{else}\ n*
+   (\mathsf{if}\ n-1=0\ \mathsf{then}\ 1\\
+ &\hspace{6em}\mathsf{else}\ (n-1)*
+   (\mathsf{if}\ n-2=0\ \mathsf{then}\ 1\\
+ &\hspace{12em}\mathsf{else}\ (n-2)*\cdots)).
+\end{aligned}
+\]
+换成 Church 数则是：
+\[
+\begin{aligned}
+ &\mathsf{if}\ \mathit{realeq}\ n\ c_0\ \mathsf{then}\ c_1\\
+ &\mathsf{else}\ \mathit{times}\ n\,
+   (\mathsf{if}\ \mathit{realeq}\,(\mathit{prd}\ n)\ c_0\
+     \mathsf{then}\ c_1\\
+ &\hspace{8em}\mathsf{else}\ \mathit{times}\,(\mathit{prd}\ n)\,
+   (\mathsf{if}\ \mathit{realeq}\,(\mathit{prd}\,(\mathit{prd}\ n))\ c_0\
+     \mathsf{then}\ c_1\\
+ &\hspace{16em}\mathsf{else}\ \mathit{times}\,
+   (\mathit{prd}\,(\mathit{prd}\ n))\,\cdots)).
+\end{aligned}
+\]
+
+使用 \(\mathit{fix}\) 可以达到这一效果：先定义
+\[
+ g=\lambda f.\,
+   \underbrace{h_{\mathrm{body}}}_{\text{其中原来出现 }h\text{ 的位置改为 }f},
+\]
+再令 \(h=\mathit{fix}\ g\)。
+例如：
+\[
+\begin{aligned}
+ g&=\lambda fct.\,\lambda n.\,
+   \taplif{\mathit{realeq}\ n\ c_0}
+           {c_1}
+           {\mathit{times}\ n\,(fct\,(\mathit{prd}\ n))},\\
+ \mathit{factorial}&=\mathit{fix}\ g.
+\end{aligned}
+\]
+
+图~\ref{fig:5-2}展示 \(\mathit{factorial}\ c_3\) 的求值。计算得以工作的
+关键事实是 \(fct\ n\transmulti g\ fct\ n\)。也就是说，\(fct\) 是一种
+“自我复制器”：应用于参数时，它把自身和 \(n\) 一起作为参数传给 \(g\)。
+无论 \(g\) 的函数体在哪里使用第一个参数，都会得到另一份 \(fct\)；这份
+\(fct\) 再应用于参数时，又会把自身与参数传给 \(g\)，依此类推。每次用
+\(fct\) 进行递归调用，都会再展开一份 \(g\) 的函数体，并在其中放入新的
+\(fct\)，准备下一次展开。
+
+\begin{figure}[p]
+\centering
+\footnotesize
+\begin{minipage}{0.98\textwidth}
+\begin{align*}
+ \mathit{factorial}\ c_3
+ &=\mathit{fix}\ g\ c_3\\
+ &\trans h\ h\ c_3
+ &&\text{其中 }h=\lambda x.\,g\,(\lambda y.\,x\,x\,y)\\
+ &\trans g\ fct\ c_3
+ &&\text{其中 }fct=\lambda y.\,h\,h\,y\\
+ &\trans
+ (\lambda n.\,\taplif{\mathit{realeq}\ n\ c_0}
+                       {c_1}
+                       {\mathit{times}\ n\,(fct\,(\mathit{prd}\ n))})\,c_3\\
+ &\trans
+ \taplif{\mathit{realeq}\ c_3\ c_0}
+        {c_1}
+        {\mathit{times}\ c_3\,(fct\,(\mathit{prd}\ c_3))}\\
+ &\transmulti \mathit{times}\ c_3\,(fct\,(\mathit{prd}\ c_3))\\
+ &\trans
+ (\lambda n.\,c_3\,(\mathit{plus}\ n)\,c_0)\,
+ (fct\,(\mathit{prd}\ c_3))\\
+ &\transmulti
+ (\lambda n.\,c_3\,(\mathit{plus}\ n)\,c_0)\,(fct\ c_2')\\
+ &\transmulti
+ \mathit{times}\ c_3\,(g\ fct\ c_2')\\
+ &\transmulti
+ \mathit{times}\ c_3\,
+   (\mathit{times}\ c_2'\,(g\ fct\ c_1'))\\
+ &\transmulti
+ \mathit{times}\ c_3\,
+   (\mathit{times}\ c_2'\,
+     (\mathit{times}\ c_1'\,(g\ fct\ c_0')))\\
+ &\transmulti
+ \mathit{times}\ c_3\,
+   (\mathit{times}\ c_2'\,
+     (\mathit{times}\ c_1'\,
+       (\taplif{\mathit{realeq}\ c_0'\ c_0}{c_1}{\cdots})))\\
+ &\transmulti
+ \mathit{times}\ c_3\,
+   (\mathit{times}\ c_2'\,(\mathit{times}\ c_1'\ c_1))\\
+ &\transmulti c_6'.
+\end{align*}
+这里 \(c_i'\) 与 \(c_i\) 行为等价。第一处先归约
+\(\mathit{times}\ c_3\)，再对参数 \(fct\,(\mathit{prd}\ c_3)\) 求值，
+以符合按值调用次序。
+\end{minipage}
+\caption{\(\mathit{factorial}\ c_3\) 的求值}
+\label{fig:5-2}
+\end{figure}
+
+\begin{exercise}[\(\star\)]
+\label{ex:5.2.9}
+为什么 \(g\) 的定义使用原始 if，而不使用 Church 布尔值上的
+\(\mathit{test}\)？说明如何改用 \(\mathit{test}\) 定义阶乘函数。
+\end{exercise}
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:5.2.10}
+定义函数 \(\mathit{churchnat}\)，把原始自然数转换为相应的 Church 数。
+\end{exercise}
+
+\begin{exercise}[推荐，\(\star\star\)]
+\label{ex:5.2.11}
+使用 \(\mathit{fix}\) 与\cref{ex:5.2.8}的列表编码，写一个对 Church 数
+列表求和的函数。
+\end{exercise}
+
+\subsection*{表示}
+
+结束示例、进入 lambda 演算的形式定义之前，还应当问最后一个问题：
+“Church 数表示通常自然数”究竟是什么意思？
+
+要回答它，先回忆通常自然数是什么。自然数有许多等价定义；这里采用的定义
+（图~\ref{fig:3-2}）给出：
+\begin{itemize}
+  \item 常量 \(\taplzero\)；
+  \item 把数字映射为布尔值的操作 \(\mathsf{iszero}\)；
+  \item 把数字映射为数字的两个操作 \(\mathsf{succ}\) 与
+    \(\mathsf{pred}\)。
+\end{itemize}
+这些算术操作的行为由图~\ref{fig:3-2}中的求值规则定义。例如，规则告诉
+我们 \(3\) 是 \(2\) 的后继，且 \(\tapliszero{\taplzero}\) 为
+\(\tapltrue\)。
+
+Church 编码把上述每个成分表示为 lambda 项，即函数：
+\begin{itemize}
+  \item 项 \(c_0\) 表示数字 \(0\)。
+
+    数字也存在用项给出的“非规范表示”。例如，
+    \(\lambda s.\,\lambda z.\,(\lambda x.\,x)\,z\) 与 \(c_0\) 行为
+    等价，因此也表示 \(0\)。
+
+  \item 项 \(\mathit{scc}\) 与 \(\mathit{prd}\) 分别表示算术操作
+    \(\mathsf{succ}\)、\(\mathsf{pred}\)：若项 \(t\) 表示数字 \(n\)，
+    则 \(\mathit{scc}\ t\) 求值到 \(n+1\) 的一种表示；
+    \(\mathit{prd}\ t\) 求值到 \(n-1\) 的一种表示（若 \(n=0\)，则是
+    \(0\) 的表示）。
+
+  \item 项 \(\mathit{iszro}\) 表示 \(\mathsf{iszero}\)：若 \(t\) 表示
+    \(0\)，则 \(\mathit{iszro}\ t\) 求值为真；\footnote{严格地说，按照
+    我们的定义，\(\mathit{iszro}\ t\) 求值为另一个表示真的项。这里为简化
+    讨论而略去差别。可以用同样方式说明 Church 布尔值在何种意义上表示原始
+    布尔值。} 若 \(t\) 表示非零数，则求值为假。
+\end{itemize}
+
+把这些事实合在一起，假设有一个完整程序，用数字进行复杂计算，最终产生布尔
+结果。若把所有数字与算术操作都换成相应的 lambda 项表示，再对程序求值，
+会得到相同结果。因此，就它们对程序总体结果的影响而言，真实数字与 Church
+数表示之间没有可观察的差别。
+
+\section{形式细节}
+\label{sec:5.3}
+
+本章余下部分更详细地考察 lambda 演算的语法与操作语义。所需结构大多与
+第 3 章非常相似；为了避免逐字重复，我们这里只处理不带布尔值、数字等装饰
+的纯 lambda 演算。不过，用一个项替换变量这一操作包含一些出人意料的细节。
+
+\subsection*{语法}
+
+与第 3 章一样，第 53 页定义项的抽象文法，应读作抽象语法树集合的归纳定义。
+
+\begin{definition}[项]
+\label{def:5.3.1}
+设 \(\mathcal{V}\) 是可数的变量名集合。项集 \(\mathcal{T}\) 是满足以下
+条件的最小集合：
+\begin{enumerate}
+  \item 对每个 \(x\in\mathcal{V}\)，都有 \(x\in\mathcal{T}\)；
+  \item 若 \(t_1\in\mathcal{T}\) 且 \(x\in\mathcal{V}\)，则
+    \(\lambda x.\,t_1\in\mathcal{T}\)；
+  \item 若 \(t_1,t_2\in\mathcal{T}\)，则
+    \(t_1\,t_2\in\mathcal{T}\)。
+\end{enumerate}
+\end{definition}
+
+项 \(t\) 的大小可以完全照\cref{def:3.3.2}对算术表达式的做法定义。更有
+意思的是，可以简单地归纳定义 lambda 项中自由出现的变量集合。
+
+\begin{definition}
+\label{def:5.3.2}
+项 \(t\) 的自由变量集合记作 \(\fv(t)\)，定义如下：
+\[
+\begin{aligned}
+ \fv(x)&=\{x\},\\
+ \fv(\lambda x.\,t_1)&=\fv(t_1)\setminus\{x\},\\
+ \fv(t_1\,t_2)&=\fv(t_1)\cup\fv(t_2).
+\end{aligned}
+\]
+\end{definition}
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:5.3.3}
+仔细证明：对每个项 \(t\)，都有
+\(\lvert\fv(t)\rvert\leq\termsize(t)\)。
+\end{exercise}
+
+\subsection*{替换}
+
+细究起来，替换操作相当棘手。本书实际会采用两个不同定义，分别针对不同目的
+优化。本节引入的第一个定义紧凑直观，适合示例、数学定义和证明；第 6 章发展
+的第二个定义记法更重，它采用另一种“de Bruijn 表示”，用数值索引取代具名
+变量，但更适合后续章节的具体 ML 实现。
+
+通过几次错误尝试逐步得到替换的正确定义，很有启发性。先试最朴素的递归定义。
+形式上，这是对参数 \(t\) 归纳定义函数 \([x\mapsto s]\)：
+\[
+\begin{aligned}
+ \taplsubst{x}{s}{x}&=s,\\
+ \taplsubst{x}{s}{y}&=y &&\text{若 }x\neq y,\\
+ \taplsubst{x}{s}{(\lambda y.\,t_1)}
+   &=\lambda y.\,\taplsubst{x}{s}{t_1},\\
+ \taplsubst{x}{s}{(t_1\,t_2)}
+   &=(\taplsubst{x}{s}{t_1})\,(\taplsubst{x}{s}{t_2}).
+\end{aligned}
+\]
+这个定义对多数示例都能正常工作。例如：
+\[
+ \taplsubst{x}{(\lambda z.\,z\,w)}{(\lambda y.\,x)}
+ =\lambda y.\,\lambda z.\,z\,w,
+\]
+符合替换应有行为的直观。但如果绑定变量名选得不走运，定义就会失效。例如：
+\[
+ \taplsubst{x}{y}{(\lambda x.\,x)}=\lambda x.\,y.
+\]
+这违背函数抽象的一项基本直观：受约束变量的名字并不重要；恒等函数无论写作
+\(\lambda x.\,x\)、\(\lambda y.\,y\) 还是
+\(\lambda franz.\,franz\)，都完全相同。如果这些写法在替换下的行为不完全
+相同，它们在归约下也不会有相同行为，显然不对。
+
+朴素定义的第一个错误，是没有区分项 \(t\) 中变量 \(x\) 的自由出现与受约束
+出现。替换时应当替换自由出现，而不能替换受约束出现。到达 \(t\) 内部绑定
+名称 \(x\) 的抽象时，替换操作应该停止。于是得到第二次尝试：
+\[
+\begin{aligned}
+ \taplsubst{x}{s}{x}&=s,\\
+ \taplsubst{x}{s}{y}&=y &&\text{若 }y\neq x,\\
+ \taplsubst{x}{s}{(\lambda y.\,t_1)}
+   &=
+   \begin{cases}
+     \lambda y.\,t_1 & \text{若 }y=x,\\
+     \lambda y.\,\taplsubst{x}{s}{t_1} & \text{若 }y\neq x,
+   \end{cases}\\
+ \taplsubst{x}{s}{(t_1\,t_2)}
+   &=(\taplsubst{x}{s}{t_1})\,(\taplsubst{x}{s}{t_2}).
+\end{aligned}
+\]
+这已经好一些，但仍不完全正确。例如，把项 \(z\) 替换到项
+\(\lambda z.\,x\) 中的变量 \(x\)：
+\[
+ \taplsubst{x}{z}{(\lambda z.\,x)}=\lambda z.\,z.
+\]
+这次犯了几乎相反的错误：把常函数 \(\lambda z.\,x\) 变成了恒等函数！
+问题又只因绑定变量恰好选名为 \(z\)，所以显然仍有缺陷。
+
+若项 \(s\) 中的自由变量在把 \(s\) 朴素替换进项 \(t\) 时变成受约束变量，
+就发生\termfirst{变量捕获}{variable capture}。要避免捕获，必须保证 \(t\)
+的受约束变量名与 \(s\) 的自由变量名彼此不同。正确做到这一点的替换称为
+\termfirst{避免捕获的替换}{capture-avoiding substitution}；不加限定地说
+“替换”时，几乎总是指它。给抽象情形的第二个分支再加入一个旁条件，就能达到
+效果：
+\[
+\begin{aligned}
+ \taplsubst{x}{s}{x}&=s,\\
+ \taplsubst{x}{s}{y}&=y &&\text{若 }y\neq x,\\
+ \taplsubst{x}{s}{(\lambda y.\,t_1)}
+   &=
+   \begin{cases}
+     \lambda y.\,t_1 & \text{若 }y=x,\\
+     \lambda y.\,\taplsubst{x}{s}{t_1}
+       & \text{若 }y\neq x\text{ 且 }y\notin\fv(s),
+   \end{cases}\\
+ \taplsubst{x}{s}{(t_1\,t_2)}
+   &=(\taplsubst{x}{s}{t_1})\,(\taplsubst{x}{s}{t_2}).
+\end{aligned}
+\]
+现在已经接近完成：定义只要产生结果，结果就是正确的。问题在于，最后的修补
+把替换变成了偏操作。例如，对
+\(\taplsubst{x}{y\,z}{(\lambda y.\,x\,y)}\)，新定义完全不给结果：
+被替换项的绑定变量 \(y\) 不等于 \(x\)，但它又在 \(y\,z\) 中自由出现，
+所以没有任何分支适用。
+
+类型系统与 lambda 演算文献中解决这一问题的一种常见办法，是在“相差受约束
+变量重命名”的意义下处理项。Church 把一致重命名项中受约束变量的操作称为
+\termfirst{\(\alpha\) 变换}{alpha-conversion}；这个术语至今仍很常用，
+所以也可以说我们在“相差 \(\alpha\) 变换”的意义下处理项。
+
+\begin{definition}[约定]
+\label{conv:5.3.4}
+如果两个项只在受约束变量的名称上不同，那么它们在所有上下文中都可以互换。
+\end{definition}
+
+实际使用时，这意味着任何 lambda 绑定变量都可以在方便的时刻改成其他名称，
+只要在 lambda 函数体中一致地作同样修改。例如，计算
+\(\taplsubst{x}{y\,z}{(\lambda y.\,x\,y)}\) 时，先把
+\(\lambda y.\,x\,y\) 改写为 \(\lambda w.\,x\,w\)，再计算
+\(\taplsubst{x}{y\,z}{(\lambda w.\,x\,w)}\)，得到
+\(\lambda w.\,y\,z\,w\)。
+
+这项约定让替换“几乎等同于全函数”：每当准备把替换应用于定义无结果的一组
+参数时，都可以按需重命名，使旁条件成立。采用该约定后，替换定义还能写得
+更简洁。抽象情形的第一个分支可以删去，因为总能假设（必要时先重命名）绑定
+变量 \(y\) 与 \(x\) 以及 \(s\) 中的自由变量都不同。最终定义如下。
+
+\begin{definition}[替换]
+\label{def:5.3.5}
+\[
+\begin{aligned}
+ \taplsubst{x}{s}{x}&=s,\\
+ \taplsubst{x}{s}{y}&=y &&\text{若 }y\neq x,\\
+ \taplsubst{x}{s}{(\lambda y.\,t_1)}
+   &=\lambda y.\,\taplsubst{x}{s}{t_1}
+     &&\text{若 }y\neq x\text{ 且 }y\notin\fv(s),\\
+ \taplsubst{x}{s}{(t_1\,t_2)}
+   &=(\taplsubst{x}{s}{t_1})\,(\taplsubst{x}{s}{t_2}).
+\end{aligned}
+\]
+\end{definition}
+
+\subsection*{操作语义}
+
+图~\ref{fig:5-3}汇总 lambda 项的操作语义。这里的值集比算术表达式时更有
+意思。按值调用求值到达 lambda 抽象就停止，因此值可以是任意 lambda 抽象。
+
+\begin{figure}[p]
+\centering
+\small
+\textbf{\(\lambda\)（无类型）}\par\medskip
+\begin{minipage}{0.92\textwidth}
+\textbf{语法}\par\smallskip
+\[
+\begin{array}{@{}rcll@{}}
+ t&::=&x&\text{项：变量}\\
+  &\mid&\lambda x.\,t&\text{抽象}\\
+  &\mid&t\ t&\text{应用}\\[2pt]
+ v&::=&\lambda x.\,t&\text{值：抽象值}
+\end{array}
+\]
+\textbf{求值}\quad \(t\trans t'\)\par\smallskip
+\[
+\begin{gathered}
+ \frac{t_1\trans t_1'}{t_1\,t_2\trans t_1'\,t_2}
+ \quad(\textsc{E-App1})
+ \qquad
+ \frac{t_2\trans t_2'}{v_1\,t_2\trans v_1\,t_2'}
+ \quad(\textsc{E-App2})
+ \\[10pt]
+ (\lambda x.\,t_{12})\,v_2
+ \trans
+ \taplsubst{x}{v_2}{t_{12}}
+ \quad(\textsc{E-AppAbs}).
+\end{gathered}
+\]
+\end{minipage}
+\caption{无类型 lambda 演算（\(\lambda\)）}
+\label{fig:5-3}
+\end{figure}
+
+求值关系位于图的下半部分。与算术表达式的求值一样，规则分成两类：
+计算规则 \textsc{E-AppAbs}，以及同余规则 \textsc{E-App1}、
+\textsc{E-App2}。
+
+注意，这些规则中的元变量选择有助于控制求值次序。由于 \(v_2\) 只取值，
+\textsc{E-AppAbs} 的左侧可以匹配右侧已经是值的应用。\textsc{E-App1}
+则适用于左侧尚非值的应用：\(t_1\) 可以匹配任意项，但前提还要求它能够迈出
+一步。\textsc{E-App2} 必须等到应用左侧成为值、能够绑定给值元变量 \(v_1\)
+后才能触发。三条规则合在一起，完全确定应用 \(t_1\,t_2\) 的求值次序：
+先用 \textsc{E-App1} 把 \(t_1\) 归约为值，再用 \textsc{E-App2} 把
+\(t_2\) 归约为值，最后用 \textsc{E-AppAbs} 执行应用本身。
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:5.3.6}
+调整这些规则，描述其他三种求值策略：完全 \(\beta\) 归约、正规序与惰性
+求值。
+\end{exercise}
+
+注意，在纯 lambda 演算中，lambda 抽象是唯一可能的值。因此，如果到达
+\textsc{E-App1} 已经成功把 \(t_1\) 归约为值的状态，这个值必为 lambda
+抽象。当然，给语言加入原始布尔值等其他构造后，这一观察就失效了，因为那些
+构造会引入抽象以外的值形式。
+
+\begin{exercise}[\(\star\star,\nrightarrow\)]
+\label{ex:5.3.7}
+\cref{ex:3.5.16}给出了布尔值与算术表达式操作语义的另一种表述：卡住的项
+求值为特殊常量 \(\taplwrong\)。把这种语义扩展到
+\(\lambda_{\mathcal{NB}}\)。
+\end{exercise}
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:5.3.8}
+\cref{ex:3.5.17}为算术表达式引入了“大步”求值风格，其基本关系是“项
+\(t\) 求值为最终结果 \(v\)”。说明如何用大步风格表述 lambda 项的求值
+规则。
+\end{exercise}
+
+\section{注记}
+\label{sec:5.4}
+
+Church 及其合作者在 20 世纪 20、30 年代发展了无类型 lambda 演算
+（Church，1941）。全面介绍无类型 lambda 演算各方面内容的标准著作是
+Barendregt（1984）；Hindley 和 Seldin（1986）不及前者全面，但更容易入门。
+Barendregt 在 \emph{Handbook of Theoretical Computer Science} 中的文章
+（1990）是一篇紧凑综述。许多函数式程序设计教材（如 Abelson 和 Sussman，
+1985；Friedman、Wand 和 Haynes，2001；Peyton Jones 和 Lester，1992）
+以及程序语言语义教材（如 Schmidt，1986；Gunter，1992；Winskel，1993；
+Mitchell，1996）也介绍 lambda 演算。Böhm 和 Berarducci（1985）提出了
+把各种数据结构系统编码为 lambda 项的方法。
+
+尽管“柯里化”以 Curry 命名，他本人否认发明过这个想法。通常认为它来自
+Schönfinkel（1924），但底层思想早已为 Frege、Cantor 等多位 19 世纪
+数学家所熟知。
+
+\bilingualepigraph
+  {事实上，这个系统除了用作逻辑之外，或许还有其他用途。}
+  {There may, indeed, be other applications of the system than its use as a
+  logic.}
+  {——Alonzo Church，1932}

@@ -1,5 +1,252 @@
 % Chapter 7 — An ML Implementation of the Lambda-Calculus
 % Source: ../source/split/chapters/ch07-ml-lambda-calculus_p083-p087.pdf
 % Original print pages: 83--88
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:7}
+% Status: 自检中
+
+\chapter{lambda 演算的 ML 实现}
+\label{chap:7}
+
+本章以第~\ref{chap:4}~章的算术表达式解释器，以及第~\ref{chap:6}~章对变量
+绑定和替换的处理为基础，为无类型 lambda 演算构造一个解释器。
+
+只要把前面的定义直接翻译成 OCaml，就能得到一个可执行的无类型 lambda 项
+求值器。与第~\ref{chap:4}~章一样，这里只展示核心算法，暂且忽略词法分析、
+解析、打印等问题。
+\footnote{本章大部分内容研究纯无类型 lambda 演算
+（图~\ref{fig:5-3}），相应实现为 \texttt{untyped}。
+\texttt{fulluntyped} 实现还包含数字和布尔值等扩展。}
+
+\translatornote{原书的 OCaml 程序完整保留在正文中。本译本另在
+\texttt{code/untyped/} 提供行为等价的 Rust 实现，其中包括 de Bruijn
+索引、上下文长度一致性检查、移位、替换、按值调用求值、解析与打印；该工程
+随译稿一同编译并测试。}
+
+\section{项与上下文}
+\label{sec:7.1}
+
+直接音译定义~\ref{def:6.1.2}，就得到表示项的抽象语法树的数据类型：
+
+\begin{lstlisting}
+type term =
+    TmVar of int
+  | TmAbs of term
+  | TmApp of term * term
+\end{lstlisting}
+
+变量表示为一个数字，即它的 de Bruijn 索引。抽象只携带表示函数体的子项；
+应用则携带被应用的两个子项。
+
+不过，实际实现使用的定义还会多携带一些信息。首先，像以前一样，给每个项
+标注一个 \texttt{info} 类型的元素很有用。它记录该项最初出现的文件位置，
+从而让错误报告过程能把用户（甚至用户的文本编辑器）自动引导到发生错误的
+确切位置。
+
+\begin{lstlisting}
+type term =
+    TmVar of info * int
+  | TmAbs of info * term
+  | TmApp of info * term * term
+\end{lstlisting}
+
+其次，为了调试，最好在每个变量结点上再携带一个数字，作为一致性检查。约定
+这个数字始终等于该变量出现处的上下文总长度。
+
+\begin{lstlisting}
+type term =
+    TmVar of info * int * int
+  | TmAbs of info * term
+  | TmApp of info * term * term
+\end{lstlisting}
+
+每次打印变量时，都要验证这个数字是否等于当前上下文的实际大小；若不相等，
+就说明某处漏做了一次移位操作。
+
+最后一项改进也与打印有关。尽管内部用 de Bruijn 索引表示项，显然不应把这种
+形式直接呈现给用户：解析时，应当从普通表示转换成无名项；打印时，则应转换
+回普通形式。这本身并不困难，但也不能完全幼稚地处理——例如，若给变量生成
+全然新鲜的符号，打印出的项中，受约束变量名就会与原程序里的名字毫无关系。
+解决办法是在每个抽象上标注一个字符串，作为受约束变量名的提示：
+
+\begin{lstlisting}
+type term =
+    TmVar of info * int * int
+  | TmAbs of info * string * term
+  | TmApp of info * term * term
+\end{lstlisting}
+
+项上的基本操作，特别是替换，不会对这些字符串做任何复杂处理：它们只会原样
+随项传递，不检查名字冲突、变量捕获等问题。打印过程需要为受约束变量生成新鲜
+名字时，会先尝试使用给定提示；若提示与当前上下文中已经使用的名字冲突，就
+尝试相近的名字，不断添加撇号，直到找到当前尚未使用的名字。这样，除了可能
+多几个撇号之外，打印出的项会与用户预期的形式相近。
+
+打印过程本身如下：
+
+\begin{lstlisting}
+let rec printtm ctx t = match t with
+    TmAbs(fi,x,t1) ->
+      let (ctx',x') = pickfreshname ctx x in
+      pr "(lambda "; pr x'; pr ". "; printtm ctx' t1; pr ")"
+  | TmApp(fi,t1,t2) ->
+      pr "("; printtm ctx t1; pr " "; printtm ctx t2; pr ")"
+  | TmVar(fi,x,n) ->
+      if ctxlength ctx = n then
+        pr (index2name fi ctx x)
+      else
+        pr "[bad index]"
+\end{lstlisting}
+
+它使用数据类型 \texttt{context}：
+
+\begin{lstlisting}
+type context = (string * binding) list
+\end{lstlisting}
+
+上下文就是由字符串及其关联绑定组成的列表。眼下绑定本身极为简单：
+
+\begin{lstlisting}
+type binding = NameBind
+\end{lstlisting}
+
+其中没有携带任何有意义的信息。稍后在第 10 章，我们会为 \texttt{binding}
+类型加入其他分支，用于记录变量对应的类型假设以及类似信息。
+
+打印函数还依赖若干底层函数：\texttt{pr} 把字符串送往标准输出流；
+\texttt{ctxlength} 返回上下文长度；\texttt{index2name} 根据变量索引查找
+其字符串名字。其中最有意思的是 \texttt{pickfreshname}。它接受上下文
+\texttt{ctx} 和字符串提示 \texttt{x}，找出一个与 \texttt{x} 相近且尚未
+列入 \texttt{ctx} 的名字 \texttt{x'}，把 \texttt{x'} 加进
+\texttt{ctx} 形成新上下文 \texttt{ctx'}，再把 \texttt{ctx'} 与
+\texttt{x'} 成对返回。
+
+本书网站上 \texttt{untyped} 实现中的实际打印函数还要复杂一些，它额外处理
+两个问题。第一，它遵循应用左结合、抽象函数体尽量向右延伸的约定，尽可能省略
+括号。第二，它为一个底层的美观打印模块（OCaml 的 \texttt{Format} 库）生成
+格式化指令，由该模块决定怎样换行和缩进。
+
+\section{移位与替换}
+\label{sec:7.2}
+
+移位的定义~\ref{def:6.2.1} 几乎可以逐符号翻译成 OCaml：
+
+\begin{lstlisting}
+let termShift d t =
+  let rec walk c t = match t with
+      TmVar(fi,x,n) ->
+        if x>=c then TmVar(fi,x+d,n+d)
+        else TmVar(fi,x,n+d)
+    | TmAbs(fi,x,t1) ->
+        TmAbs(fi,x,walk (c+1) t1)
+    | TmApp(fi,t1,t2) ->
+        TmApp(fi,walk c t1,walk c t2)
+  in walk 0 t
+\end{lstlisting}
+
+内部移位 \(\uparrow^d_c(t)\) 在这里表示成对内部函数
+\texttt{walk c t} 的一次调用。由于 \(d\) 始终不变，不必在每次调用
+\texttt{walk} 时都传递它；在变量分支需要 \(d\) 时，直接使用外层绑定即可。
+顶层移位 \(\uparrow^d(t)\) 表示成 \texttt{termShift d t}。注意，
+\texttt{termShift} 本身没有标成递归函数，因为它只调用一次
+\texttt{walk}。
+
+同样，替换函数也几乎直接来自定义~\ref{def:6.2.4}：
+
+\begin{lstlisting}
+let termSubst j s t =
+  let rec walk c t = match t with
+      TmVar(fi,x,n) ->
+        if x=j+c then termShift c s
+        else TmVar(fi,x,n)
+    | TmAbs(fi,x,t1) ->
+        TmAbs(fi,x,walk (c+1) t1)
+    | TmApp(fi,t1,t2) ->
+        TmApp(fi,walk c t1,walk c t2)
+  in walk 0 t
+\end{lstlisting}
+
+用项 \(s\) 替换项 \(t\) 中编号为 \(j\) 的变量，即
+\([j\mapsto s]t\)，这里写成 \texttt{termSubst j s t}。与原始替换定义
+唯一的差别是：这里到达 \texttt{TmVar} 分支时一次完成 \(s\) 所需的全部
+移位，而不是每穿过一个绑定子就把 \(s\) 上移一位。因此，\texttt{walk}
+的每次调用中参数 \(j\) 都相同，可以从内部定义中省去。
+
+读者可能已经注意到，\texttt{termShift} 与 \texttt{termSubst} 的定义
+非常相似，只有到达变量时采取的动作不同。本书网站提供的
+\texttt{untyped} 实现利用了这一点，把移位和替换都表述成一个更一般函数
+\texttt{tmmap} 的特例。给定项 \(t\) 和一个函数 \texttt{onvar}，
+\texttt{tmmap onvar t} 的结果与 \(t\) 具有相同形状，但其中每个变量都被
+调用 \texttt{onvar} 得到的结果替换。在更大型的演算中，这种记法技巧能省去
+大量乏味的重复；\S25.2 会进一步说明。
+
+在 lambda 演算的操作语义中，唯一使用替换的地方是 \(\beta\) 归约规则。
+如前所述，这条规则实际完成了几项操作：先把要替换受约束变量的项向上移动
+一位，再进行替换，最后把整个结果向下移动一位，以反映受约束变量已经被用掉。
+下面的定义封装了这一系列步骤：
+
+\begin{lstlisting}
+let termSubstTop s t =
+  termShift (-1) (termSubst 0 (termShift 1 s) t)
+\end{lstlisting}
+
+\section{求值}
+\label{sec:7.3}
+
+与第~\ref{chap:4}~章一样，求值函数依赖一个辅助谓词
+\texttt{isval}：
+
+\begin{lstlisting}
+let rec isval ctx t = match t with
+    TmAbs(_,_,_) -> true
+  | _ -> false
+\end{lstlisting}
+
+单步求值函数直接转写求值规则，只是把上下文 \texttt{ctx} 与项一同传入。
+当前的 \texttt{eval1} 并不使用这个参数，但后面一些更复杂的求值器需要它。
+
+\begin{lstlisting}
+let rec eval1 ctx t = match t with
+    TmApp(fi,TmAbs(_,x,t12),v2) when isval ctx v2 ->
+      termSubstTop v2 t12
+  | TmApp(fi,v1,t2) when isval ctx v1 ->
+      let t2' = eval1 ctx t2 in
+      TmApp(fi,v1,t2')
+  | TmApp(fi,t1,t2) ->
+      let t1' = eval1 ctx t1 in
+      TmApp(fi,t1',t2)
+  | _ ->
+      raise NoRuleApplies
+\end{lstlisting}
+
+多步求值函数仍与以前一样，只是多了 \texttt{ctx} 参数：
+
+\begin{lstlisting}
+let rec eval ctx t =
+  try
+    let t' = eval1 ctx t in
+    eval ctx t'
+  with NoRuleApplies -> t
+\end{lstlisting}
+
+\begin{exercise}[推荐，\(\star\star\star\)]
+把这个实现改为使用练习 5.3.8 引入的“大步”求值风格。
+\end{exercise}
+
+\section{注记}
+\label{sec:7.4}
+
+本章给出的替换处理足以满足全书需要，但绝不是关于这个问题的最终结论。尤其
+是，我们的求值器在 \(\beta\) 归约规则中会“急切地”用参数值替换函数体里的
+受约束变量。注重速度而非简洁性的函数式语言解释器（和编译器）会采用另一种
+策略：不实际执行替换，只在一个名为\termfirst{环境}{environment}的辅助
+数据结构中记录受约束变量名与参数值之间的关联，并在求值时让环境随项一起
+传递。到达一个变量时，再从当前环境查找它的值。
+
+可以把环境看作一种显式替换，从而为这种策略建立模型。也就是说，把替换机制
+从元语言移进对象语言，让它成为求值器所操作项之语法的一部分，而不再是作用
+于项的外部操作。Abadi、Cardelli、Curien 和 Lévy（1991a）最早研究了显式
+替换；此后，它已经成为一个活跃的研究领域。
+
+\bilingualepigraph
+  {仅仅因为你实现了某个东西，并不意味着你已经理解它。}
+  {Just because you've implemented something doesn't mean you understand it.}
+  {——Brian Cantwell Smith}

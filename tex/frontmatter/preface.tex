@@ -34,7 +34,8 @@
 
 第二个主要目标是注重\textbf{实用}。本书集中讨论类型系统在程序语言中的
 应用，为此舍弃了一些在更偏数学的带类型 lambda 演算教材中很可能会出现的
-主题，例如指称语义。全书底层的计算模型采用按值调用（call-by-value）的
+主题，例如指称语义。全书底层的计算模型采用
+\termfirst{按值调用}{call-by-value}的
 lambda 演算；它与当今大多数程序语言相契合，也很容易在此基础上加入引用、
 异常等会影响程序状态或执行流程的语言机制。对于每一种语言特性，我们主要
 关心的是：考虑这一特性的\emph{实际动机}；证明包含这一特性的语言具有
@@ -43,9 +44,10 @@ lambda 演算；它与当今大多数程序语言相契合，也很容易在此�
 
 另一个目标是尊重本领域的\textbf{多样性}。本书覆盖了许多单独的主题和若干
 已经得到充分理解的组合，但并不试图把所有内容统一到一个系统之中。对于其中
-一些主题的子集，人们已经给出了统一的表述。例如，\emph{纯类型系统（pure
-type system）}采用统一的记法，可以优雅而紧凑地处理多种广义函数类型
-（原文称“arrow types”）。然而，整个领域的发展仍然太快，尚不足以得到
+一些主题的子集，人们已经给出了统一的表述。例如，
+\emph{\termfirst{纯类型系统}{pure type system}}采用统一的记法，可以
+优雅而紧凑地处理多种广义函数类型
+（原文称“\textit{arrow types}”）。然而，整个领域的发展仍然太快，尚不足以得到
 完整的系统化整理。
 
 无论用于课堂教学还是自学，本书都力求\textbf{便于使用}。书中为大多数练习
@@ -73,11 +75,13 @@ type system）}采用统一的记法，可以优雅而紧凑地处理多种广�
 选读内容，使用 Tait 方法证明简单类型 lambda 演算的规范化性质。第三部分
 讨论子类型化这一基本机制，其中包括对元理论的详细研究和两个篇幅较长的案例
 研究。第四部分讨论递归类型，涵盖较简单的
-\emph{同构递归（iso-recursive）}形式和更为棘手的
-\emph{等递归（equi-recursive）}形式。本部分两章中的第二章在
-余归纳（coinduction）这一数学框架下，研究一个包含等递归类型和子类型化的
+\emph{\termfirst{同构递归}{iso-recursive}}形式和更为棘手的
+\emph{\termfirst{等递归}{equi-recursive}}形式。本部分两章中的第二章在
+\termfirst{余归纳}{coinduction}这一数学框架下，研究一个包含等递归类型和
+子类型化的
 系统的元理论。第五部分转向多态：先讨论 ML 风格的类型重构，再讨论
-System \SystemF{} 中的非直谓多态（impredicative polymorphism），其表达
+System \SystemF{} 中的
+\termfirst{非直谓多态}{impredicative polymorphism}，其表达
 能力强于前述 ML 风格的多态；接着讨论存在量化及其与抽象数据类型的联系，
 最后讨论在带有有界量化的系统中如何组合多态与子类型化。第六部分讨论类型
 算子：第一章介绍基本概念；第二章展开 \SystemFomega{} 及其元理论；第三章
@@ -114,7 +118,7 @@ System \SystemF{} 中的非直谓多态（impredicative polymorphism），其表
 削弱本书鲜明的实用取向和实现取向。类型系统与逻辑之间丰富的联系在少数
 地方有所提示，但没有详细展开；它们虽然重要，却会把讨论带得太远。许多
 程序语言和类型系统的高级特性也只是顺带提及，例如依赖类型、
-交类型（intersection type）和 Curry--Howard 对应；书中关于这些主题的
+\termfirst{交类型}{intersection type}和 Curry--Howard 对应；书中关于这些主题的
 简短小节可以作为进一步阅读的起点。最后，除了对一个类似 Java 的核心语言
 所作的短暂考察
 （\chapref{19}）之外，本书完全集中于基于 lambda 演算的系统。不过，在
@@ -128,7 +132,7 @@ System \SystemF{} 中的非直谓多态（impredicative polymorphism），其表
 
 读者应熟悉至少一种高阶函数式程序设计语言（Scheme、ML、Haskell 等），
 并掌握程序语言与编译器的基本概念，例如抽象语法、BNF 文法、求值和
-抽象机（abstract machine）。许多优秀的本科教材都介绍了这些材料；我尤其
+\termfirst{抽象机}{abstract machine}。许多优秀的本科教材都介绍了这些材料；我尤其
 喜欢 Friedman、Wand 和 Haynes 的
 \emph{Essentials of Programming Languages}（2001），以及 Scott 的
 \emph{Programming Language Pragmatics}（1999）。在若干章节中，具有
@@ -216,7 +220,8 @@ Ullman（1997）的著作。
 本书也适合用作更一般的程序语言理论研究生课程的主教材。这类课程可以用
 半个到三分之二个学期学习本书的大部分内容，把剩余时间用于其他教学单元，
 例如：基于 Milner 的 $\pi$ 演算著作（1999）讨论并发理论；介绍 Hoare
-逻辑和公理语义（例如 Winskel，1993）；或者概览续延（continuation）、
+逻辑和公理语义（例如 Winskel，1993）；或者概览
+\termfirst{续延}{continuation}、
 模块系统等高级语言特性。
 
 如果课程十分重视学期项目，可以推迟讲授部分理论材料，例如规范化，或许

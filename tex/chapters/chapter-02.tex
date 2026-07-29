@@ -1,5 +1,324 @@
 % Chapter 2 — Mathematical Preliminaries
 % Source: ../source/split/chapters/ch02-mathematical-preliminaries_p026-p032.pdf
 % Original print pages: 15--20
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:2}
+% Status: 自检中
+
+\chapter{数学预备知识}
+\label{chap:2}
+
+在正式开始之前，我们需要约定一些共同的记法，并陈述若干基本的数学事实。
+大多数读者只需浏览本章，在需要时回来查阅即可。
+
+\section{集合、关系与函数}
+\label{sec:2.1}
+
+\begin{definition}
+\label{def:2.1.1}
+集合采用标准记法：用花括号明确列出集合的元素（\(\{\ldots\}\)），或通过
+\termfirst{描述法}{set comprehension}从一个集合构造另一个集合
+（\(\{x\in S\mid\ldots\}\)）；空集记作 \(\varnothing\)；\(S\setminus T\)
+表示 \(S\) 与 \(T\) 的集合差，即 \(S\) 中不属于 \(T\) 的元素所成的集合。
+集合 \(S\) 的大小记作 \(\lvert S\rvert\)。\(S\) 的
+\termfirst{幂集}{powerset}，即 \(S\) 的所有子集所成的集合，记作
+\(\powerset(S)\)。
+\end{definition}
+
+\begin{definition}
+\label{def:2.1.2}
+自然数集合 \(\{0,1,2,3,4,5,\ldots\}\) 用符号 \(\Nat\) 表示。若一个集合
+的元素可以与自然数建立一一对应，则称该集合\termfirst{可数}{countable}。
+\end{definition}
+
+\begin{definition}
+\label{def:2.1.3}
+给定一组集合 \(S_1,S_2,\ldots,S_n\)，其上的一个
+\termfirst{\(n\) 元关系}{\(n\)-place relation}是由 \(S_1\) 到 \(S_n\)
+中的元素构成的元组集合
+\[
+  R\subseteq S_1\times S_2\times\cdots\times S_n.
+\]
+若 \((s_1,\ldots,s_n)\in R\)，其中 \(s_i\in S_i\)，就说
+\(s_1,\ldots,s_n\) 由 \(R\) 相关联。
+\end{definition}
+
+\begin{definition}
+\label{def:2.1.4}
+集合 \(S\) 上的一元关系称为 \(S\) 上的\termfirst{谓词}{predicate}。
+若 \(s\in P\)，就说谓词 \(P\) 对 \(s\in S\) 成立。为了突出这一直观，
+我们常把 \(s\in P\) 写作 \(P(s)\)，将 \(P\) 看作把 \(S\) 中的元素映射
+为真值的函数。
+\end{definition}
+
+\begin{definition}
+\label{def:2.1.5}
+集合 \(S\) 与 \(T\) 上的二元关系 \(R\) 称为
+\termfirst{二元关系}{binary relation}。我们常把 \((s,t)\in R\) 写作
+\(s\,R\,t\)。当 \(S\) 与 \(T\) 是同一个集合 \(U\) 时，就说 \(R\) 是
+\(U\) 上的二元关系。
+\end{definition}
+
+\begin{definition}
+\label{def:2.1.6}
+为了便于阅读，三元及更多元的关系常使用
+\termfirst{混合缀具体语法}{mixfix concrete syntax}来书写：关系中的各个
+元素由一串符号分隔，这些符号合在一起构成关系的名称。例如，对于第 9 章
+简单类型 lambda 演算中的类型关系，我们写
+\(\Gamma\vdash s:T\)，表示“三元组 \((\Gamma,s,T)\) 属于该类型关系”。
+\end{definition}
+
+\begin{definition}
+\label{def:2.1.7}
+设 \(R\) 是集合 \(S\) 与 \(T\) 上的关系。\(R\) 的
+\termfirst{定义域}{domain}记作 \(\dom(R)\)，它由所有满足如下条件的
+\(s\in S\) 构成：存在某个 \(t\)，使 \((s,t)\in R\)。\(R\) 的
+\termfirst{陪域或值域}{codomain or range}记作 \(\range(R)\)，它由所有
+满足如下条件的 \(t\in T\) 构成：存在某个 \(s\)，使 \((s,t)\in R\)。
+\end{definition}
+
+\translatornote{原书在此把上述集合同时称作 codomain 和 range。通常的现代
+术语会把 \(T\) 本身称为陪域（codomain），把这里实际定义出的子集称为值域
+（range）。本译文保留原书措辞，同时说明这一差别。}
+
+\begin{definition}
+\label{def:2.1.8}
+若集合 \(S\) 与 \(T\) 上的关系 \(R\) 满足：只要
+\((s,t_1)\in R\) 且 \((s,t_2)\in R\)，就有 \(t_1=t_2\)，则称 \(R\)
+是从 \(S\) 到 \(T\) 的\termfirst{偏函数}{partial function}。如果还满足
+\(\dom(R)=S\)，则称 \(R\) 是从 \(S\) 到 \(T\) 的
+\termfirst{全函数}{total function}，或简称函数。
+\end{definition}
+
+\begin{definition}
+\label{def:2.1.9}
+设 \(R\) 是从 \(S\) 到 \(T\) 的偏函数。若 \(s\in\dom(R)\)，则称 \(R\)
+在参数 \(s\in S\) 上有定义，否则称其无定义。我们写 \(f(x)\uparrow\) 或
+\(f(x)={}\uparrow\)，表示“\(f\) 在 \(x\) 上无定义”；写
+\(f(x)\downarrow\)，表示“\(f\) 在 \(x\) 上有定义”。
+
+在一些实现章节中，我们还需要定义可能在某些输入上失败的函数（例如
+图 22-2）。必须区分\termfirst{失败}{failure}与
+\termfirst{发散}{divergence}：失败是正当且可观察的结果；一个可能失败的
+函数既可以是偏函数（即它还可能发散），也可以是全函数（即它总会返回结果
+或明确失败）——事实上，我们常常希望证明它是全函数。当 \(f\) 在输入 \(x\)
+上返回失败结果时，记作 \(f(x)=\mathsf{fail}\)。
+
+形式上，一个从 \(S\) 到 \(T\)、同时还可能失败的函数，实际上是从 \(S\)
+到 \(T\cup\{\mathsf{fail}\}\) 的函数；这里假定
+\(\mathsf{fail}\notin T\)。
+\end{definition}
+
+\begin{definition}
+\label{def:2.1.10}
+设 \(R\) 是集合 \(S\) 上的二元关系，\(P\) 是 \(S\) 上的谓词。若由
+\(s\,R\,s'\) 和 \(P(s)\) 总能推出 \(P(s')\)，则称 \(P\) 被 \(R\)
+\termfirst{保持}{preserved}。
+\end{definition}
+
+\section{有序集}
+\label{sec:2.2}
+
+\begin{definition}
+\label{def:2.2.1}
+设 \(R\) 是集合 \(S\) 上的二元关系。若 \(R\) 把 \(S\) 中每个元素都与
+自身相关联，即对所有 \(s\in S\) 都有 \(s\,R\,s\)
+（或 \((s,s)\in R\)），则称 \(R\) 是\termfirst{自反的}{reflexive}。
+若对 \(S\) 中任意 \(s,t\)，\(s\,R\,t\) 都蕴含 \(t\,R\,s\)，则称
+\(R\) 是\termfirst{对称的}{symmetric}。若 \(s\,R\,t\) 和
+\(t\,R\,u\) 一起蕴含 \(s\,R\,u\)，则称 \(R\) 是
+\termfirst{传递的}{transitive}。若 \(s\,R\,t\) 和 \(t\,R\,s\) 一起
+蕴含 \(s=t\)，则称 \(R\) 是\termfirst{反对称的}{antisymmetric}。
+\end{definition}
+
+\begin{definition}
+\label{def:2.2.2}
+集合 \(S\) 上自反且传递的关系 \(R\) 称为 \(S\) 上的
+\termfirst{预序}{preorder}。（当我们说“预序集 \(S\)”时，总是默认心中有
+\(S\) 上的某个特定预序 \(R\)。）预序通常用 \(\leq\) 或 \(\sqsubseteq\)
+之类的符号表示。我们写 \(s<t\)（“\(s\) 严格小于 \(t\)”），表示
+\(s\leq t\land s\neq t\)。
+
+集合 \(S\) 上同时还是反对称的预序称为 \(S\) 上的
+\termfirst{偏序}{partial order}。若偏序 \(\leq\) 还满足：对 \(S\) 中任意
+\(s,t\)，或者 \(s\leq t\)，或者 \(t\leq s\)，则称其为
+\termfirst{全序}{total order}。
+\end{definition}
+
+\begin{definition}
+\label{def:2.2.3}
+设 \(\leq\) 是集合 \(S\) 上的偏序，且 \(s,t\in S\)。如果元素 \(j\in S\)
+满足：
+\begin{enumerate}
+  \item \(s\leq j\) 且 \(t\leq j\)；
+  \item 对任意满足 \(s\leq k\) 且 \(t\leq k\) 的 \(k\in S\)，都有
+    \(j\leq k\)，
+\end{enumerate}
+则称 \(j\) 是 \(s\) 与 \(t\) 的\termfirst{并}{join}，也就是
+\termfirst{最小上界}{least upper bound}。
+
+类似地，如果元素 \(m\in S\) 满足：
+\begin{enumerate}
+  \item \(m\leq s\) 且 \(m\leq t\)；
+  \item 对任意满足 \(n\leq s\) 且 \(n\leq t\) 的 \(n\in S\)，都有
+    \(n\leq m\)，
+\end{enumerate}
+则称 \(m\) 是 \(s\) 与 \(t\) 的\termfirst{交}{meet}，也就是
+\termfirst{最大下界}{greatest lower bound}。
+\end{definition}
+
+\begin{definition}
+\label{def:2.2.4}
+集合 \(S\) 上自反、传递且对称的关系称为 \(S\) 上的
+\termfirst{等价关系}{equivalence}。
+\end{definition}
+
+\begin{definition}
+\label{def:2.2.5}
+设 \(R\) 是集合 \(S\) 上的二元关系。\(R\) 的
+\termfirst{自反闭包}{reflexive closure}是包含 \(R\) 的最小自反关系
+\(R'\)。“最小”的意思是：如果 \(R''\) 是另一个包含 \(R\) 中所有有序对的
+自反关系，那么 \(R'\subseteq R''\)。
+
+类似地，\(R\) 的\termfirst{传递闭包}{transitive closure}是包含 \(R\)
+的最小传递关系，常记作 \(R^+\)。\(R\) 的
+\termfirst{自反传递闭包}{reflexive and transitive closure}是包含 \(R\)
+的最小自反且传递的关系，常记作 \(R^*\)。
+\end{definition}
+
+\begin{exercise}[\(\star\star,\nrightarrow\)]
+\label{ex:2.2.6}
+设 \(R\) 是集合 \(S\) 上的关系。定义关系
+\[
+  R'=R\cup\{(s,s)\mid s\in S\}.
+\]
+也就是说，\(R'\) 包含 \(R\) 中的所有有序对，外加所有形如 \((s,s)\)
+的有序对。证明 \(R'\) 是 \(R\) 的自反闭包。
+\end{exercise}
+
+\begin{exercise}[\(\star\star,\nrightarrow\)]
+\label{ex:2.2.7}
+下面给出关系 \(R\) 的传递闭包的一种更具构造性的定义。首先定义如下有序对
+集合序列：
+\[
+  \begin{aligned}
+    R_0     &= R,\\
+    R_{i+1} &= R_i\cup
+      \{(s,u)\mid \text{存在 }t,\ (s,t)\in R_i\text{ 且 }(t,u)\in R_i\}.
+  \end{aligned}
+\]
+也就是说，构造 \(R_{i+1}\) 时，把由 \(R_i\) 中已有有序对经过“一步传递性”
+得到的全部有序对加入 \(R_i\)。最后，把关系 \(R^+\) 定义为所有 \(R_i\)
+的并：
+\[
+  R^+=\bigcup_i R_i.
+\]
+证明这个 \(R^+\) 确实是 \(R\) 的传递闭包，即它满足
+\cref{def:2.2.5} 给出的条件。
+\end{exercise}
+
+\begin{exercise}[\(\star\star,\nrightarrow\)]
+\label{ex:2.2.8}
+设 \(R\) 是集合 \(S\) 上的二元关系，\(P\) 是 \(S\) 上被 \(R\) 保持的
+谓词。证明 \(P\) 也被 \(R^*\) 保持。
+\end{exercise}
+
+\begin{definition}
+\label{def:2.2.9}
+设集合 \(S\) 上有预序 \(\leq\)。\(\leq\) 中的一条
+\termfirst{下降链}{decreasing chain}是 \(S\) 中元素构成的序列
+\(s_1,s_2,s_3,\ldots\)，其中每个元素都严格小于前一个元素，即对每个
+\(i\) 都有 \(s_{i+1}<s_i\)。（链可以是有限的，也可以是无限的；我们更
+关心下一定义所涉及的无限链。）
+\end{definition}
+
+\begin{definition}
+\label{def:2.2.10}
+设集合 \(S\) 上有预序 \(\leq\)。若 \(\leq\) 中不存在无限下降链，则称
+\(\leq\) 是\termfirst{良基的}{well founded}。例如，自然数上的通常次序
+\[
+  0<1<2<3<\cdots
+\]
+是良基的；而整数上的同一次序
+\[
+  \cdots<-3<-2<-1<0<1<2<3<\cdots
+\]
+不是良基的。有时我们省略对 \(\leq\) 的明确说明，直接说 \(S\) 是良基集。
+\end{definition}
+
+\section{序列}
+\label{sec:2.3}
+
+\begin{definition}
+\label{def:2.3.1}
+书写序列时，依次列出其元素，并用逗号分隔。我们既用逗号表示在序列任意一端
+添加一个元素的 \termfirst{cons 操作}{cons operation}，也用它表示序列的
+\termfirst{拼接操作}{append operation}。例如，若 \(a\) 是序列
+\(3,2,1\)，\(b\) 是序列 \(5,6\)，那么 \(0,a\) 表示
+\(0,3,2,1\)，\(a,0\) 表示 \(3,2,1,0\)，而 \(b,a\) 表示
+\(5,6,3,2,1\)。（只要不讨论由序列构成的序列，用逗号同时表示 cons 和拼接
+就不会造成混淆。）
+
+从 \(1\) 到 \(n\) 的数列简写作 \(1..n\)，只使用两个点。序列 \(a\) 的
+长度记作 \(\lvert a\rvert\)。空序列写作 \(\bullet\)，也可以留空。若一个
+序列与另一个序列包含完全相同的元素，只是次序可能不同，则称前者是后者的
+\termfirst{排列}{permutation}。
+\end{definition}
+
+\section{归纳法}
+\label{sec:2.4}
+
+在程序语言理论乃至整个计算机科学中，归纳证明都随处可见。许多这样的证明
+建立在以下原则之一上。
+
+\begin{axiom}[自然数上的普通归纳原理]
+\label{ax:2.4.1}
+设 \(P\) 是自然数上的谓词。如果
+\[
+  P(0)
+\]
+并且对所有 \(i\)，\(P(i)\) 都蕴含 \(P(i+1)\)，那么对所有 \(n\)，
+\(P(n)\) 都成立。
+\end{axiom}
+
+\begin{axiom}[自然数上的完全归纳原理]
+\label{ax:2.4.2}
+设 \(P\) 是自然数上的谓词。如果对每个自然数 \(n\)，在假定所有
+\(i<n\) 都满足 \(P(i)\) 的前提下，可以证明 \(P(n)\)，那么对所有 \(n\)，
+\(P(n)\) 都成立。
+\end{axiom}
+
+\begin{definition}
+\label{def:2.4.3}
+自然数对上的\termfirst{字典序}{lexicographic order}定义如下：
+\((m,n)\leq(m',n')\) 当且仅当 \(m<m'\)，或者 \(m=m'\) 且
+\(n\leq n'\)。
+\end{definition}
+
+\begin{axiom}[字典序归纳原理]
+\label{ax:2.4.4}
+设 \(P\) 是自然数对上的谓词。如果对每个自然数对 \((m,n)\)，在假定所有
+\((m',n')<(m,n)\) 都满足 \(P(m',n')\) 的前提下，可以证明
+\(P(m,n)\)，那么 \(P(m,n)\) 对所有 \(m,n\) 都成立。
+\end{axiom}
+
+字典序归纳原理是\termfirst{嵌套归纳}{nested induction}证明的基础；在这类
+证明中，归纳证明的某个情形会“再作一次内层归纳”。它可以推广到数的三元组、
+四元组等。（对数对归纳相当常见；对三元组归纳偶尔有用；超过三元组就很
+少见了。）
+
+第 3 章的\cref{thm:3.3.4}还会介绍另一种归纳证明形式，称为
+\termfirst{结构归纳}{structural induction}，尤其适合证明与项或类型推导
+之类树状结构有关的性质。第 21 章将更详细地讨论归纳推理的数学基础；在那里
+我们会看到，这些具体的归纳原理其实都是同一个更深层思想的实例。
+
+\section{背景读物}
+\label{sec:2.5}
+
+如果读者不熟悉本章概述的材料，可以先阅读一些背景资料。相关资料很多；
+Winskel 的著作（1993）特别适合用来建立对归纳法的直观理解。Davey 和
+Priestley（1990）开篇对有序集作了很好的回顾。Halmos（1987）则是基础
+集合论的优秀入门读物。
+
+\bilingualepigraph
+  {证明是一项可以重复进行的说服实验。}
+  {A proof is a repeatable experiment in persuasion.}
+  {——Jim Horning}

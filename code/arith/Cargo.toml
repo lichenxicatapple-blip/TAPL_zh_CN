@@ -1,0 +1,19 @@
+[package]
+name = "tapl-arith"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Rust companion implementation for TAPL Chapters 3 and 4"
+
+[lib]
+name = "tapl_arith"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tapl-arith"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+

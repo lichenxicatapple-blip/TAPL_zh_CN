@@ -1,5 +1,7 @@
 \newcommand{\term}[1]{\textit{#1}}
-\newcommand{\termfirst}[2]{\textbf{#1}（\textit{#2}）}
+\newcommand{\termfirst}[2]{%
+  \textnormal{#1}\discretionary{}{}{}（\textit{#2}）%
+}
 \newcommand{\keyword}[1]{\texttt{#1}}
 \newcommand{\metavar}[1]{\mathit{#1}}
 \newcommand{\tapltype}[1]{\mathsf{#1}}
@@ -12,6 +14,20 @@
 \newcommand{\powerset}{\mathcal{P}}
 \newcommand{\Nat}{\mathbb{N}}
 \newcommand{\sembracket}[1]{\llbracket #1 \rrbracket}
+\newcommand{\tapltrue}{\mathsf{true}}
+\newcommand{\taplfalse}{\mathsf{false}}
+\newcommand{\taplzero}{\mathsf{0}}
+\newcommand{\taplsucc}[1]{\mathsf{succ}\,#1}
+\newcommand{\taplpred}[1]{\mathsf{pred}\,#1}
+\newcommand{\tapliszero}[1]{\mathsf{iszero}\,#1}
+\newcommand{\taplif}[3]{%
+  \mathsf{if}\ #1\ \mathsf{then}\ #2\ \mathsf{else}\ #3%
+}
+\newcommand{\taplwrong}{\mathsf{wrong}}
+\newcommand{\Consts}{\operatorname{Consts}}
+\newcommand{\termsize}{\operatorname{size}}
+\newcommand{\termdepth}{\operatorname{depth}}
+\newcommand{\taplsubst}[3]{[#1\mapsto #2]#3}
 \newcommand{\tapltodo}[1]{\textcolor{TAPLTodo}{【待确认：#1】}}
 \newcommand{\SystemF}{\ensuremath{\mathrm{F}}}
 \newcommand{\SystemFomega}{\ensuremath{\mathrm{F}_{\omega}}}
@@ -31,6 +47,24 @@
   after skip=8pt plus 2pt minus 2pt,
   fontupper=\footnotesize
 }
+\newtcolorbox{taplkeystatementbox}{
+  breakable,
+  colback=TAPLKeyStatementBackground,
+  colframe=TAPLKeyStatementBorder,
+  boxrule=0pt,
+  leftrule=2pt,
+  arc=0pt,
+  boxsep=0pt,
+  left=10pt,
+  right=9pt,
+  top=7pt,
+  bottom=7pt,
+  before skip=9pt plus 2pt minus 2pt,
+  after skip=9pt plus 2pt minus 2pt
+}
+\newenvironment{keystatement}
+  {\begin{taplkeystatementbox}}
+  {\end{taplkeystatementbox}}
 \newcommand{\translatornote}[1]{%
   \begin{tapltranslatornotebox}
     \textbf{译者注：}#1
@@ -56,24 +90,34 @@
     第~#1~章%
   \fi
 }
+\newcommand{\taplsecref}[2]{%
+  \ifcsname r@#2\endcsname
+    \hyperref[#2]{\S\ref*{#2}}%
+  \else
+    \S#1%
+  \fi
+}
 
 \theoremstyle{definition}
-\newtheorem{definition}{定义}[chapter]
-\newtheorem{exercise}{练习}[chapter]
-\newtheorem{example}{例}[chapter]
+\newtheorem{definition}{定义}[section]
+\newtheorem{exercise}[definition]{练习}
+\newtheorem{example}[definition]{例}
+\newtheorem{axiom}[definition]{公理}
 
 \theoremstyle{plain}
-\newtheorem{theorem}{定理}[chapter]
-\newtheorem{lemma}{引理}[chapter]
-\newtheorem{proposition}{命题}[chapter]
-\newtheorem{corollary}{推论}[chapter]
+\newtheorem{theorem}[definition]{定理}
+\newtheorem{lemma}[definition]{引理}
+\newtheorem{proposition}[definition]{命题}
+\newtheorem{corollary}[definition]{推论}
 
 \theoremstyle{remark}
-\newtheorem{remark}{注}[chapter]
+\newtheorem{remark}[definition]{注}
+\renewcommand{\proofname}{证明}
 
 \crefname{definition}{定义}{定义}
 \crefname{exercise}{练习}{练习}
 \crefname{example}{例}{例}
+\crefname{axiom}{公理}{公理}
 \crefname{theorem}{定理}{定理}
 \crefname{lemma}{引理}{引理}
 \crefname{proposition}{命题}{命题}

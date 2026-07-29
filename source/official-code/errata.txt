@@ -1,0 +1,1693 @@
+Errata for _Types and Programming Languages_
+as of 31 December 2024
+
+Many thanks to Eijiro Sumii and his colleagues as well as Gary
+Klimowicz for helping curate these!
+
+Errata are organized by page, naively sorted within the page.  Text in
+square brackets lists the source, and an indicator of the severity of the
+error:
+    no mark denotes VERY TRIVIAL errors
+    *  marks denote TRIVIAL errors
+    ** marks denote NOT SO TRIVIAL errors  :-)
+
+----------
+
+In the source code for the checkers: In the TmTimesFloat case of the "pr"
+  function in syntax.ml in most of the checkers, the first occurrence of
+  "printtm_ATerm false ctx t2" should be "printtm_ATerm false ctx t1".
+
+In the source code for checkers involving exceptions: The eval1 function is
+missing cases for reducting "try" statements.  Something like this should be
+added:
+  | TmTry(fi,v1,t2) when isval ctx v1 ->
+      v1
+  | TmTry(fi,TmError(_),t2) ->
+      t2
+  | TmTry(fi,t1,t2) ->
+      let t1' = eval1 ctx t1 in
+      TmTry(fi, t1', t2)
+
+In the source code for checkers involving subtyping and polymorphism: The
+TyAll case of the join function is wrong.  It reads:
+
+  | (TyAll(tyX,tyS1,tyS2),TyAll(_,tyT1,tyT2)) ->
+       if not(subtype ctx tyS1 tyT1 && subtype ctx tyT1 tyS1) then TyTop
+       else
+         let ctx' = addbinding ctx tyX (TyVarBind(tyT1)) in
+         TyAll(tyX,tyS1,join ctx' tyT1 tyT2)
+
+  The last line should read: TyAll(tyX,tyS1,join ctx' tyS2 tyT2).
+
+----------
+
+p. xxi [Pierce 1st printing *]
+    Erik Hilsdale's name is spelled with a k
+    Fermin Reig's name should be typeset Ferm\'{\i}n
+
+p. xxi, line 14 [Sumii]
+    "Narciso Marti-Oliet"
+    ->
+    "Narciso Mart\'{\i}-Oliet"
+
+p. 6, line -2 [Sumii]
+    "Postscript"
+    ->
+    "PostScript"
+
+p. 7, "C#" [Sumii *]
+    The # should not be superscript, and should be a "number sign"
+    (not a "music sharp sign") according to the official language
+    specification.
+
+p. 11, 1960s, Algol-68 [Sumii]
+    "(van Wijngaarden et al., 1975)"
+    ->
+    "Van Wijngaarden et al. (1975)"
+
+p. 12, near the middle, "the application of these ideas" [Sumii *]
+    It is unclear what "these ideas" refer to.
+
+p. 15 [Pierce 1st printing *]
+    The font used for (the set) T in 2.1.1 and 2.1.5 is inconsistent with
+    the rest of the chapter.  Ditto U in 2.1.5.
+
+p. 16, Definition 2.1.7, "The codomain or range of R" [Sumii **]
+    This terminology is not standard.  Usually, "codomain" means only
+    T, while "range" means either T or {t \in T | \exists s. (s,t) \in
+    R} (as defined here), depending on the literature.
+
+p. 19 [Pierce 1st printing *]
+    "P(0)" should be slanted in 2.4.1
+
+p. 25 [Pierce 1st printing *]
+    "in under" --> "under"
+    "is does not" --> "does not"
+
+    The paragraph beginning "for brevity" would make more sense if it
+    were moved just before the example higher on the page.
+
+p. 27 [Pierce 1st printing *]
+    concete --> concrete
+
+p. 28, line -12 [Sumii]
+    "by condition (2)"
+    ->
+    "by condition 2"
+
+p. 28, 11th line from the bottom [Pierce 3rd printing]
+     S_i should be S_j (that is, it should read "t_1, t_2, t_3 are elements
+     of S_j")
+
+p. 35, after the displayed program fragment [Pierce 3rd printing]
+    "using E-If" should be "using E-IfTrue"
+
+p. 40, line -5 [Sumii]
+    "containing"
+    ->
+    "satisfying"
+
+p. 41, Definition 3.5.15 [Pierce 3rd printing]
+    the word "closed" is not needed here.
+
+p. 45, line 8 [Sumii]
+    "implementation sections"
+    ->
+    "implementation chapters"
+
+p. 47, near the middle [Sumii]
+    "the result of the evaluation function yields no result"
+    ->
+    "the evaluation function yields no result"
+
+p. 52, line -6 [Sumii]
+    "the function body (\lambda n. if n=0 then 1 else ...)"
+    ->
+    "the function body (if n=0 then 1 else ...)"
+
+p. 53, footnote 2 [Pierce 3rd printing]
+    "the behaviors of some languages constructs"
+    should be
+    "the behaviors of some language constructs"
+
+p. 56 [Pierce 1st printing *]
+    the middle item in the first sample reduction sequence has an extra
+    pair of parens
+
+p. 57 [Pierce 1st printing *]
+    all occurrences of "call by X" should be hyphenated (except,
+    arguably, the first use of "call by need")
+
+p. 57, definition of call-by-value [Pierce 3rd printing]
+    "a term that is finished computing..." should be "a CLOSED term that is
+    finished computing..."
+
+p. 57, definition of call-by-value [Sumii *]
+    Like call-by-name, the call-by-value evaluation strategy also
+    forbids reductions inside abstractions.
+
+    By the way, the online errata
+    (http://www.cis.upenn.edu/~bcpierce/tapl/errata.txt) adds "closed"
+    to the (informal) definition of values here, but not all values
+    are closed according to the formal definitions given in later
+    chapters.
+
+p. 63, line 9 [Sumii]
+    "Other common datatypes like lists, trees, arrays, and variant
+    records"
+    ->
+    "Other common datatypes like lists, trees, arrays, variants, and
+    records"
+
+p. 63, Exercise 5.2.8 [Pierce 3rd printing]
+    fold_left should be fold_right
+
+p. 63, Exercise 5.2.8 [Sumii]
+    "c x (c y (c z n)))"
+    -> (remove the last closing parenthesis)
+    "c x (c y (c z n))"
+
+p. 67, Figure 5-2 [Pierce 3rd printing]
+    the reduction from
+       times c3 (fct (prd c3))
+    to
+       times c3 (fct c2')
+    is not valid in call-by-value semantics -- the application of times
+    to c3 should be reduced first.
+
+p. 67, Figure 5-2 [Sumii]
+    The last periods in lines 18, 21, and 28 should be removed.
+
+p. 71, last line of display near top of page [Pierce 1st printing **]
+    There should be a close-paren after the second t1.
+
+p. 71, last line [Pierce 1st printing *]
+    the RHS should (arguably) be parenthesized to match the corresponding
+    line at the top of the page
+
+p. 72, line 5 [Pierce 3rd printing]
+    "values can be arbitrary lambda-terms" should read "values can be
+    arbitrary lambda-abstractions"
+
+p. 73, Exercise 5.3.8 [Pierce 3rd printing]
+    4.2.2 should be 3.5.17
+
+p. 76, Exercise 6.1.1 [Pierce 3rd printing]
+    the combinator called "plus" does not implement the addition function
+    (the solution in the back is correct, though)
+
+p. 78, line 2 [Sumii]
+    Add a "," before "x1".
+
+p. 78, second line of 6.2 [Pierce 3rd printing]
+    "To to" -> "To do"
+
+p. 79, Exercise 6.2.3 [Pierce 3rd printing]
+    The statement to be shown is not quite true for d < 0.  To be true for
+    n>=0 and any integral d, it should be "Show that, if t is an n-term and,
+    if d < 0, the free variables of t are all at least |d|, then <shift t up
+    by d above cutoff c> is a (max(n+d,0))-term."
+
+p. 80, line 6 [Sumii]
+    "([j|->s]t1 [j|->s]t2)"
+    ->
+    "([j|->s]t1) ([j|->s]t2)"
+
+    Also, all the parentheses on the left hand sides of this
+    definition should be in typewriter (heavy) font.
+
+p. 81, line -7 [Sumii]
+    "deBruijn indices"
+    ->
+    "de Bruijn indices"
+
+p. 87 [Pierce 3rd printing]
+    "As in chapter 3" should be "As in chapter 4"
+
+p. 96, second line of proof of 8.3.2 [Pierce 2nd printing **]
+    T-IsZero should be T-Zero
+
+    This error does *not* appear in the first printing.  :-(
+
+p. 96, second to last line of T-If case in proof of 8.3.2 [Pierce 1st printing **]
+    T-If should be E-If
+
+p. 97, T-If case in proof of 8.3.3 [Pierce 1st printing **]
+    E-True and E-False should be E-IfTrue and E-IfFalse
+
+p. 102, footnote 1 [Pierce 3rd printing]
+    "they will be sometimes be elided"
+    should be
+    "they will sometimes be elided"
+
+p. 104-105, proof of Theorem 9.3.3 [Sumii *]
+    The exercise would be [Recommended, ***].
+
+p. 105, line -10 [Sumii]
+    "conditions"
+    ->
+    "conditionals"
+
+p. 106, proof of 9.3.8 [Pierce 3rd printing]
+    "By induction on a derivation" should be "By induction on the depth
+    of a derivation"
+
+p. 107, end of first para [Pierce 1st printing **]
+    The annotation on y should be T2, not T1
+
+p. 107, Preservation theorem (and other preservation theorems throughout the text) [Pierce 3rd printing]
+    The theorem is correct as stated, but we don't really need this
+    powerful a version of it for present purposes.  Since (a) we have
+    chosen only to be interested in evaluating closed terms and (b) the
+    evaluation strategy is call-by-value (so evaluating a closed term
+    only involved evaluating closed sub-terms), there is no reason for
+    Gamma ever to be non-empty.
+
+p. 110, part 2 of Theorem 9.5.2 [Pierce 3rd printing]
+    the first "typed" should be "untyped"
+
+p. 114, line -10 [Pierce 3rd printing]
+    "the variable type @'a@" should be "the type variable @'a@"
+
+p. 118, line 2 [Sumii *]
+    "with variables and type variables"
+    ->
+    "with variables"
+
+p. 120, Theorem 11.3.1 [Pierce 3rd printing]
+    The first part of the Theorem doesn't hold, for a couple of reasons.
+    First, the statement in the "if" direction should read:
+
+    if e(t) -> u, then there is a lambda-E term t' such that u = e(t') and
+    t -> t'
+
+    Second, the E-SeqNext rule should be changed to read
+
+    v1; t2 -> t2
+
+    (with v1 in place of unit), to match the semantics of E-AppAbs.
+
+p. 126, Figure 11-5, E-PairBeta1 and E-PairBeta2 [Sumii]
+    The "1" and "2" after "." should be in typewriter (heavy) font.
+
+p. 129, line 2 [Sumii]
+    "t'j"
+    ->
+    "tj'"
+
+p. 130, line 2 [Sumii]
+    "both tuples and products"
+    ->
+    "both tuples and records"
+
+p. 130, second paragraph, second sentence [Pierce 3rd printing]
+    "affect" should be "effect"
+
+p. 131, Figure 11-8 [Sumii]
+    "Matching rules:"
+    ->
+    "Matching rules"
+
+p. 136, Figure 11-11 [Pierce 3rd printing]
+    the value syntax for variants is missing.  It should read:
+
+       v ::= ...
+             <l=v> as T
+
+    also, "field labels" would be better called "variant labels" here.
+
+p. 137, paragraph 3 [Pierce 3rd printing]
+    "finite mappings" should be "partial mappings"
+
+p. 142 [Pierce 1st printing *]
+    top line is garbled (some latex markup for index entries got into the
+    text instead)
+
+p. 142, line 4 [Sumii]
+    A space should be removed before |.
+
+p. 144, line 4 [Pierce 3rd printing]
+    T should be T1
+
+p. 146 [Pierce 3rd printing]
+    Lists are not implemented in the fullsimple checker.
+
+p. 146 [Pierce 1st printing **]
+    footnote 9 is redundant with Exercise 11.12.2.
+
+p. 146 [Sumii]
+    In some printing(s), the phrase "they are retained here to ease
+    comparison with the encoding of lists in \S 23.4" is missing
+    (where "\S" is the section symbol).
+
+p. 151, Lemma 12.1.5 [Sumii]
+    "v1...,vn"
+    ->
+    "v1,...,vn"
+
+p. 152, line 1 [Pierce 3rd printing]
+    The first heavy open paren should be dropped.
+
+p. 152, line 3 [Pierce 3rd printing]
+    The first close paren should be in typewriter (heavy) font.
+
+p. 152, line 11 [Sumii]
+    ",."
+    ->
+    "."
+
+    Also, the parentheses in "(t1 t2)" should be in typewriter (heavy)
+    font.
+
+p. 152, Exercise 12.1.7 [Pierce 3rd printing]
+    "Figure 3-1" should be "Figure 8-1"
+
+p. 152, "Tait's strong normalization proof corresponds exactly to an algorithm for evaluating simply typed terms, known as normalization by evaluation or type-directed partial evaluation" [Sumii **]
+
+    Actually, normalization by evaluation (or type-directed partial
+    evaluation) corresponds to _weak_ normalization; see
+    http://www.cse.chalmers.se/~peterd/slides/Leicester.pdf for
+    example.
+
+p. 155, first line [Pierce 1st printing *]
+    missing "of" between "result" and "the"
+
+p. 162, 166 [Pierce 3rd printing]
+    The notation for extending stores with new mappings is a little
+    inconsistent ("[l |-> v2]\mu" in some places and "\mu, l |-> v1" in
+    others).  Note, though, that "[l |-> v2]\mu" assumes l \in \dom(\mu)
+    while "\mu, l |-> v1" assumes the converse (so perhaps having two
+    notations is useful).
+
+p. 162, line -3 [Sumii]
+    "l2" should be in math style.
+
+p. 163 [Pierce 3rd printing]
+    The last l_1 on the pge should be l_2
+
+p. 166 [Pierce 3rd printing]
+    In the syntax of stores, = should be \mapsto
+
+p. 167, Definition 13.5.1 (and following material) [Pierce 3rd printing]
+    It would be better to fix an empty context here rather than allowing an
+    arbitrary one.  (See the comment above for p. 107.)
+
+p. 168, near the middle [Sumii]
+    "on the values of all the old locations"
+    ->
+    "on the types of all the old locations"
+
+p. 168, para 3, line 5 [Pierce 1st printing **]
+    \mu should be \Sigma in "or else it is exactly ..."
+
+    also, in line 7 of the paragraph below Thm 13.5.3
+    (\mu, l \mapsto v_1) should be [l \mapsto v_1]\mu
+
+p. 176, line 10 [Sumii]
+    "In T-Raise we demand"
+    ->
+    "In T-Exn we demand"
+
+p. 177, line 8 [Pierce 3rd printing]
+    "l_n:t_n" -> "l_n:T_n"
+
+p. 177, line -15, "it falls through to the else clause" [Sumii]
+    Perhaps "the wildcard clause" may be more accurate.
+
+p. 183, near the middle [Sumii]
+    "where the common fields are identical"
+    ->
+    "where the types of the common fields are identical"
+
+p. 184, near the middle [Sumii *]
+    Replace "Top" with "Bool" here (the former is not defined yet).
+
+p. 184 [Pierce 3rd printing]
+    In "most variants of Abadi and Cardelli's object calculus omit width
+    subtyping", "width" should be replaced by "depth."
+
+p. 186, Exercise 15.2.4 [Sumii *]
+    Here and in many other places throughout the book, an "arrow type"
+    is used without definition; it means a function type.
+
+p. 189, proof of 15.3.4 [Pierce 3rd printing]
+    "By induction on typing derivations" should be "By induction on the
+    depth of the given typing derivation".
+
+p. 190, proof of Theorem 15.3.5, case T-Sub [Sumii *]
+    "By T-Sub, \Gamma |- t : T"
+    ->
+    "By T-Sub, \Gamma |- t' : T"
+
+p. 190, Lemma 15.3.6, part 2 [Pierce 3rd printing]
+    {k_j=v_j ^ {a \in 1..m}} should be {k_a=v_a ^ {a \in 1..m}}
+
+p. 191, near the middle [Sumii *]
+    "{ka=vj a \in 1..m}"
+    ->
+    "{ka=va a \in 1..m}"
+
+    "with |-vj:Ti for each li=kj"
+    ->
+    "with |-va:Ti for each li=ka"
+
+p. 194, line -15 [Sumii]
+    "\lambda(x:Top)."
+    ->
+    "\lambda x:Top."
+
+p. 203 [Pierce 3rd printing]
+    in the last rule, S-RcdPerm, the part below the vertical line, instead
+    of
+          {l_i:S_i ...} <: {l_i:T_i ...}
+    it should say:
+          {k_j:S_j ...} <: {l_i:T_i ...}
+
+p. 203, right-hand side of definition of [[ ]] for (S-RcdPerm) [Sumii *]
+    "kj:[[Si]]"
+    ->
+    "kj:[[Sj]]"
+
+p. 204, second equation in definition of [[ - ]] [Pierce 3rd printing]
+    \x:T1  should be \x:T1.t2
+
+p. 206, first sentence of third para [Pierce 3rd printing]
+    In "The inhabitants of the intersection type T_1 /\ T_2 are terms
+    belonging to both S and T", S and T should be T_1 and T_2.
+
+p. 206, S-Inter4 [Sumii]
+    It may perhaps be better to add parentheses like:
+    (S->T1) /\ (S->T2)  <:  S->(T1/\T2)
+
+p. 208, chapter quote [Pierce 1st printing **]
+    Mannasse should be Manasse
+
+p. 211, Figure 16-1 [Sumii]
+    The symbols on the top left should be a little larger.
+
+p. 211, Lemma 16.1.1 [Sumii]
+    "S-Rcd-Width"
+    ->
+    "S-RcdWidth"
+
+    "S-Rcd-Perm"
+    ->
+    "S-RcdPerm"
+
+    (ditto for several other places in this chapter)
+
+p. 215, near the middle [Sumii **]
+    "the left-hand subderivation has been pushed up"
+    ->
+    "the right-hand subderivation of the original instance of T-App
+    has been pushed up"
+
+p. 220, (TA-If) [Sumii]
+    All the turnstyles "|-" should be "|->".
+
+p. 220, Exercise 16.3.4 [Pierce 1st printing *]
+    15-5 should be 15.5
+
+p. 226, footnote 1 [Pierce 1st printing **]
+    "Other languages, such as  and , ...".  The words "Java" and "C++"
+    are missing
+
+p. 232, line -3 [Pierce 3rd printing]
+    "C++ and ," should be "C++ and Java,"
+
+p. 237, line -7 [Sumii *]
+    "E-Fix"
+    ->
+    "E-FixBeta"
+
+p. 243, line 3 [Pierce 3rd printing]
+    Ref InstrCounter <: Ref SetCounter
+    should be
+    Source InstrCounter <: Source SetCounter
+
+p. 247, line -3 [Sumii]
+    "FeatherWeight Java"
+    ->
+    "Featherweight Java"
+
+p. 248, line -1 [Sumii *]
+    It is unknown what "enumerations" mean here.
+
+p. 255, line -8 [Sumii]
+    "this.f1=f1;...;this.fn=fn;"
+    ->
+    "this.f1=f1;...this.fn=fn;"
+
+p. 256, line -3, "the <: relation is antisymmetric" [Sumii *]
+    (Cf. p. 257, Exercise 19.4.1 and p. 530, Solution 19.4.1)
+
+    In addition, C should not be equal to D in any class declaration class C extends D {...}.
+
+p. 260, Exercise 19.4.4 [Sumii]
+    "Java's raise"
+    ->
+    "Java's throw"
+
+p. 261, line -6 [Sumii *]
+    "cannot perform a downcast"
+    ->
+    "cannot perform a cast"
+
+p. 261, line -5 [Sumii]
+    "the failing downcast in the latter case"
+    ->
+    "the failing cast"
+
+p. 263, line -9 [Sumii *]
+    "the original used a nondeterministic beta-reduction relation"
+    ->
+    "the original used a nondeterministic reduction relation"
+
+p. 268, picture [Pierce 1st printing **]
+    the braces in "{nil: , cons: }" should look like "<nil: , cons: >"
+
+p. 273, line 4 [Sumii]
+    "fixed-point constructor"
+    ->
+    "fixed-point combinator"
+
+    (This may be intentional, for avoiding repetition.)
+
+p. 273, first paragraph [Pierce 3rd printing]
+    the erasure of the fix combinator defined here is not quite the same as
+    the fix defined on p. 65: this one is missing the abstractions on y
+    (which are needed to make it work in the call-by-value setting).
+
+p. 273, sentence immediately below definition of diverge function [Pierce 3rd printing]
+    repeated "can"
+
+p. 274, definition of fixD [Pierce 3rd printing]
+    This is actually an implementation of the call by name fixed point
+    combinator (Y), not the call by value one defined on page 65 (that one
+    can also be encoded using recursive types, though).
+
+p. 278, line 3 [Sumii]
+    "every datatype definition implicitly introduces a recursive type"
+    ->
+    "every datatype definition may implicitly introduce a recursive
+    type"
+
+    (The former is an overstatement: there _are_ non-recursive
+    datatype definitions such as 'a option, of course.)
+
+p. 279-280, Section 20.4 [Sumii]
+    "Basic syntactic and semantic properties (without subtyping) are
+    collected in Cardone and Coppo (1991)."
+
+    and
+
+    "Basic syntactic and semantic properties of recursive types
+    without subtyping were established in early papers by Huet (1976)
+    and MacQueen, Plotkin, and Sethi (1986)."
+
+    ->
+
+    "Basic syntactic and semantic properties of recursive types
+    without subtyping were established in early papers by Huet (1976)
+    and MacQueen, Plotkin, and Sethi (1986), and are collected in
+    Cardone and Coppo (1991)."
+
+p. 280 [Pierce 2nd printing **]
+    The citations for early papers on syntactic properties of recursive
+    types (without subtyping) should also mention an paper by Claude
+    Pair, published in Algol Bulletin n. 31, March 1970, which contains
+    what appears to be the first proof of the decidability of equality
+    for equi-recursive types.
+
+    A scanned copy of the paper has kindly been made available by Pierre
+    Lescanne, at the following URL:
+
+      http://www.ens-lyon.fr/~plescann/PUBLICATIONS/RecursiveTypes/
+
+p. 286, line 5 in the first paragraph of Section 21.3 [Sumii]
+    "their fixed points"
+    ->
+    "its fixed points"
+
+p. 291, Exercise 21.5.2, "subtyping relations" [Sumii]
+    Here (and in a few other places throughout the book), a "subtyping
+    relation" is a synonym of a "subtype relation" (Section 15.2).
+    Note that there is also an "algorithmic subtyping relation"
+    (Definition 16.1.4), which is different.
+
+p. 292, line -10 [Sumii]
+    "consistent"
+    ->
+    "F-consistent"
+
+p. 294, line -7 [Sumii]
+    The first "reachable(X)" should be in math style.
+
+p. 299, proof of 21.7.4 [Pierce 3rd printing]
+    "Observe that reachable_{S_r}(S, T) \subseteq subtrees(S) * subtrees(T)"
+    does't take into account contravariance in the function subtyping rule,
+    such that the line should be changed to: "Observe that reachable_{S_r}(S,
+    T) \subseteq (subtrees(S) * subtrees(T)) U (subtrees(T) * subtrees(S))."
+
+p. 301 [Pierce 1st printing *]
+    'An sample' -> 'A sample'
+
+p. 303, line 7 [Sumii *]
+    "treeof(S'', T'') = (S', T')"
+    ->
+    "treeof(S'', T'') = treeof(S', T')"
+
+p. 303, line 13 [Pierce 1st printing *]
+    "Q \in T \times T" should be "Q \subseteq T \times T"
+
+p. 303, line 14, "treeof(\nu Sm)" [Sumii *]
+    Here, the operator "treeof" is lifted elementwise to sets of
+    pairs.
+
+p. 303, line -14 [Sumii *]
+    Here, "these pairs" mean (S1,T1) and (S2,T2).
+
+p. 303, line -8 [Pierce 1st printing *]
+    "we claim that R={...}" -> "we claim that R={...} is such a set"
+
+p. 308, line 6 [Sumii *]
+    "S = [X<=Q]T"
+    ->
+    "S <= [X<=Q]T"
+
+p. 308, line -9 [Sumii]
+    "Take S'=T"
+    ->
+    "Take S'=T."
+
+p. 308, last line [Pierce 3rd printing]
+    In "Take S' = [Y -> \mu Y.S']S_2 ...", the last S' should be T'.
+
+p. 320, Example 22.2.2 [Pierce 1st printing **]
+    The last solution is wrong.
+    Correct alternatives include:
+       ( [ X |-> Nat -> Nat -> Nat, Y |-> Nat ],  Nat -> Nat )
+    or ( [ X |-> Nat -> Nat, Y |-> Nat ],  Nat )
+
+p. 321, para 1, 3rd to last line [Pierce 1st printing **]
+    t_1 should be T_1
+
+p. 321, near the middle [Sumii *]
+    "In rule T-App"
+    ->
+    "In rule CT-App"
+
+p. 322, Figure 22-1, CT-App [Sumii *]
+    "X \not\in X_1, X_2, T_1, T_2, C_1, C_2, \Gamma, t_1, or t_2"
+    ->
+    "X not mentioned in X_1, X_2, T_1, T_2, C_1, or C_2"
+    (see also the erratum for Corollary 22.3.8; note that the side
+    condition "X \not\in \Gamma, t_1, or t_2" is never used in the
+    proofs)
+
+p. 323, lines 2 and 4 [Sumii *]
+    "Nat->Z = X->Y"
+    ->
+    "X->Y = Nat->Z"
+
+p. 324, line 3 [Pierce 1st printing **]
+    "Is a solution for (Gamma, t2, S2, C)"
+    should be
+    "Is a solution for ((Gamma,x:T1), t2, S2, C)"
+
+p. 325, lines 3-4 [Pierce 1st printing **]
+    T2 should be S2 in the third line and T1 should be S1 in the fourth
+    line.
+
+p. 325, line 5 [Sumii *]
+    "X not mentioned in X1, X2, S1, S2, C1, C2"
+    ->
+    "X not mentioned in X1, X2, S1, S2, C1, C2, \Gamma, t1, or t2"
+
+p. 325, line 20, "so that \sigma' S1 = \sigma1 S1" [Sumii *]
+    Insert "(similarly, \sigma' S2 = \sigma2 S2)".
+
+p. 325, Corollary 22.3.8 [Sumii *]
+    "Suppose \Gamma \vdash t : S | C."
+    ->
+    "Suppose \Gamma \vdash t : S |_X C where X \cap FV(\Gamma, t) =
+    \emptyset."
+
+    (for instance, consider t = if true then (\lambda y:Y.0)true else
+    (\lambda z:Nat.0)0 when (\lambda z:Nat.0)0 is given the type Y by
+    the original CT-App; another---perhaps better---fix is to add more
+    side conditions in CT-If, though it would require more fixes on
+    the completeness proof as well)
+
+p. 327, Figure 22-2 [Sumii *]
+    Notation like \sigma C (for substitution \sigma and constraint set
+    C) means elementewise substitution {(\sigma T) = (\sigma S) | T=S
+    \in C}.
+
+p. 327, Definition 22.4.1 [Sumii *]
+    Here and in other places, the equality of type substitutions is
+    defined in general as: \sigma = \sigma' if \sigma(T) = \sigma'(T)
+    for any type T (rather than as the equality of finite mappings
+    with a common domain).
+
+p. 327, Definition 22.4.4 [Sumii]
+    in some e-book(s), "let C denote" -> "let C' denote"
+
+p. 328, line 8, "\sigma is a unifier for C" [Sumii *]
+    The term "unifier" has never been defined (though "principal
+    unifier" or "most general unifier" is defined in 22.4.2).  A
+    unifier for constraint set C is a substitution \sigma that
+    satisfies C.
+
+p. 328, line -15 [Sumii *]
+    "unify(C) chooses some pair (S, T) from C"
+    ->
+    "unify(C) chooses some constraint S=T from C"
+
+p. 329, line 8 [Sumii *]
+    "X \in T"
+    ->
+    "X \in FV(T)"
+
+p. 329, Exercise 22.5.2, "Find a principal type" [Sumii *]
+    Insert "under the empty (or any) typing context".
+
+p. 332, Figure 22-1, CT-App [Sumii *]
+    "X \not\in X1, X2, T1, T2, C1, C2, \Gamma, t1, or t2"
+    ->
+    "X not mentioned in X1, X2, T1, T2, C1, C2, \Gamma, t1, or t2"
+
+p. 333, line 10 [Sumii]
+    "Ct-AbsInf"
+    ->
+    "CT-AbsInf"
+
+p. 334, para 1, line 1 [Pierce 1st printing *]
+    "One caveat is here that" should be "One caveat here is that"
+
+p. 334, lines 1-2 [Sumii]
+    "variables T1"
+    ->
+    "variables in T1"
+
+p. 334, line 3, "and its environment" [Sumii]
+    Recall that a "type environment" is synonymous to a typing context
+    (p. 101, line 22).  The former term (in this sense) is used only a
+    few times throughout the book.
+
+p. 334, last full paragraph [Pierce 1st printing *]
+    "in the right-hand sides of other lets---rather than in their bodies,
+    where nesting of lets is common---" should be cut (in Mairson's example,
+    each let is nested in the previous one's body)
+
+p. 334, near the bottom [Sumii **]
+    This example is not appropriate - it is slow in OCaml only because
+    of the particular implementation of occurs checks (try
+    "-rectypes") and printing types (insert "ignore").  A better
+    example, due to Jacques Garrigue, is:
+
+    let l0 = ([], [], [], []) in
+    let l1 = (l0, l0, l0, l0) in
+    let l2 = (l1, l1, l1, l1) in
+    ...(snip)...
+    let l9 = (l8, l8, l8, l8) in
+    ignore (l9)
+
+p. 335, line 8, "(r:=(\lambda x:Nat. succ x); (!r)true);" [Sumii]
+    Insert a line break after ";" (because the main text that follows
+    talks about "the third line").
+
+p. 335, line -10 [Sumii]
+    "in"
+    ->
+    ";"
+
+p. 336, line 11 [Sumii *]
+    "X->X"
+    ->
+    "Ref(X->X)"
+
+    "\forall X. X->X"
+    ->
+    "\forall X. Ref(X->X)"
+
+p. 337, line 3 [Sumii]
+    "Algorithm W (Damas and Milner) of Damas and Milner"
+    ->
+    "Algorithm W of Damas and Milner"
+
+p. 337, line -7 [Sumii]
+    "Remy"
+    ->
+    "R\'emy"
+
+p. 337, line -4 [Sumii]
+    "is used solve"
+    ->
+    "is used to solve"
+
+p. 338, para 4, 2nd to last line [Pierce 1st printing *]
+    "e.g. using by" should be "e.g. by using"
+
+p. 339, second sentence below the definition of multiple doubling functions [Pierce 3rd printing]
+     "If we want apply"
+
+    should be
+
+     "If we want to apply".
+
+p. 342, line -7 [Sumii *]
+    "for t"
+    ->
+    "for t2"
+
+p. 342, near bottom [Pierce 3rd printing]
+    In addition to
+
+      We continue the convention (5.3.4) that the names of (term or type)
+      variables should be chosen so as to be different from all the names
+      already bound by $\Gamma$, ...
+
+    we should add the restriction that a context of the form $\Gamma, x : T$
+    is well-formed only if every type variable free in $T$ is bound by
+    $\Gamma$.
+
+p. 349, Exercise 23.4.6 [Sumii]
+    "iszero"
+    ->
+    "iszro"
+
+p. 350, Exercise 23.4.9 [Sumii]
+    "function pred"
+    ->
+    "function prd"
+
+p. 351, line 6 [Sumii]
+    "lists easy to write"
+    ->
+    "lists is easy to write"
+
+p. 354, second para [Pierce 3rd printing]
+    "A term M" should be "A term m"
+
+p. 354, definition of partial type erasure [Pierce 3rd printing]
+    The definition of Pfenning's partial erasure function is not quite
+    right.  The correct definition (with slightly different syntax) appears
+    here:
+
+      http://www.cs.cmu.edu/~fp/papers/CMU-CS-92-105.pdf
+
+p. 354, Theorem 23.6.2 [Pierce 2nd printing **]
+    The cited articles by Boehm (85 and 89) actually prove a slight
+    variant of the stated result.  Other variants (closer to the stated
+    one) can be found in Pfenning (1993a).  Surprisingly, though, the
+    decidability of precisely this partial type inference problem appears
+    still to be open.
+
+p. 354, Theorem 23.6.2 [Sumii **]
+    There seem to be confusions among printings: later printings
+    (such as the 9th) have the same error as the 1st and the 2nd,
+    while middle printings (such as the 5th) do not.
+
+p. 355, line -2 [Sumii *]
+    "a subtype T"
+    ->
+    "a subtype of T"
+
+p. 356, Exercise 23.6.3 [Pierce 3rd printing]
+    We part (1) is not actually useful later; it can be dropped (except for
+    the definition of exposed).  (2) should be used instead of (1) in the
+    proof of (4).
+
+    Also, the first occurrences of A and B in part (4) should have overbars.
+
+p. 359, line 23 [Sumii **]
+    "Kfoury and Wells (1999) gave the first correct"
+    ->
+    "Kfoury and Wells (1994) gave the first direct"
+
+    where "Kfoury and Wells (1994)" is:
+    http://dx.doi.org/10.1145/182590.182456
+
+p. 360, near the middle [Sumii]
+    "by Reynolds (1984, Reynolds and Plotkin, 1993)"
+    ->
+    "by Reynolds (1984), Reynolds and Plotkin (1993)"
+
+p. 371, line 1 [Pierce 3rd printing]
+    ATD should be ADT
+
+p. 371, Exercise 24.2.1 [Sumii *]
+    "Use the List type introduced in Exercise 23.4.3"
+    ->
+    "Use the List type introduced in Section 23.4"
+
+p. 394 [Pierce 1st printing **]
+    In the rule S-All, the premise "Gamma |- U1 :: K1" should be omitted.
+
+p. 398, line 6 [Sumii]
+    "l : L"
+    ->
+    "l \in L"
+
+p. 399, near the middle [Sumii]
+    "except zsero"
+    ->
+    "except szero"
+
+p. 401, Lemma 26.4.1 [Sumii *]
+    In this chapter, "well-formed" means "well-scoped" (pp. 393-394).
+
+p. 402, line 11, "only in the part of the environment" [Sumii]
+    Again, a "type environment" is a synonym of a typing context.
+
+p. 402, Proof of 26.4.8 [Pierce 3rd printing]
+    In the case for S-TVar, if Y=X, then [X -> P]S = P (not Q), which
+    requires G |- P <: Q (from the premise) to reach the desired result.
+
+p. 403, line 1 [Sumii]
+    Insert a (wide) space between "S" and "\Gamma".
+
+p. 403, line 2 [Sumii *]
+    "[X|->P]T"
+    ->
+    "[X|->P]S"
+
+p. 404, proof of 26.4.13 [Pierce 3rd printing]
+    In the second subcase of the argument for T-TApp, the reference to 26.4.6
+    should instead be to 26.4.9.
+
+p. 405, proof of 26.4.14 (near the end) [Pierce 3rd printing]
+    The -> in \forall X<:T_1 -> S_2 should be a dot.
+
+p. 405, proof of 26.4.15 [Pierce 3rd printing]
+    The E-TApp1 should be E-TApp.
+
+p. 408, line -6 [Sumii]
+    "Curien and Ghelli (1992, Ghelli, 1990)"
+    ->
+    "Curien and Ghelli (1992; Ghelli, 1990)"
+
+p. 409, line 2 [Sumii]
+    "Bruce (Bruce, 1991)"
+    ->
+    "Bruce (1991)"
+
+p. 411-416 [Pierce 3rd printing]
+    The whole of chapter 27 is not very convincing.  The purpose in using
+    Fsub is supposedly to enable us to create the method table just once per
+    class, rather than once per object.  The code indeed manages to have it
+    create something just once for each class, but that something is a
+    *function* that creates the method table *at every open self recursive
+    call*!  (See the "(!self r)" calls that happen during a method
+    invocation.)  In other words, the final efficiency is worse than what we
+    ended up at the end of Chapter 18.
+
+    Many thanks to John Tang Boyland for pointing this out!  John also
+    proposes a different case study, using f-omega-sub in the style of chapter
+    32 to implement objects in an imperative style.  A sketch of the main
+    constructions can be found here:
+
+      http://www.cis.upenn.edu/~bcpierce/tapl/boyland-object-encoding.txt
+
+    Some code implementing the idea is here:
+
+      http://www.cs.uwm.edu/classes/cs790/types-f2003/Chapter27-replacement.txt
+      http://www.cs.uwm.edu/classes/cs790/types-f2003/fullfomsubref.tar.gz
+
+p. 411, line 12 [Sumii]
+    "SetCounterRep"
+    ->
+    "CounterRep"
+
+p. 412, near the middle [Sumii]
+    "be able coerce"
+    ->
+    "be able to coerce"
+
+p. 412, footnote [Pierce 3rd printing]
+    The description of method lookup in real-world OO languages is
+    misleadingly simplistic: real implementations do things that are much
+    fancier and more efficient than this.
+
+p. 418, throughout Section 28.1 [Sumii]
+    "|-" should be "|->" in exposures.
+
+p. 422, lines 5-7 [Sumii]
+    "algorithmic typing statements"
+    ->
+    "algorithmic subtyping statements"
+
+    "original typing statements"
+    ->
+    "original subtyping statements"
+
+p. 423, Definition 28.3.4 [Pierce 3rd printing]
+    The weight of a subtyping statement should be defined as the *sum* (not
+    the max) of the weights of S and T.
+
+    Also, it would help to note explicitly that the weight function is well
+    defined because the total size of all the types in Gamma plus the size of
+    the type whose weight is being defined always decreases.
+
+p. 425, Lemma 28.4.1, case 1 [Pierce 1st printing **]
+    ``Suppose that $\Gamma$ is a'' should be ``Suppose that $\Delta$ is a''
+
+p. 426, line 4 [Sumii]
+    "\Gamma |- S <: Top"
+    ->
+    "\Gamma |-> S <: Top"
+
+p. 426, line 10 [Sumii]
+    "\Gamma |- U <: Q"
+    ->
+    "\Gamma |-> U <: Q"
+
+p. 429, line 10, "equivalent to \neg S \/ T" [Sumii]
+    Insert "(in classical logic)".
+
+p. 431, line 4 [Sumii]
+    Here, a "subtype statement" means a "subtyping statement".
+
+p. 433, line -4 [Pierce 1st printing *]
+      \Gamma U \/ T = J.
+
+    should be replaced with
+
+      \Gamma |-> U <: V.  By the induction hypothesis, \Gamma |- U \/ T = J
+      for some J with \Gamma |- J <: V.  By the third clause in the
+      definition, \Gamma |- S \/ T = J.
+
+p. 435, near the middle [Sumii]
+    "deBruijn format"
+    ->
+    "de Bruijn format"
+
+p. 436, line 11 [Sumii *]
+    "supertypes T"
+    ->
+    "supertypes of T"
+
+p. 439, para 3, line 2 [Pierce 1st printing *]
+    "type constructorstype operators" should be just "type constructors"
+
+p. 441, line -3 [Sumii]
+    The left parenthesis should be in typewriter (heavy) font.
+
+p. 444, line -1 [Sumii]
+    The last ";" should be dropped.
+
+p. 444, footnote [Pierce 1st printing *]
+    wrong font for '
+
+p. 445, line 1 [Sumii]
+    ";" should be dropped.
+
+p. 453, Lemma 30.3.2, "a well-formed permutation of \Gamma,\Sigma" [Sumii]
+    Well-formedness is defined later in p. 459, Definition 30.3.18.
+
+p. 457, proof of Lemma 30.3.13 [Sumii *]
+    "Lemma 30.3.12(1) gives us"
+    ->
+    "Corollary 30.3.11 and Lemma 30.3.12(1) give us"
+
+p. 458, line -11 [Sumii]
+    "Proposition 30.3.11"
+    ->
+    "Corollary 30.3.11"
+
+p. 459, Definition 30.3.18 [Sumii *]
+    "and \Gamma |- T :: *"
+    ->
+    "and \Gamma1 |- T :: *"
+
+p. 461 [Pierce 3rd printing]
+    The type operator "Class" is not actually used in Chapter 32.
+
+p. 462, para 2 [Pierce 3rd printing]
+    "abstraction \x:T.t_2 is a family of terms [x <- s]t_1"
+    should end "[x <- s]t_2"
+
+p. 462, near the middle [Sumii]
+    "family of types indexed by types."
+    ->
+    "family of types indexed by types"
+
+p. 468, line -7 [Sumii]
+    "If we let Top[*] = Top and define(maximal elements of higher kinds)"
+    ->
+    "If we let Top[*] = Top and define"
+
+p. 469, Exericse 31.2.1 [Pierce 3rd printing]
+    The exercise is correct as stated, but it would have been more
+    interesting if instead of (or in addition to) "FB <: FB" it had asked
+    whether "FA <: FB" holds. Also, in the second and third parts from the
+    bottom, it would have been clearer to use G instead of F.
+
+p. 469, Exercise 31.2.1 [Sumii]
+    Again, "subtype statements" mean "subtyping statements".
+
+p. 471, Figure 31-1 [Pierce **]
+    The S-App rule as stated does not ensure that the two types are well
+    kinded.  Two extra premises (Gamma |- S1 U :: K and \Gamma |- T1 U :: K)
+    should be added.  (The second might be redundant.)
+
+p. 475, footnote [Sumii *]
+    In the implementation fullupdate/core.ml,
+
+    | TmUpdate(_, TmRecord(_,fields), l, v2)
+
+    in function eval1 should be:
+
+    | TmUpdate(_, TmRecord(_,fields), l, v2) when isval ctx v2
+
+p. 484, Figure 32-1 [Sumii **]
+    The following congruence rules should be added:
+
+    t1 ---> t1'
+    ----------------------------
+    t1<-li=t2  --->   t1'<-li=t2
+
+    t2 ---> t2'
+    --------------------------
+    v<-li=t2  --->   v<-li=t2'
+
+p. 484, line -1 [Sumii]
+    "E-Update"
+    ->
+    "E-UpdateV"
+
+p. 486, first line of Section 32.9 [Sumii *]
+    "In 18.9"
+    ->
+    "In 18.11"
+
+p. 488, first sentence of 32.10 [Pierce 1st printing *]
+    it introduced => it was introduced
+
+p. 494, Solution 3.5.13 [Pierce 3rd printing]
+    the diamond lemma as stated is false: In the case where r->s by
+    E-IfFalse and r->t by E-Funny2, we have t->s, rather than s->u and
+    t->u for any u.  It should be restated as follows:
+
+      LEMMA: If r->s and r->t, then either s->t or t->s or there is some u
+      such that s->u and t->u.
+
+    The argument in the diagram chase below must now be slightly
+    refined to take the modified lemma into account.
+
+p. 496, line -7 [Sumii]
+    "Theorem 3.5.14"
+    ->
+    "The property in Exercise 3.5.14"
+
+p. 494, Lemma A.1 [Sumii]
+    The correct statement would be:
+
+    If r->s and r->t, with s \neq t, then either s->t or t->s or there
+    is some term u such that s->u and t->u.
+
+    (The online errata lacks "with s \neq t".)
+
+p. 496, Solution 3.5.16 [Pierce 3rd printing]
+    To fully capture the informal claim that "the original and new
+    semantics agree," Proposition A.2 should be augmented with another
+    (almost obvious) property:
+
+    PROPOSITION: g --o-->* v iff g --w-->* v, for all original terms g.
+
+p. 497, Subcase: g1 = succ g11 [Pierce 1st printing **]
+    The argument for this subcase should conclude "From this derivation,
+                                    w
+    we construct a derivation of g -->* if wrong then g2 else g3, which
+                                                   w
+    after a final instance of E-If-Wrong yields g -->* wrong
+
+p. 498, line -3 [Sumii]
+    "condition is not a value"
+    ->
+    "conditional is not a value"
+
+p. 499, Lemma A.8, E-IfTrue and E-IfFalse cases [Pierce 1st printing **]
+    the second t_2 should be t_3
+
+p. 499, end of A.8 [Pierce 3rd printing]
+    both occurrences (in cases E-IfTrue and E-IfFalse) of "then t2 else t2"
+    should be "then t2 else t3"
+
+p. 499, Proof of Proposition A.9 [Sumii **]
+    The induction does not work in the case t = succ t1, because the
+    number of evaluation steps is _the same_ for t and t1.  A correct
+    proof can be done by induction on the structure of t (though it
+    does not extend to more sophisticated calculi like
+    lambda-calculus), or by proving another lemma like
+
+      if t --> t' and t' ==> v, then t ==> v
+
+    by induction on the derivation of t --> t'.
+
+p. 499, 4.2.1 [Pierce 1st printing **]
+    the constructor 'Some' was incorrectly typeset (twice) as \exists
+
+p. 500, Solution 5.2.4 [Pierce 1st printing *]
+    the names of the arguments m and n should be exchanged
+
+p. 501, Solution 5.2.11 [Pierce 3rd printing]
+    in the second to last line of the solution, sumlist should be sumlist'
+
+p. 502, Solution 5.3.6 [Pierce 2nd printing **]
+    In the full beta-reduction rules, one is missing:
+
+               t1 -> t1'
+            ---------------  (E-Abs)
+            \x.t1 -> \x.t1'
+
+    Also, na1' in rule E-App1 should be renamed t1'.
+
+p. 503, Solution 5.3.8 [Pierce 1st printing **]
+    t' should be called v
+
+p. 503, Solution 6.1.5 [Pierce 3rd printing]
+    the subscripts in the third and sixth clauses should be just "Gamma",
+    not "Gamma,x"
+
+p. 505-507 [Pierce 1st printing **]
+    exercise 9.4.1 is misfiled (it can be found between 9.2.3 and 9.3.2)
+
+p. 506, Solution 9.3.2 [Pierce 1st printing **]
+    "....  But this means that size(T1) is strictly greater than size(T1
+    -> T2), ..." should read "... size(T1) is equal to size(T1 -> T2) ..."
+
+    [It is impossible because all types in this system have finite size.]
+
+    Also, there is no formal definition of the "size" of a type.  This can
+    be taken to be the number of nodes in its tree representation.
+
+p. 506, near the middle [Sumii]
+    Remove the "(" before "\Gamma".
+
+p. 507, Solution 9.3.10 [Pierce 3rd printing]
+    The term given doesn't actually reduce under the call-by-value
+    rules.  A better example would be:
+
+        (\x:Bool->Bool. \y:Bool. y) (\z:Bool. true true)
+
+p. 507, Solution 11.3.2 [Pierce 1st printing **]
+    The conclusion in T-Wildcard should read
+         Gamma |- \_:T1.t2 : T1->T2
+    not
+         Gamma |- \_.t2 : T2
+
+p. 507, Solution 11.4.1 [Sumii]
+    "t as T  =  (\lambda x:T. x) t"
+    ->
+    "t as T  =def  (\lambda x:T. x) t"
+
+p. 507, Solution 11.4.1 [Pierce 3rd printing]
+    The third "x" on the second line should be deleted.
+
+p. 508, Solution 11.4.1, last line [Sumii]
+    "\rightarrow^*"
+    ->
+    "\rightarrow_I^*"
+
+p. 509-510, Solution 11.8.2 [Sumii **]
+    This solution does not argue about progress (which is a half of
+    the second problem of this exercise).  The point would be that,
+    thanks to typing, the "match(p,v1)" in E-LetV (Figure 11-8) is
+    always well-defined.
+
+p. 510, top of page [Pierce 3rd printing]
+    The "\in" in the conclusion of rule P-Rcd' should be ":"
+
+p. 510, near the middle [Sumii *]
+    "C-Let"
+    ->
+    "T-Let"
+    (twice)
+
+p. 512, near the middle [Sumii]
+    "R_T1 t.1"
+    ->
+    "R_T1(t.1)"
+
+p. 512, Solution 12.1.7 [Pierce 1st printing *]
+    The case for T-If proceeds by induction on T.  This is more complicated
+    than necessary. By the induction, we know R bool t1, R T t2 and R T
+    t3. Since we know R bool t1, we know that t1 halts and is a bool. Hence,
+    the conditional will evaluate either to t2 or to t3. Then, by
+    preservation of R under evaluation, it suffices to show R T t2 or R T
+    t3, but they are immediate by induction.  [Thanks to Edsko de Vries.]
+
+p. 512, Solution 12.1.7 [Sumii *]
+    Apply the online errata (for the 1st printing) but replace t1, t2,
+    and t3 with \sigma t1, \sigma t2, and \sigma t3, respectively.
+
+p. 513, line 1 [Sumii]
+    "R_T2 \sigma t"
+    ->
+    "R_T2(\sigma t)"
+
+p. 513, line 5 [Sumii]
+    "R_{T1->T2} v2"
+    ->
+    "R_{T1->T2}(v2)"
+
+p. 513, line 6 [Sumii]
+    "R_{T1->T2} v3"
+    ->
+    "R_{T1->T2}(v3)"
+
+p. 513, line 12, "Let vi be" [Sumii]
+    The variable vi is already used in the statement of Lemma 12.1.5.
+    Here, it should perhaps be renamed to, say, wi.
+
+p. 513, Solution 12.1.7, after Case T-Proj1 [Sumii]
+    Insert: "Case T-Proj2: Similar."
+
+p. 514, line -6 [Sumii *]
+    "rule GC"
+    ->
+    "rule E-GC"
+
+p. 515, Solution 13.3.1 [Pierce 3rd printing]
+     The restriction to finite memories is not absolutely necessary -- we
+     can also talk about garbage collecting an infinite memory.  But it
+     makes part 5b more interesting
+
+     E-RefV should be modified to add that the new location l must be in L.
+
+     The text in part 5 is a little mangled.  In 5a, what is meant is that,
+     if evaluation is possible with GC, then the same evaluation is possible
+     *in an infinite store* without GC, but this is not what is written.
+     Similarly in part b.
+
+     (We might also be interested in comparing runs of the same program with
+     respect to a *finite* store, with and without the GC rule.  For
+     example, if the program runs to completion without GC, it should reach
+     the same result with GC, though perhaps with renamed labels.)
+
+     Also, note that progress and preservation depend on a store typing, and
+     in the current statement of preservation the store typing only
+     increases.  With gc, we need to be able to "gc the store typing" too.
+
+p. 515, 5 (b) i [Sumii *]
+    "where \mu' is defined"
+    ->
+    "where \mu'' is defined"
+
+p. 516, lines 1-2 [Sumii *]
+    "strongly normalizing"
+    ->
+    "normalizing"
+
+    (This language is not confluent because of fresh location names)
+
+p. 519, top two displays [Pierce 3rd printing]
+    the derivations should say
+
+         "\Gamma |- t : S"    and  "\Gamma |- t : U"
+
+    rather than
+
+         "\Gamma |- t \in S"  and  "\Gamma |- t \in U"
+
+p. 526, Solution 16.4.1 [Pierce 3rd printing]
+     The 'if' typing rule (+ alternative) uses normal turnstiles; it should
+     use algorithmic turnstiles.
+
+p. 526, Solution 17.3.1 [Sumii]
+    "Exercise 16.3.2"
+    ->
+    "The Exercise in Proposition 16.3.2"
+
+p. 527, Solution 17.3.1, function "meet" [Sumii **]
+    The following two cases are missing but necessary:
+
+    | (_, TyTop) -> tyS 
+    | (TyTop, _) -> tyT
+
+p. 527-528 [Sumii **]
+    The (local) definition of allFields should be like:
+
+    let allFields =
+      List.map (fun li ->
+        if not(List.mem li labelsS) then
+          (li, List.assoc li fT)
+        else if not(List.mem li labelsT) then
+          (li, List.assoc li fS)
+        else
+          let tySi = List.assoc li fS in
+          let tyTi = List.assoc li fT in
+          (li, meet tySi tyTi))
+        allLabels in
+
+p. 534, line 1 [Sumii *]
+    "Case RC-Cast"
+    ->
+    "Case E-Cast"
+
+p. 538, lines 1 and 8 [Pierce 1st printing **]
+    $X \subseteq P$ implies $F(X) \subseteq P$
+    should be
+    $F(P) \subseteq P$
+
+    (Fixed in later printings?)
+
+p. 539, Solution 21.3.4 [Pierce 3rd printing]
+    "the set pairs R = {(T(pi),T(pi)) | pi in {1,2}*}"
+    should be
+    "the set of pairs R = {(Q,Q) | Q a subtree of T}"
+
+    It is not quite true that (mu S) only relates finite types: every type
+    (even an infinite one) is a subtype of Top.  A more complex argument is
+    needed here.
+
+    In the second paragraph, "follow" should be "can" and "byu induction on
+    the size T" should be "by induction on the sum of the sizes of S and T."
+
+p. 539, Solution 21.5.2 [Sumii **]
+    "at most one element"
+    ->
+    "at most one minimal element"
+
+p. 541, Solution 21.8.5 [Sumii **]
+    "two generating sets"
+    ->
+    "two minimal generating sets"
+
+p. 541, proof sketch of Lemma A.17 [Pierce 1st printing **]
+    The first sentence should read "By induction on k = mu-height(S)."
+
+p. 542, Solution 22.3.9 [Pierce 3rd printing]
+    The end of the proposed lemma should read "... then every type variable
+    mentioned in T or C is mentioned in Gamma, t, or F\F'."
+
+p. 543, Solution 22.3.11 [Sumii]
+    insert \cup between C1 and {T1=X->X}
+
+p. 545, CT-Proj [Sumii *]
+    According to the main text, t0 (appears twice) should be t.
+
+p. 546, Solution 23.4.6 [Pierce 3rd printing]
+    false and true should be fls and tru
+
+p. 547, Solution 23.4.9 [Sumii *]
+    This solution uses pairs (n-1, n), while the hint of the exercise
+    suggests to use (n, n-1).
+
+p. 550, "by induction on the number of outer type abstractions and applications" [Sumii]
+   It may be clearer to add "in r".
+
+p. 550, near the middle [Sumii *]
+    "R-Beta2"
+    ->
+    "E-TappTabs"
+
+p. 551, line -7 [Sumii]
+    "A" and "B" should be overlined.
+
+p. 551, line -2 [Sumii]
+    "for some \overline{C} and \overline{C}"
+    ->
+    "for some \overline{C} and \overline{D}"
+
+p. 551, line -1 [Sumii]
+    "C" and "D" should be overlined.
+
+p. 552, line 5 [Sumii]
+    "V" should be "P"
+
+p. 554, Solution 25.2.1, last line [Sumii *]
+    \uparrow_0^d(T) and \uparrow^d(T) should be swapped.
+
+p. 557, lines 15-16 [Sumii]
+    "type variable bindings"
+    ->
+    "type (and term) variable bindings"
+
+p. 558, near the middle [Sumii *]
+    "\Gamma |- T2 <: T11"
+    ->
+    "\Gamma |- T2 <: N11"
+
+p. 559, line -6 [Sumii **]
+    "\neg S = \forall X<:S.X"
+    ->
+    "\neg S = S->Top"
+
+    (We are not supposed to use \forall here!  In fact, it suffices to
+    define \neg so that it is just contravariant.)
+
+p. 559, line -6 [Sumii]
+    "[[X1<:T1,,...,Xn<:Tn]]"
+    ->
+    "[[X1<:T1,...,Xn<:Tn]]"
+
+p. 560, Figure A-2, left, line 2 [Sumii]
+    "if X \not\in FVS"
+    ->
+    "if X \not\in FV(S)"
+
+p. 560, line -7 [Sumii]
+    "30.3"
+    ->
+    "30.3.3"
+
+p. 561, near the middle [Sumii *]
+    "T12'"
+    ->
+    "T12"
+
+    "T2'"
+    ->
+    "T2"
+
+p. 562, Solution 30.5.1 [Pierce 3rd printing]
+    FloatList should be just List
+
+p. 563, Solution 32.7.2 and 32.5.2 [Sumii]
+    The order of these solutions should be swapped.
+
+p. 566, line -3 [Sumii *]
+    "T1 x T2"
+    ->
+    "T11 x T12"
+
+p. 568, Abramsky, Samson, Radha Jagadeesan, and Pasquale Malacaria [Sumii]
+    "Full abstraction for pcf"
+    ->
+    "Full abstraction for PCF"
+
+p. 571, Brandt, Michael and Fritz Henglein [Sumii]
+    "Proc. 3d Int'l Conf. on"
+    ->
+    "Proc. 3rd Int'l Conf. on"
+
+    (In fact, the actual title of the volume is: "Typed Lambda Calculi
+    and Applications, Third International Conference on Typed Lambda
+    Calculi and Applications, TLCA '97, Nancy, France, April 2-4,
+    1997, Proceedings")
+
+p. 572 [Sumii]
+    "Canning, Peter, William Cook, Walt Hill, and Walter Olthoff"
+    ->
+    "Canning, Peter, William Cook, Walter Hill, and Walter Olthoff"
+
+p. 572, Canning, Peter, William Cook, Walter Hill, Walter Olthoff, and John Mitchell [Sumii]
+    "F-bounded quantification for object-oriented programming"
+    ->
+    "F-bounded polymorphism for object-oriented programming"
+
+p. 572, Canning, Peter, Walt Hill, and Walter Olthoff [Sumii]
+    Although the original technical report is unavailable, its correct
+    title (according to references from other papers including the
+    authors') seems to be: "Towards a kernel language for
+    object-oriented programming".
+
+p. 577, Drossopoulou, Sophia, Susan Eisenbach, and Sarfraz Khurshid [Sumii]
+    "7(1):3-24"
+    ->
+    "5(1):3-24"
+
+    Also, since this is a paper (not a book), the title here should
+    perhaps be (un)capitalized like: "Is the Java type system sound?"
+
+p. 579, lines -7 and -4 [Sumii]
+    "Garrigue, Jaques"
+    ->
+    "Garrigue, Jacques"
+
+p. 580, Grattan-Guinness, Ivor [Sumii]
+    Since this is a book (not a paper), the title should be in the
+    headline style: "The Search for Mathematical Roots, 1870-1940:
+    Logics, Set Theories and the Foundations of Mathematics from
+    Cantor through Russell to Goedel".
+
+p. 582, Hennessy, Matthew [Sumii]
+    "A Semantics of"
+    ->
+    "The Semantics of"
+
+    An online copy of this book is currently available from:
+    https://www.scss.tcd.ie/Matthew.Hennessy/slexternal/resources/sembookWiley.pdf
+
+p. 584, line 3 [Sumii]
+    "1,2, ...,\omega"
+    ->
+    "1,2,...,\omega"
+
+p. 586, line 9 [Sumii]
+    "DEXPTIME" should be in regular (not small) capital letters.
+
+p. 589, McKinna, James and Robert Pollack [Sumii]
+    "Pure Type Sytems formalized"
+    ->
+    "Pure Type Systems formalized"
+
+p. 595, Plasmeijer, Marinus J. [Sumii]
+    "CLEAN: a programming environment"
+    ->
+    "CLEAN: A programming environment"
+
+p. 596, Remy, Didier and Jerome Vouillon [Sumii]
+    "Theory And Practice of Object Systems"
+    ->
+    "Theory and Practice of Object Systems"
+
+    Even though it is often abbreviated as "TAPOS", this seems to be
+    the official name of the journal:
+
+    http://onlinelibrary.wiley.com/journal/10.1002/(ISSN)1096-9942
+
+p. 599, Studer, Thomas [Sumii]
+    "featherweight java"
+    ->
+    "Featherweight Java"
+
+p. 600, line 7 [Sumii]
+    "TIL : A type-directed"
+    ->
+    "TIL: A type-directed"
+
+p. 603, Yelick, Kathy, ... [Sumii]
+    "Titanium: a high-performance"
+    ->
+    "Titanium: A high-performance"
+
+p. 608, right [Sumii]
+    The item "equi-recursive types" appears twice; it should be
+    unified.
+
+p. 610, left, "garbage collection" [Sumii]
+    "158-165"
+    ->
+    "158"
+
+p. 615, under "references" [Sumii]
+    The subitems "and subtyping" and "subtyping" should be unified.
+
+p. 621, left [Sumii]
+    "Top[K]"
+    ->
+    "Top[K] (maximal elements of higher kinds)"

@@ -1,5 +1,330 @@
 % Chapter 6 — Nameless Representation of Terms
 % Source: ../source/split/chapters/ch06-nameless-representation_p077-p082.pdf
 % Original print pages: 75--82
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:6}
+% Status: 自检中
+
+\chapter{项的无名表示}
+\label{chap:6}
+
+上一章把项视为“相差一个受约束变量重命名”的等价类，并约定：为了完成替换，
+或只是因为另一个名字更方便，受约束变量可以随时重命名。实际上，受约束变量
+究竟“拼成什么名字”，完全由我们决定。讨论基本概念和清晰地陈述证明时，这项
+约定很好用；但在实现中，每个项必须选定一种表示。特别是，我们必须决定如何
+表示变量的每次出现。可选方案不止一种。
+
+\begin{enumerate}
+  \item 仍像前面一样用符号表示变量，但不再默许受约束变量可以重命名；替换
+    时若有必要，则显式地把受约束变量改成“新鲜”名字，以避免变量捕获。
+
+  \item 仍用符号表示变量，但作出一项全局约定：所有受约束变量的名字彼此
+    不同，并且也不同于可能用到的任何自由变量。这项约定有时称为
+    \termfirst{Barendregt 约定}{Barendregt convention}。它比本书此前的
+    约定更严格，因为它不允许在任意时刻“就地”重命名。然而，它在替换
+    （以及 \(\beta\) 归约）下并不稳定：替换会复制被代入的项，很容易构造出
+    某些结果项，其中几个 lambda 抽象使用了同一个受约束变量名。因此，每次
+    涉及替换的求值步骤之后，还必须重命名以恢复这项不变量。
+
+  \item 为变量和项设计某种\termfirst{规范表示}{canonical representation}，
+    使其无需重命名。
+
+  \item 借助\termfirst{显式替换}{explicit substitution}等机制，完全避免
+    元语言层面的替换（Abadi、Cardelli、Curien 和 Lévy，1991a）。
+
+  \item 完全避开变量，直接使用基于组合子的语言，例如
+    \termfirst{组合逻辑}{combinatory logic}（Curry 和 Feys，1958；
+    Barendregt，1984）——它是以组合子而非过程抽象为基础的 lambda 演算
+    变体——或 Backus 的函数式语言 FP（1978）。
+\end{enumerate}
+
+每种方案都有拥护者，如何取舍在一定程度上属于个人偏好。严肃的编译器实现
+还要考虑性能，不过这不在本章范围内。我们选择第三种方案；根据我们的经验，
+当后面实现更复杂的演算时，它的伸缩性更好。主要原因在于：这种方案若实现
+错误，往往会显著地而不是隐蔽地失败，因此错误能较早暴露并得到修正。相比
+之下，使用具名变量的实现中，有些缺陷会在引入数月甚至数年后才显现出来。
+这里采用 Nicolas de Bruijn（1972）提出的一项著名技术。
+\footnote{本章研究的系统是纯无类型 lambda 演算 \(\lambda\)
+（图~\ref{fig:5-3}）。相应的 OCaml 实现是 \texttt{fulluntyped}。}
+
+\section{项与上下文}
+\label{sec:6.1}
+
+de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子，而不再通过
+名字引用绑定子，就能以更直接——尽管可读性稍差——的方式表示项。具体做法
+是用自然数替代具名变量，其中数字 \(k\) 表示“由外向内数，第 \(k\) 个包围
+这次出现的 \(\lambda\) 所约束的变量”。例如，普通项
+\(\lambda x.\,x\) 对应无名项 \(\lambda.\,0\)，而
+\(\lambda x.\,\lambda y.\,x\,(y\,x)\) 对应
+\(\lambda.\,\lambda.\,1\,(0\,1)\)。无名项也称为
+\termfirst{de Bruijn 项}{de Bruijn term}，其中表示变量的数字称为
+\termfirst{de Bruijn 索引}{de Bruijn index}。\footnote{关于读音：
+“de Bruijn”的第二个音节，最接近的英语读音是 “brown”，不是 “broyn”。}
+编译器领域也把同一概念称为\termfirst{静态距离}{static distance}。
+
+\begin{exercise}[\(\star\)]
+请写出下列各组合子所对应的无名项：
+\[
+\begin{aligned}
+ c_0&=\lambda s.\,\lambda z.\,z;\\
+ c_2&=\lambda s.\,\lambda z.\,s\,(s\,z);\\
+ \mathit{plus}&=\lambda m.\,\lambda n.\,\lambda s.\,\lambda z.\,
+                 m\,s\,(n\,s\,z);\\
+ \mathit{fix}&=\lambda f.\,
+   (\lambda x.\,f\,(\lambda y.\,(x\,x)\,y))\,
+   (\lambda x.\,f\,(\lambda y.\,(x\,x)\,y));\\
+ \mathit{foo}&=(\lambda x.\,(\lambda x.\,x))\,(\lambda x.\,x).
+\end{aligned}
+\]
+\end{exercise}
+
+\translatornote{原书初版在本练习的 \(\mathit{plus}\) 中印作
+\(m\,s\,(n\,z\,s)\)，这并不是第~\ref{chap:5}~章定义的 Church 数加法。
+作者勘误将其视为错误；此处按正确项 \(m\,s\,(n\,s\,z)\) 修正。}
+
+形式上，无名项的语法与普通项的语法（定义 5.3.1）几乎完全相同。唯一的差别
+是：必须仔细记录每个项至多可以含有多少个自由变量。也就是说，我们区分没有
+自由变量的项集（称为 \(0\)-项）、至多有一个自由变量的项集（\(1\)-项），
+依此类推。
+
+\begin{definition}[项]
+\label{def:6.1.2}
+令 \(T\) 为满足下列条件的最小集合族
+\(\{T_0,T_1,T_2,\ldots\}\)：
+\begin{enumerate}
+  \item 若 \(0\leq k<n\)，则 \(k\in T_n\)；
+  \item 若 \(t_1\in T_n\) 且 \(n>0\)，则
+    \(\lambda.\,t_1\in T_{n-1}\)；
+  \item 若 \(t_1\in T_n\) 且 \(t_2\in T_n\)，则
+    \((t_1\,t_2)\in T_n\)。
+\end{enumerate}
+这里仍是标准的归纳定义，只不过定义的是以自然数为索引的一族集合，而非单个
+集合。每个 \(T_n\) 的元素称为 \(n\)-项。
+\end{definition}
+
+\(T_n\) 中的元素至多含有 \(n\) 个自由变量，它们的编号介于 \(0\) 与
+\(n-1\) 之间。一个给定的 \(T_n\) 元素不必包含所有这些编号的自由变量，
+甚至可以没有任何自由变量。例如，闭项属于每一个 \(T_n\)。
+
+注意，每个闭的普通项恰好有一种 de Bruijn 表示；两个普通项在受约束变量
+重命名意义下等价，当且仅当它们具有相同的 de Bruijn 表示。
+
+为了处理含自由变量的项，需要引入\termfirst{命名上下文}{naming context}。
+例如，设要把 \(\lambda x.\,y\,x\) 表示成无名项。我们知道怎样处理 \(x\)，
+却看不到 \(y\) 的绑定子，因而无从判断它“距离多远”，也就不知道该给它
+什么编号。解决办法是一次性选定一套从自由变量到 de Bruijn 索引的指派
+（即命名上下文），此后凡是需要给自由变量选择编号，都一致地使用这套指派。
+例如，假定采用
+\[
+\begin{array}{c|ccccc}
+ \Gamma & x,4 & y,3 & z,2 & a,1 & b,0
+\end{array}
+\]
+那么 \(x\,(y\,z)\) 表示成 \(4\,(3\,2)\)，
+\(\lambda w.\,y\,w\) 表示成 \(\lambda.\,4\,0\)，而
+\(\lambda w.\,\lambda a.\,x\) 表示成 \(\lambda.\,\lambda.\,6\)。
+由于变量在 \(\Gamma\) 中的顺序已经决定其数字索引，可以把上下文简写为
+一个序列。
+
+\begin{definition}
+\label{def:6.1.3}
+设 \(x_0,\ldots,x_n\) 是变量集合 \(V\) 中的名字。命名上下文
+\[
+ \Gamma=x_n,x_{n-1},\ldots,x_1,x_0
+\]
+把 de Bruijn 索引 \(i\) 指派给 \(x_i\)。序列最右侧的变量获得索引 \(0\)；
+这与把具名项转换为无名形式时从右向左计数 \(\lambda\) 绑定子的方式一致。
+记 \(\dom(\Gamma)\) 为 \(\Gamma\) 中出现的变量名集合
+\(\{x_n,\ldots,x_0\}\)。
+\end{definition}
+
+\begin{exercise}[\(\star\star\star\)]
+参照定义 3.2.3 的风格，给出 \(n\)-项集合的另一种构造，并像命题 3.2.6
+那样证明它与上面的定义等价。
+\end{exercise}
+
+\begin{exercise}[推荐，\(\star\star\star\)]
+\begin{enumerate}
+  \item 定义函数 \(\mathit{removenames}_{\Gamma}(t)\)：它接受命名上下文
+    \(\Gamma\) 和满足 \(\fv(t)\subseteq\dom(\Gamma)\) 的普通项 \(t\)，
+    返回对应的无名项。
+  \item 定义函数 \(\mathit{restorenames}_{\Gamma}(t)\)：它接受无名项
+    \(t\) 和命名上下文 \(\Gamma\)，返回一个普通项。为此，需要为 \(t\)
+    中各抽象所约束的变量“造出”名字。可以假定 \(\Gamma\) 中的名字两两
+    不同，而且变量名集合 \(V\) 带有序，从而“选择第一个不在
+    \(\dom(\Gamma)\) 中的变量名”是有意义的。
+\end{enumerate}
+这对函数应满足：对任意无名项 \(t\)，
+\[
+ \mathit{removenames}_{\Gamma}
+   (\mathit{restorenames}_{\Gamma}(t))=t;
+\]
+对任意普通项 \(t\)，还应在受约束变量重命名的意义下满足
+\[
+ \mathit{restorenames}_{\Gamma}
+   (\mathit{removenames}_{\Gamma}(t))=t.
+\]
+\end{exercise}
+
+严格说来，“某个 \(t\in T\)”并没有意义——总要说明 \(t\) 至多可能含有
+多少个自由变量。不过在实际使用中，通常会有一个固定的命名上下文
+\(\Gamma\)；于是稍微滥用记号，用 \(t\in T\) 表示
+\(t\in T_n\)，其中 \(n\) 是 \(\Gamma\) 的长度。
+
+\section{移位与替换}
+\label{sec:6.2}
+
+接下来要在无名项上定义替换操作 \([k\mapsto s]t\)。为此需要一项辅助操作，
+称为\termfirst{移位}{shifting}，它重新编号项中自由变量的索引。
+
+当替换进入一个 \(\lambda\) 抽象时，例如
+\([1\mapsto s](\lambda.\,2)\)（在外层上下文中 \(x\) 的索引为 \(1\)
+时，它对应 \([x\mapsto s](\lambda y.\,x)\)），替换发生处的上下文比原上下文
+多了一个变量。必须把 \(s\) 中自由变量的索引加一，使它们在新上下文中仍然
+指向原来的名字。但这要谨慎进行：不能把 \(s\) 中的每个索引都加一，否则
+可能连 \(s\) 内部的受约束变量也被移位。例如，若
+\(s=2\,(\lambda.\,0)\)（即在外层上下文中 \(z\) 的索引为 \(2\) 时，
+\(s=z\,(\lambda w.\,w)\)），应当移动 \(2\)，却不能移动 \(0\)。
+
+下面的移位函数带有一个控制哪些变量应当移动的\termfirst{截点}{cutoff}
+参数 \(c\)。它从 \(0\) 开始（即所有变量都应移动），每经过一个绑定子就加
+一。因此，计算 \(\uparrow^d_c(t)\) 时，已知 \(t\) 位于原参数的 \(c\) 个
+绑定子之内。于是 \(t\) 中所有 \(k<c\) 的标识符都在原参数中受约束，不应
+移动；所有 \(k\geq c\) 的标识符则是自由的，应当移动。
+
+\begin{definition}[移位]
+\label{def:6.2.1}
+项 \(t\) 在截点 \(c\) 之上的 \(d\) 位移位，记作
+\(\uparrow^d_c(t)\)，定义如下：
+\[
+\begin{aligned}
+ \uparrow^d_c(k)
+   &=
+   \begin{cases}
+     k,   & k<c,\\
+     k+d, & k\geq c;
+   \end{cases}\\
+ \uparrow^d_c(\lambda.\,t_1)
+   &=\lambda.\,\uparrow^d_{c+1}(t_1);\\
+ \uparrow^d_c(t_1\,t_2)
+   &=\uparrow^d_c(t_1)\ \uparrow^d_c(t_2).
+\end{aligned}
+\]
+用 \(\uparrow^d(t)\) 简写 \(\uparrow^d_0(t)\)。
+\end{definition}
+
+\begin{exercise}[\(\star\)]
+\begin{enumerate}
+  \item \(\uparrow^2(\lambda.\,\lambda.\,1\,(0\,2))\) 是什么？
+  \item \(\uparrow^2(\lambda.\,0\,1\,(\lambda.\,0\,1\,2))\) 是什么？
+\end{enumerate}
+\end{exercise}
+
+\begin{exercise}[\(\star\star\star\)]
+\label{ex:6.2.3}
+证明：若 \(t\) 是 \(n\)-项，且当 \(d<0\) 时 \(t\) 中每个自由变量的
+索引均不小于 \(|d|\)，则 \(\uparrow^d_c(t)\) 是
+\(\max(n+d,0)\)-项。
+\end{exercise}
+
+\translatornote{原书初版把练习~\ref{ex:6.2.3} 无条件写成“若 \(t\) 是
+\(n\)-项，则 \(\uparrow^d_c(t)\) 是 \((n+d)\)-项”。作者勘误指出，
+当 \(d<0\) 时该陈述不成立；此处按勘误补上负位移所需的前提，并把项集下标
+写成不会为负的形式。}
+
+现在可以定义替换算子 \([j\mapsto s]t\)。使用替换时，通常只需要替换上下文
+中的最后一个变量，即 \(j=0\)，因为定义 \(\beta\) 归约所需的正是这种情形。
+但若要在一个恰为 \(\lambda\) 抽象的项中替换变量 \(0\)，就必须能在其函数体
+中替换编号为 \(1\) 的变量。因此，替换定义必须适用于任意变量编号。
+
+\begin{definition}[替换]
+\label{def:6.2.4}
+用项 \(s\) 替换项 \(t\) 中编号为 \(j\) 的变量，记作
+\([j\mapsto s]t\)，定义如下：
+\[
+\begin{aligned}
+ [j\mapsto s]k
+   &=
+   \begin{cases}
+     s, & k=j,\\
+     k, & \text{其他情形};
+   \end{cases}\\
+ [j\mapsto s](\lambda.\,t_1)
+   &=\lambda.\,[j+1\mapsto \uparrow^1(s)]t_1;\\
+ [j\mapsto s](t_1\,t_2)
+   &=([j\mapsto s]t_1)\,([j\mapsto s]t_2).
+\end{aligned}
+\]
+\end{definition}
+
+\begin{exercise}[\(\star\)]
+假定全局上下文为 \(\Gamma=a,b\)。把下面各次替换转换为无名形式，再按上述
+定义算出结果。这些答案是否与 \S5.3 中对普通项的原始替换定义相符？
+\begin{enumerate}
+  \item \([b\mapsto a]\,(b\,(\lambda x.\,\lambda y.\,b))\)
+  \item \([b\mapsto a\,(\lambda z.\,a)]\,(b\,(\lambda x.\,b))\)
+  \item \([b\mapsto a]\,(\lambda b.\,b\,a)\)
+  \item \([b\mapsto a]\,(\lambda a.\,b\,a)\)
+\end{enumerate}
+\end{exercise}
+
+\begin{exercise}[\(\star\star\star\)]
+证明：若 \(s,t\) 都是 \(n\)-项且 \(j\leq n\)，则
+\([j\mapsto s]t\) 是 \(n\)-项。
+\end{exercise}
+
+\begin{exercise}[\(\star\)]
+拿出一张纸，不看上面的替换与移位定义，自己重新推导出它们。
+\end{exercise}
+
+\begin{exercise}[推荐，\(\star\star\star\)]
+无名项上的替换定义应当与普通项上的非形式化替换定义一致。
+\begin{enumerate}
+  \item 要严格论证这种对应，需要证明什么定理？
+  \item 证明这个定理。
+\end{enumerate}
+\end{exercise}
+
+\section{求值}
+\label{sec:6.3}
+
+要在无名项上定义求值关系，唯一需要修改的是 \(\beta\) 归约规则，因为它是
+唯一提到变量名的地方；现在必须改用新的无名替换操作。
+
+稍微微妙之处在于，归约一个可归约式会“用掉”受约束变量：把
+\((\lambda x.\,t_{12})\,v_2\) 归约为
+\([x\mapsto v_2]t_{12}\) 时，受约束变量 \(x\) 随之消失。因此必须重新
+编号替换结果中的变量，以反映 \(x\) 已经不在上下文中。例如：
+\[
+ (\lambda.\,1\,0\,2)\,(\lambda.\,0)
+ \trans
+ 0\,(\lambda.\,0)\,1
+ \qquad\text{（而不是 \(1\,(\lambda.\,0)\,2\)）。}
+\]
+同样，在把 \(v_2\) 替换进 \(t_{12}\) 之前，还必须把 \(v_2\) 中的变量
+向上移动一位，因为 \(t_{12}\) 所处的上下文比 \(v_2\) 的上下文大。综合
+这两点，\(\beta\) 归约规则为：
+\[
+\inferrule*[right=\textsc{E-AppAbs}]
+ { }
+ {(\lambda.\,t_{12})\,v_2
+  \trans
+  \uparrow^{-1}\bigl([0\mapsto \uparrow^1(v_2)]t_{12}\bigr)}
+\]
+其余规则与图~\ref{fig:5-3} 完全相同。
+
+\begin{exercise}[\(\star\)]
+这条规则中的负位移会不会产生含负索引的病态项？我们是否需要担心？
+\end{exercise}
+
+\begin{exercise}[\(\star\star\star\)]
+de Bruijn 的原始论文其实提出了两种项的无名表示：本章介绍的
+\termfirst{de Bruijn 索引}{de Bruijn index}从内向外给 lambda 绑定子
+编号；\termfirst{de Bruijn 层级}{de Bruijn level}则从外向内编号。例如，
+项
+\[
+ \lambda x.\,(\lambda y.\,x\,y)\,x
+\]
+使用 de Bruijn 索引表示为
+\(\lambda.\,(\lambda.\,1\,0)\,0\)，使用 de Bruijn 层级表示为
+\(\lambda.\,(\lambda.\,0\,1)\,0\)。请严格定义后一种变体，并证明同一个项
+的索引表示与层级表示同构，也就是说，任一种表示都能唯一地恢复出另一种。
+\end{exercise}

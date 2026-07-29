@@ -1,5 +1,227 @@
 % Chapter 4 — An ML Implementation of Arithmetic Expressions
 % Source: ../source/split/chapters/ch04-ml-arithmetic-expressions_p052-p057.pdf
 % Original print pages: 45--50
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:4}
+% Status: 自检中
+
+\chapter{算术表达式的 ML 实现}
+\label{chap:4}
+
+把上一章那样的形式定义与具体实现联系起来，让定义背后的直观“落到实处”，
+往往会使这些定义更容易处理。本章介绍布尔表达式与算术表达式语言实现中的
+关键部分。（不打算亲自动手使用后续类型检查器实现的读者，可以跳过本章，
+以及以后章名中带有“ML 实现”的所有章节。）
+
+本章代码（以及全书各实现章节的代码）采用 ML 家族
+（Gordon、Milner 和 Wadsworth，1979）的一种流行语言 Objective Caml，
+简称 OCaml（Leroy，2000；Cousineau 和 Mauny，1998）。这里只用到完整
+OCaml 语言的一小部分，因此把示例移植到其他多数语言应该不难。最重要的
+要求是自动存储管理（垃圾回收），以及能够方便地对结构化数据类型进行模式
+匹配、定义递归函数。Standard ML（Milner、Tofte、Harper 和 MacQueen，
+1997）、Haskell（Hudak 等，1992；Thompson，1999），以及带有某种模式匹配
+扩展的 Scheme（Kelsey、Clinger 和 Rees，1998；Dybvig，1996）等函数式
+语言都很合适。具有垃圾回收却没有模式匹配的语言，如 Java（Arnold 和
+Gosling，1996）和纯 Scheme，对于我们要写的程序略显笨重；既没有垃圾回收
+也没有模式匹配的语言，如 C（Kernighan 和 Ritchie，1988），就更不合适。
+\footnote{当然，每个人对语言的品味不同，优秀程序员用手边任何工具都能完成
+工作；读者完全可以使用自己喜欢的语言。不过需要提醒的是：类型检查器所需
+的符号处理若要手工管理存储，尤其繁琐而且容易出错。}
+
+本章代码可以在作者网站的 \texttt{arith} 实现中找到，其中也附有下载和
+构建说明。
+
+\translatornote{本译本的配套 Rust 工程在 \texttt{code/arith/} 中提供与
+本章抽象语法、值判断、单步求值及完整求值相对应的实现。Rust 代码没有替换
+下文的 OCaml 原文实现；两者使用同一组原书示例，并分别通过各自工程的自动化
+测试。具体工具链、覆盖范围和验证命令见该目录的 README。}
+
+\section{语法}
+\label{sec:4.1}
+
+第一项工作，是定义一种表示项的 OCaml 值类型。OCaml 的数据类型定义机制
+使这件事很直接：下面的声明几乎逐字转写了第 24 页的文法。
+
+\begin{lstlisting}
+type term =
+    TmTrue of info
+  | TmFalse of info
+  | TmIf of info * term * term * term
+  | TmZero of info
+  | TmSucc of info * term
+  | TmPred of info * term
+  | TmIsZero of info * term
+\end{lstlisting}
+
+从 \texttt{TmTrue} 到 \texttt{TmIsZero} 的构造子，分别命名
+\texttt{term} 类型抽象语法树中的不同节点；每个 \texttt{of} 后面的类型
+则说明该类节点会连接多少棵子树。
+
+每个抽象语法树节点还带有一个 \texttt{info} 类型的值，记录该节点来自哪个
+源文件、其中哪个字符位置。解析器扫描输入文件时生成这些信息；打印函数用它
+指出发生错误的位置。若只想理解求值、类型检查等基本算法，完全可以省略这些
+信息。这里之所以保留，是为了让希望亲手试验实现的读者看到与书中讨论完全
+一致的代码形式。
+
+定义求值关系时，需要判断一个项是否为数值：
+
+\begin{lstlisting}
+let rec isnumericval t = match t with
+    TmZero(_) -> true
+  | TmSucc(_,t1) -> isnumericval t1
+  | _ -> false
+\end{lstlisting}
+
+这是 OCaml 中由模式匹配定义递归函数的典型例子。\texttt{isnumericval}
+应用于 \texttt{TmZero} 时返回 \texttt{true}；应用于带有子树
+\texttt{t1} 的 \texttt{TmSucc} 时递归调用自身，检查 \texttt{t1} 是否
+为数值；应用于其他任意项时返回 \texttt{false}。模式中的下划线是
+“不关心”项，可以匹配对应位置上的任何内容：前两条分支用它忽略
+\texttt{info} 标注，最后一条则用它匹配任意项。\texttt{rec} 关键字告诉
+编译器这是递归函数定义，也就是说，函数体中的 \texttt{isnumericval} 指向
+正在定义的函数，而不是同名的旧绑定。
+
+注意，书中的 ML 代码在排版时做了少量“美化”，以便阅读，并与 lambda 演算
+示例保持一致。例如，原书印刷版使用真正的箭头符号，而不是两个字符
+\texttt{->}。作者网站列出了所有这类排版替换；本译本的代码块采用可直接
+复制的 ASCII 源码形式。
+
+判断项是否为值的函数与此类似：
+
+\begin{lstlisting}
+let rec isval t = match t with
+    TmTrue(_) -> true
+  | TmFalse(_) -> true
+  | t when isnumericval t -> true
+  | _ -> false
+\end{lstlisting}
+
+第三条分支是一个\termfirst{条件模式}{conditional pattern}：它可以匹配
+任意项 \(t\)，但仅当布尔表达式 \texttt{isnumericval t} 得到
+\texttt{true} 时才算匹配成功。
+
+\section{求值}
+\label{sec:4.2}
+
+求值关系的实现紧密跟随图~\ref{fig:3-1} 和图~\ref{fig:3-2} 中的单步求值规则。前面
+已经看到，这些规则定义了一个偏函数：应用于尚未成为值的项时，它给出该项
+的下一步求值结果；应用于值时，求值函数没有结果。把求值规则翻译为 OCaml
+时，需要决定如何处理后一种情况。一种直接办法，是让单步求值函数
+\texttt{eval1} 在没有任何求值规则适用于给定项时抛出异常。（另一种同样
+可行的办法，是让单步求值器返回 \texttt{term option}：它说明求值是否成功，
+若成功还携带结果项；不过这会增加一点簿记工作。）先定义无规则可用时抛出的
+异常：
+
+\begin{lstlisting}
+exception NoRuleApplies
+\end{lstlisting}
+
+现在可以写出单步求值器：
+
+\begin{lstlisting}
+let rec eval1 t = match t with
+    TmIf(_,TmTrue(_),t2,t3) ->
+      t2
+  | TmIf(_,TmFalse(_),t2,t3) ->
+      t3
+  | TmIf(fi,t1,t2,t3) ->
+      let t1' = eval1 t1 in
+      TmIf(fi, t1', t2, t3)
+  | TmSucc(fi,t1) ->
+      let t1' = eval1 t1 in
+      TmSucc(fi, t1')
+  | TmPred(_,TmZero(_)) ->
+      TmZero(dummyinfo)
+  | TmPred(_,TmSucc(_,nv1)) when (isnumericval nv1) ->
+      nv1
+  | TmPred(fi,t1) ->
+      let t1' = eval1 t1 in
+      TmPred(fi, t1')
+  | TmIsZero(_,TmZero(_)) ->
+      TmTrue(dummyinfo)
+  | TmIsZero(_,TmSucc(_,nv1)) when (isnumericval nv1) ->
+      TmFalse(dummyinfo)
+  | TmIsZero(fi,t1) ->
+      let t1' = eval1 t1 in
+      TmIsZero(fi, t1')
+  | _ ->
+      raise NoRuleApplies
+\end{lstlisting}
+
+其中有几处从零开始构造新项，而不是重新组织已有项。由于这些新项并不存在于
+用户原始源文件中，它们的 \texttt{info} 标注没有用处；常量
+\texttt{dummyinfo} 就用作这类项的标注。变量名 \texttt{fi}（即
+“file information”）则一贯用来匹配模式中的 \texttt{info} 标注。
+
+\texttt{eval1} 定义中还有一点值得注意：模式里显式使用 \texttt{when}
+子句，以刻画图~\ref{fig:3-1} 和图~\ref{fig:3-2} 的求值关系中 \(v\)、\(nv\) 之类
+元变量名所隐含的限制。例如，在对
+\texttt{TmPred(\_,TmSucc(\_,nv1))} 求值的分支中，OCaml 模式语义本来
+允许 \texttt{nv1} 匹配任意项，这不是我们想要的；加上
+\texttt{when (isnumericval nv1)}，就把规则限制为只有在 \texttt{nv1}
+实际匹配数值时才能触发。
+
+如果愿意，也可以把原来的推导规则改写成与 ML 模式相同的风格，把元变量命名
+所隐含的限制变成规则的显式旁条件：
+\[
+  \frac{t_1\text{ 是数值}}
+       {\taplpred{(\taplsucc{t_1})}\trans t_1}
+  \qquad(\textsc{E-PredSucc}),
+\]
+代价是记法不再那么紧凑易读。
+
+最后，函数 \texttt{eval} 接受一个项，通过反复调用 \texttt{eval1} 找到其
+范式。每当 \texttt{eval1} 返回新项 \texttt{t'}，就递归调用
+\texttt{eval}，从 \texttt{t'} 继续求值。当 \texttt{eval1} 最终到达无
+规则可用的位置时，它抛出 \texttt{NoRuleApplies}，使 \texttt{eval} 跳出
+循环并返回序列中的最后一项。\footnote{为求简单，这里把 \texttt{eval}
+写成这样；不过，在递归循环里设置 \texttt{try} 处理器并不是良好的 ML
+风格。}
+
+\begin{lstlisting}
+let rec eval t =
+  try let t' = eval1 t
+      in eval t'
+  with NoRuleApplies -> t
+\end{lstlisting}
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:4.2.1}
+为什么这不是良好的风格？怎样重写 \texttt{eval} 更好？
+\end{exercise}
+
+显然，这个简单求值器的目标是便于与数学上的求值定义逐项比较，而不是尽快
+找出范式。从\cref{ex:3.5.17}的大步求值规则出发，可以得到效率稍高的算法。
+
+\begin{exercise}[推荐，\(\star\star\star,\nrightarrow\)]
+\label{ex:4.2.2}
+把 \texttt{arith} 实现中的 \texttt{eval} 函数改写为
+\cref{ex:3.5.17}所介绍的大步风格。
+\end{exercise}
+
+\section{其余部分}
+\label{sec:4.3}
+
+当然，即使是非常简单的解释器或编译器，除了这里明确讨论的内容以外，也还有
+许多组成部分。真正开始求值之前，项只是文件中的字符序列：程序必须从文件
+系统读入字符，由词法分析器处理成词法单元流，再由解析器处理成抽象语法树，
+之后才能交给前面看到的函数求值。求值结束后，还需要打印结果。
+
+\begin{center}
+\begin{tikzpicture}[
+  node distance=12mm,
+  every node/.style={font=\small,align=center},
+  process/.style={draw,rounded corners=1pt,inner xsep=7pt,inner ysep=4pt},
+  >=stealth
+]
+  \node[process] (io) {文件 I/O};
+  \node[process,right=of io] (lex) {词法分析};
+  \node[process,right=of lex] (parse) {语法分析};
+  \node[process,right=of parse] (eval) {求值};
+  \node[process,right=of eval] (print) {输出};
+  \draw[->] (io) -- node[above]{字符} (lex);
+  \draw[->] (lex) -- node[above]{词法单元} (parse);
+  \draw[->] (parse) -- node[above]{项} (eval);
+  \draw[->] (eval) -- node[above]{值} (print);
+\end{tikzpicture}
+\end{center}
+
+建议感兴趣的读者查看作者网站上这个完整解释器的 OCaml 代码。

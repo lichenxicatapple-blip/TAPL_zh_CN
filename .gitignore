@@ -8,6 +8,7 @@ __pycache__/
 
 # Temporary work
 /tmp/
+/code/target/
 
 # Original and reproducibly generated source PDFs
 /Benjamin_C._Pierce-Types_and_Programming_Languages-The_MIT_Press(2002).pdf

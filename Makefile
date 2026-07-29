@@ -1,6 +1,6 @@
 PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 
-.PHONY: setup pdf review-preface preface-figures split verify-splits preface-assets init-review clean
+.PHONY: setup pdf review-preface review-part-01 preface-figures split verify-splits preface-assets init-review rust-check clean
 
 setup:
 	python3 -m venv .venv
@@ -34,6 +34,20 @@ review-preface: preface-figures
 	fi
 	cp build/review-preface.pdf output/pdf/preface-review.pdf
 
+review-part-01: preface-figures
+	mkdir -p build output/pdf
+	@if command -v latexmk >/dev/null && command -v xelatex >/dev/null; then \
+		cd tex && latexmk -xelatex -interaction=nonstopmode -halt-on-error \
+			-outdir=../build review-part-01.tex; \
+	elif command -v tectonic >/dev/null; then \
+		cd tex && tectonic --keep-logs --keep-intermediates \
+			--outdir ../build review-part-01.tex; \
+	else \
+		echo "A XeLaTeX toolchain (latexmk + xelatex) or tectonic is required"; \
+		exit 1; \
+	fi
+	cp build/review-part-01.pdf output/pdf/part-01-review.pdf
+
 preface-figures:
 	$(PYTHON) scripts/verify_preface_dependency_figure.py
 	mkdir -p build/figures/preface figures/redrawn/preface
@@ -58,6 +72,11 @@ split:
 
 verify-splits:
 	$(PYTHON) scripts/split_pdf.py --verify-only
+
+rust-check:
+	cd code && cargo fmt --all --check
+	cd code && cargo clippy --workspace --all-targets -- -D warnings
+	cd code && cargo test --workspace
 
 preface-assets:
 	$(PYTHON) scripts/extract_preface_assets.py

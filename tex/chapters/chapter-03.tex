@@ -1,5 +1,1015 @@
 % Chapter 3 — Untyped Arithmetic Expressions
 % Source: ../source/split/chapters/ch03-untyped-arithmetic-expressions_p034-p051.pdf
 % Original print pages: 23--44
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:3}
+% Status: 自检中
+
+\chapter{无类型算术表达式}
+\label{chap:3}
+
+为了严谨地讨论类型系统及其性质，我们首先需要形式化地处理程序语言的一些
+更基础方面。尤其是，我们需要清晰、精确而且便于数学处理的工具，用来表达
+程序的语法与语义，并对它们进行推理。
+
+本章和下一章将为一种由数字和布尔值构成的小语言建立这些工具。这个语言简单
+得几乎不值一提，但它很适合用来直接引入几个基本概念：抽象语法、归纳定义与
+证明、求值，以及运行时错误的建模。第 5--7 章会在强大得多的无类型 lambda
+演算上展开同一套内容；到那时，我们还必须处理名称绑定与替换。再往后，
+第 8 章将正式开始研究类型系统：它会回到本章的简单语言，用它引入静态类型
+的基本概念；第 9 章再把这些概念扩展到 lambda 演算。
+
+\section{引言}
+\label{sec:3.1}
+
+本章使用的语言只有少数几种句法形式：布尔常量 \(\tapltrue\) 和
+\(\taplfalse\)、条件表达式、数值常量 \(\taplzero\)、算术运算符
+\(\mathsf{succ}\)（后继）和 \(\mathsf{pred}\)（前驱），以及测试操作
+\(\mathsf{iszero}\)；后者应用于 \(\taplzero\) 时返回 \(\tapltrue\)，
+应用于其他数字时返回 \(\taplfalse\)。下面的文法对这些形式作了紧凑概括。
+\footnote{本章研究的是无类型布尔值与自然数演算（见图~\ref{fig:3-2}）。
+相应的 OCaml 实现名为 \texttt{arith}，将在第 4 章介绍。}
+
+\[
+\begin{array}{@{}rcll@{}}
+ t &::=& \tapltrue & \text{项：常量真}\\
+   &\mid& \taplfalse & \text{常量假}\\
+   &\mid& \taplif{t}{t}{t} & \text{条件表达式}\\
+   &\mid& \taplzero & \text{常量零}\\
+   &\mid& \taplsucc{t} & \text{后继}\\
+   &\mid& \taplpred{t} & \text{前驱}\\
+   &\mid& \tapliszero{t} & \text{零测试}
+\end{array}
+\]
+
+这套文法所采用的约定（全书也将沿用）与标准 BNF 很接近（参见 Aho、Sethi
+和 Ullman，1986）。第一行的 \(t::=\) 声明我们正在定义项的集合，并用字母
+\(t\) 指代任意项。其后每一行给出项的一种候选句法形式。符号 \(t\) 每出现
+一次，都可以换成任意项；右侧的斜体短语只是注释。
+
+文法规则右侧的符号 \(t\) 称为\termfirst{元变量}{metavariable}。说它是
+“变量”，是因为它充当某个具体项的占位符；说它是“元”变量，是因为它不是
+\termfirst{对象语言}{object language}——也就是我们正在描述其语法的这个
+简单程序语言——中的变量，而属于\termfirst{元语言}{metalanguage}，即我们
+用来给出描述的记法。（事实上，目前的对象语言里根本没有变量；第 5 章才会
+引入变量。）前缀“元”来自\termfirst{元数学}{metamathematics}，这是逻辑学
+的一个分支，研究数学推理和逻辑推理系统（包括程序语言）的数学性质。由此
+还得到术语\termfirst{元理论}{metatheory}：它既指我们能够就某个逻辑系统
+（或程序语言）作出的真命题的集合，也进一步指对这些命题的研究。因此，本书
+所谓“子类型化的元理论”，可以理解为“对带有子类型化的系统之性质所作的
+形式研究”。
+
+全书都用元变量 \(t\)，以及邻近的字母 \(s,u,r\) 和 \(t_1,s'\) 等变体，
+表示当前讨论的对象语言中的项。随着讨论展开，我们还会引入其他字母，表示
+其他句法范畴中的表达式。附录 B 汇总了全部元变量约定。
+
+目前，“项”和“表达式”两个词可以互换使用。从第 8 章开始，我们会讨论带有
+类型等额外句法范畴的演算；届时，“表达式”将泛指各种句法短语（包括项
+表达式、类型表达式、种类表达式等），而“项”将专门指表示计算的短语，也就是
+可以替换元变量 \(t\) 的短语。
+
+在当前语言中，程序就是一个由上述文法形式构成的项。下面是几个程序及其求值
+结果：
+\[
+\begin{array}{@{}l@{\qquad}l@{}}
+ \mathsf{if\ false\ then\ 0\ else\ 1}; & \blacktriangleright\ 1\\[2pt]
+ \mathsf{iszero\ (pred\ (succ\ 0))}; & \blacktriangleright\ \mathsf{true}
+\end{array}
+\]
+
+全书都用符号 \(\blacktriangleright\) 展示示例的求值结果。（若结果显而易见
+或并不重要，则为了简洁而省略。）原书排版时会用与当前形式系统对应的实现
+自动处理示例；这里的实现是 \texttt{arith}，显示的响应就是实现的实际输出。
+
+在示例中，为便于阅读，\(\mathsf{succ}\)、\(\mathsf{pred}\) 和
+\(\mathsf{iszero}\) 的复合参数都放在括号里。\footnote{事实上，原书网站
+用于处理本章示例的 \texttt{arith} 实现确实要求在这些复合参数外加括号，
+即使没有括号也能无歧义地解析。这样做是为了与后面的演算保持一致；后者会
+使用外观相似的函数应用语法。} 项的文法只定义抽象语法，并未提到括号。
+当然，在眼下这个极其简单的语言里，有无括号区别不大：括号通常用于消除文法
+歧义，而这个文法不存在歧义——每个词法单元序列至多能解析成一个项。第 5 章
+会回到括号与抽象语法的话题。
+
+为使示例简洁，我们还使用通常的阿拉伯数字；在形式表示中，数字是对
+\(\taplzero\) 嵌套应用 \(\mathsf{succ}\) 得到的。例如，
+\(\taplsucc{(\taplsucc{(\taplsucc{\taplzero})})}\) 简写作 \(3\)。
+
+求值结果总具有格外简单的形式：它们不是布尔常量，就是数字，即对
+\(\taplzero\) 嵌套零次或多次 \(\mathsf{succ}\) 得到的项。这些项称为
+\termfirst{值}{value}；在我们形式化项的求值次序时，它们将扮演特殊角色。
+
+注意，项的语法允许构造出 \(\taplsucc{\tapltrue}\) 和
+\(\taplif{\taplzero}{\taplzero}{\taplzero}\) 这样看起来可疑的项。稍后
+我们还会继续讨论它们。事实上，从某种意义上说，正是这些项让这个微型语言
+值得研究：它们代表了我们希望类型系统排除的那些无意义程序。
+
+\section{语法}
+\label{sec:3.2}
+
+定义这一语言的语法有几种等价方式。前一节的文法已经给出了一种。实际上，
+该文法只是下面这个归纳定义的紧凑记法。
+
+\begin{definition}[项：归纳定义]
+\label{def:3.2.1}
+项的集合是满足以下条件的最小集合 \(\mathcal{T}\)：
+\begin{enumerate}
+  \item \(\{\tapltrue,\taplfalse,\taplzero\}\subseteq\mathcal{T}\)；
+  \item 若 \(t_1\in\mathcal{T}\)，则
+    \(\{\taplsucc{t_1},\taplpred{t_1},\tapliszero{t_1}\}
+      \subseteq\mathcal{T}\)；
+  \item 若 \(t_1,t_2,t_3\in\mathcal{T}\)，则
+    \(\taplif{t_1}{t_2}{t_3}\in\mathcal{T}\)。
+\end{enumerate}
+\end{definition}
+
+归纳定义在程序语言研究中无处不在，因此值得停下来仔细考察这个定义。第一项
+告诉我们三个属于 \(\mathcal{T}\) 的简单表达式。第二项和第三项给出规则，
+用来判断某些复合表达式属于 \(\mathcal{T}\)。最后，“最小”一词说明，
+\(\mathcal{T}\) 不含这三项所要求之外的其他元素。
+
+与上一节的文法一样，这一定义也没有说明如何用括号标记复合子项。严格地说，
+我们真正做的是把 \(\mathcal{T}\) 定义为树的集合，而不是字符串的集合。
+示例中的括号只是为了说明页面上项的线性表示与底层真实树形之间的关系。
+
+同一归纳定义还可以采用逻辑系统“自然演绎式”表述中常见的二维推导规则格式：
+
+\begin{definition}[项：由推导规则定义]
+\label{def:3.2.2}
+项的集合由下列规则定义：
+\[
+\begin{gathered}
+ \tapltrue\in\mathcal{T}
+ \qquad
+ \taplfalse\in\mathcal{T}
+ \qquad
+ \taplzero\in\mathcal{T}
+ \\[8pt]
+ \frac{t_1\in\mathcal{T}}{\taplsucc{t_1}\in\mathcal{T}}
+ \qquad
+ \frac{t_1\in\mathcal{T}}{\taplpred{t_1}\in\mathcal{T}}
+ \qquad
+ \frac{t_1\in\mathcal{T}}{\tapliszero{t_1}\in\mathcal{T}}
+ \\[10pt]
+ \frac{t_1\in\mathcal{T}\qquad t_2\in\mathcal{T}\qquad
+       t_3\in\mathcal{T}}
+      {\taplif{t_1}{t_2}{t_3}\in\mathcal{T}}
+\end{gathered}
+\]
+\end{definition}
+
+前三条规则重述\cref{def:3.2.1}的第一项；后四条则刻画第 2、3 项。每条规则
+都读作：“如果我们已经建立横线上方列出的前提，就可以导出横线下方的结论。”
+通常像这里一样，不再明说 \(\mathcal{T}\) 是满足这些规则的最小集合。
+
+这里有两个术语值得说明。第一，不带前提的规则（如上面的前三条）常称为
+\termfirst{公理}{axiom}。本书把\termfirst{推导规则}{inference rule}
+用作统称，既包括公理，也包括带一个或多个前提的“真正规则”。公理上方无物
+可放，所以通常不画横线。第二，如果一定要完全严谨，我们所称的“推导规则”
+其实是\termfirst{规则模式}{rule schema}，因为它们的前提和结论中可能含有
+元变量。形式上，每个模式代表无穷多条具体规则：把每个元变量一致地换成相应
+句法范畴中的所有短语，就得到这些规则。例如，在上面的规则中，要把每个
+\(t\) 换成每一个可能的项。
+
+最后，再以略显“具体”的风格给出同一项集的另一种定义；它明确提供生成
+\(\mathcal{T}\) 中元素的过程。
+
+\begin{definition}[项：具体定义]
+\label{def:3.2.3}
+对每个自然数 \(i\)，定义集合 \(S_i\)：
+\[
+\begin{aligned}
+ S_0={}&\varnothing,\\
+ S_{i+1}={}&\{\tapltrue,\taplfalse,\taplzero\}\\
+ &{}\cup\{\taplsucc{t_1},\taplpred{t_1},\tapliszero{t_1}
+          \mid t_1\in S_i\}\\
+ &{}\cup\{\taplif{t_1}{t_2}{t_3}\mid t_1,t_2,t_3\in S_i\}.
+\end{aligned}
+\]
+最后令
+\[
+  S=\bigcup_i S_i.
+\]
+\(S_0\) 为空；\(S_1\) 只含常量；\(S_2\) 含常量，以及只用一次
+\(\mathsf{succ}\)、\(\mathsf{pred}\)、\(\mathsf{iszero}\) 或
+\(\mathsf{if}\) 与常量构成的短语；\(S_3\) 还含对 \(S_2\) 中短语使用上述
+运算所能构成的全部短语；依此类推。\(S\) 汇集了以常量为起点、使用有限次
+算术和条件运算能够构成的所有短语。
+\end{definition}
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:3.2.4}
+\(S_3\) 有多少个元素？
+\end{exercise}
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:3.2.5}
+证明集合 \(S_i\) 是累积的，即对每个 \(i\) 都有 \(S_i\subseteq S_{i+1}\)。
+\end{exercise}
+
+上述定义从不同方向刻画了同一个项集：\cref{def:3.2.1,def:3.2.2}只是把它
+描述为满足某些“闭包性质”的最小集合；\cref{def:3.2.3}则展示如何把这个
+集合实际构造为一个序列的极限。
+
+作为本节的收尾，我们来验证这两种观点确实定义了同一个集合。下面把证明写得
+相当详细，以展示各个部分如何配合。
+
+\begin{proposition}
+\label{prop:3.2.6}
+\(\mathcal{T}=S\)。
+\end{proposition}
+
+\begin{proof}
+\(\mathcal{T}\) 被定义为满足某些条件的最小集合。因此，只需证明：
+（a）\(S\) 满足这些条件；（b）任何满足这些条件的集合都以 \(S\) 为子集，
+即 \(S\) 的确是满足这些条件的最小集合。
+
+先看（a）。需要检查\cref{def:3.2.1}中的三个条件对 \(S\) 都成立。首先，
+因为 \(S_1=\{\tapltrue,\taplfalse,\taplzero\}\)，常量显然都在 \(S\)
+中。其次，若 \(t_1\in S\)，则由 \(S=\bigcup_i S_i\) 可知，必有某个
+\(i\) 使 \(t_1\in S_i\)。根据 \(S_{i+1}\) 的定义，
+\(\taplsucc{t_1}\in S_{i+1}\)，所以 \(\taplsucc{t_1}\in S\)；同理，
+\(\taplpred{t_1}\in S\) 且 \(\tapliszero{t_1}\in S\)。第三，若
+\(t_1,t_2,t_3\in S\)，通过类似论证可得
+\(\taplif{t_1}{t_2}{t_3}\in S\)。
+
+再看（b）。假设某个集合 \(S'\) 满足\cref{def:3.2.1}的三个条件。我们对
+\(i\) 作完全归纳，证明每个 \(S_i\subseteq S'\)，由此显然得到
+\(S\subseteq S'\)。
+
+假设对所有 \(j<i\) 都有 \(S_j\subseteq S'\)；需要证明
+\(S_i\subseteq S'\)。\(S_i\) 的定义分为 \(i=0\) 与 \(i>0\) 两种情形。
+如果 \(i=0\)，则 \(S_i=\varnothing\)，显然
+\(\varnothing\subseteq S'\)。否则 \(i=j+1\)。任取 \(t\in S_{j+1}\)。
+由于 \(S_{j+1}\) 被定义为三个较小集合的并，\(t\) 必来自其中之一，有三种
+可能：
+\begin{enumerate}
+  \item 若 \(t\) 是常量，则由条件 1 有 \(t\in S'\)。
+  \item 若 \(t\) 形如 \(\taplsucc{t_1}\)、\(\taplpred{t_1}\) 或
+    \(\tapliszero{t_1}\)，其中 \(t_1\in S_j\)，则由归纳假设
+    \(t_1\in S'\)，再由条件 2 得 \(t\in S'\)。
+  \item 若 \(t\) 形如 \(\taplif{t_1}{t_2}{t_3}\)，其中
+    \(t_1,t_2,t_3\in S_j\)，则由归纳假设三者都在 \(S'\) 中，再由条件 3
+    得 \(t\in S'\)。
+\end{enumerate}
+所以每个 \(S_i\subseteq S'\)。根据 \(S\) 是所有 \(S_i\) 之并的定义，
+得到 \(S\subseteq S'\)，证明完成。
+\end{proof}
+
+值得注意的是，这个证明对自然数采用完全归纳，而不是更熟悉的“基础情形／
+归纳情形”形式。对于每个 \(i\)，我们假设所需谓词对所有严格小于 \(i\) 的
+数都成立，再证明它对 \(i\) 也成立。实质上，这里的每一步都是归纳步骤；
+\(i=0\) 的特殊之处只在于：可以调用归纳假设的那些较小 \(i\) 所成的集合
+恰好为空。全书大多数归纳证明——尤其是“结构归纳”证明——也都适用这一说明。
+
+\section{项上的归纳}
+\label{sec:3.3}
+
+\cref{prop:3.2.6}对项集 \(\mathcal{T}\) 的明确刻画，为我们推理其中的元素
+提供了一条重要原则。如果 \(t\in\mathcal{T}\)，那么 \(t\) 必属于下列三种
+情形之一：（1）\(t\) 是常量；（2）\(t\) 形如
+\(\taplsucc{t_1}\)、\(\taplpred{t_1}\) 或 \(\tapliszero{t_1}\)，其中
+\(t_1\) 是较小的项；（3）\(t\) 形如 \(\taplif{t_1}{t_2}{t_3}\)，其中
+\(t_1,t_2,t_3\) 是较小的项。我们可以从两方面利用这一观察：既可以归纳地
+定义项集上的函数，也可以归纳地证明项的性质。下面先给出一个简单的归纳
+定义，把每个项 \(t\) 映射为 \(t\) 中使用的常量集合。
+
+\begin{definition}
+\label{def:3.3.1}
+项 \(t\) 中出现的常量集合记作 \(\Consts(t)\)，定义如下：
+\[
+\begin{aligned}
+ \Consts(\tapltrue) &= \{\tapltrue\},&
+ \Consts(\taplfalse) &= \{\taplfalse\},\\
+ \Consts(\taplzero) &= \{\taplzero\},&
+ \Consts(\taplsucc{t_1}) &= \Consts(t_1),\\
+ \Consts(\taplpred{t_1}) &= \Consts(t_1),&
+ \Consts(\tapliszero{t_1}) &= \Consts(t_1),\\
+ \Consts(\taplif{t_1}{t_2}{t_3})
+   &= \Consts(t_1)\cup\Consts(t_2)\\
+   &\quad{}\cup\Consts(t_3).
+\end{aligned}
+\]
+\end{definition}
+
+项的大小是另一个可以用归纳定义计算的性质。
+
+\begin{definition}
+\label{def:3.3.2}
+项 \(t\) 的大小记作 \(\termsize(t)\)，定义如下：
+\[
+\begin{aligned}
+ \termsize(\tapltrue)&=1,&
+ \termsize(\taplfalse)&=1,\\
+ \termsize(\taplzero)&=1,&
+ \termsize(\taplsucc{t_1})&=\termsize(t_1)+1,\\
+ \termsize(\taplpred{t_1})&=\termsize(t_1)+1,&
+ \termsize(\tapliszero{t_1})&=\termsize(t_1)+1,\\
+ \termsize(\taplif{t_1}{t_2}{t_3})
+   &=\termsize(t_1)+\termsize(t_2)+\termsize(t_3)+1.
+\end{aligned}
+\]
+也就是说，\(t\) 的大小就是其抽象语法树中的节点数。
+
+类似地，项 \(t\) 的深度记作 \(\termdepth(t)\)，定义如下：
+\[
+\begin{aligned}
+ \termdepth(\tapltrue)&=1,&
+ \termdepth(\taplfalse)&=1,\\
+ \termdepth(\taplzero)&=1,&
+ \termdepth(\taplsucc{t_1})&=\termdepth(t_1)+1,\\
+ \termdepth(\taplpred{t_1})&=\termdepth(t_1)+1,&
+ \termdepth(\tapliszero{t_1})&=\termdepth(t_1)+1,\\
+ \termdepth(\taplif{t_1}{t_2}{t_3})
+   &=\max\{\termdepth(t_1),\termdepth(t_2),\\
+   &\hspace{5.8em}\termdepth(t_3)\}+1.
+\end{aligned}
+\]
+等价地，按照\cref{def:3.2.3}，\(\termdepth(t)\) 是使
+\(t\in S_i\) 成立的最小 \(i\)。
+\end{definition}
+
+下面归纳证明一个简单事实，把项中常量的个数与项的大小联系起来。（性质本身
+当然显而易见；有意思的是归纳证明的形式，我们之后会反复看到它。）
+
+\begin{lemma}
+\label{lem:3.3.3}
+项 \(t\) 中不同常量的数目不大于 \(t\) 的大小，即
+\(\lvert\Consts(t)\rvert\leq\termsize(t)\)。
+\end{lemma}
+
+\begin{proof}
+对 \(t\) 的深度作归纳。假设所需性质对所有小于 \(t\) 的项都成立，需要证明
+它对 \(t\) 本身成立。分三种情形。
+
+\paragraph{情形：\(t\) 是常量。}
+立即有
+\(\lvert\Consts(t)\rvert=\lvert\{t\}\rvert=1=\termsize(t)\)。
+
+\paragraph{情形：\(t=\taplsucc{t_1}\)、\(\taplpred{t_1}\) 或
+\(\tapliszero{t_1}\)。}
+由归纳假设，\(\lvert\Consts(t_1)\rvert\leq\termsize(t_1)\)。于是
+\[
+ \lvert\Consts(t)\rvert
+ =\lvert\Consts(t_1)\rvert
+ \leq\termsize(t_1)
+ <\termsize(t).
+\]
+
+\paragraph{情形：\(t=\taplif{t_1}{t_2}{t_3}\)。}
+归纳假设分别给出
+\(\lvert\Consts(t_i)\rvert\leq\termsize(t_i)\)（\(i=1,2,3\)）。于是
+\[
+\begin{aligned}
+ \lvert\Consts(t)\rvert
+ &=\lvert\Consts(t_1)\cup\Consts(t_2)\cup\Consts(t_3)\rvert\\
+ &\leq\lvert\Consts(t_1)\rvert+\lvert\Consts(t_2)\rvert
+      +\lvert\Consts(t_3)\rvert\\
+ &\leq\termsize(t_1)+\termsize(t_2)+\termsize(t_3)\\
+ &<\termsize(t).
+\end{aligned}
+\]
+\end{proof}
+
+把这个证明重述为一条一般的推理原则，可以看清它的形式。我们顺带再列出两条
+证明项的性质时常用的类似原则。
+
+\begin{theorem}[项上的归纳原理]
+\label{thm:3.3.4}
+设 \(P\) 是项上的谓词。
+
+\paragraph{对深度归纳。}
+如果对每个项 \(s\)，在假定所有满足
+\(\termdepth(r)<\termdepth(s)\) 的 \(r\) 都有 \(P(r)\) 的前提下，可以
+证明 \(P(s)\)，那么 \(P(s)\) 对所有 \(s\) 都成立。
+
+\paragraph{对大小归纳。}
+如果对每个项 \(s\)，在假定所有满足
+\(\termsize(r)<\termsize(s)\) 的 \(r\) 都有 \(P(r)\) 的前提下，可以
+证明 \(P(s)\)，那么 \(P(s)\) 对所有 \(s\) 都成立。
+
+\paragraph{结构归纳。}
+如果对每个项 \(s\)，在假定 \(s\) 的所有直接子项 \(r\) 都有 \(P(r)\)
+的前提下，可以证明 \(P(s)\)，那么 \(P(s)\) 对所有 \(s\) 都成立。
+\end{theorem}
+
+\begin{proof}
+留作练习（\(\star\star\)）。
+\end{proof}
+
+对项的深度或大小作归纳，类似于自然数上的完全归纳
+（\cref{ax:2.4.2}）。普通结构归纳则对应普通的自然数归纳原理
+（\cref{ax:2.4.1}）：其中的归纳步骤只要求根据 \(P(n)\) 建立
+\(P(n+1)\)。
+
+与自然数归纳的不同风格一样，选择哪一种项归纳原理，取决于哪一种能让手头
+证明的结构更简单；形式上它们可以彼此推导。对于简单证明，对大小、深度还是
+结构归纳通常差别不大。作为一种行文风格，只要可能，通常都采用结构归纳，
+因为它直接作用于项，避免绕道自然数。
+
+大多数项上的归纳证明具有相似结构。归纳的每一步都给定一个项 \(t\)，要求
+在假设所有子项（或所有较小项）都满足 \(P\) 的前提下证明 \(P(t)\)。为此，
+分别考察 \(t\) 的每种可能形式（\(\tapltrue\)、\(\taplfalse\)、条件式、
+\(\taplzero\) 等），并在每种情形下论证该形式的任意 \(t\) 都满足 \(P\)。
+不同归纳证明之间，只有各个情形的具体论证不同，所以通常省略不变的部分，
+把证明写成：
+\begin{quote}
+\begin{proof}
+对 \(t\) 作归纳。
+
+\emph{情形：\(t=\tapltrue\)。}\quad
+\(\ldots\)证明 \(P(\tapltrue)\)\(\ldots\)
+
+\emph{情形：\(t=\taplfalse\)。}\quad
+\(\ldots\)证明 \(P(\taplfalse)\)\(\ldots\)
+
+\emph{情形：\(t\) 是条件式。}\quad
+若 \(t=\taplif{t_1}{t_2}{t_3}\)，利用 \(P(t_1),P(t_2),P(t_3)\)
+证明 \(P(t)\)\(\ldots\)
+
+其他句法形式同理。
+\end{proof}
+\end{quote}
+
+对于许多归纳论证（包括\cref{lem:3.3.3}的证明），甚至没有必要写这么多：
+在基础情形中，项 \(t\) 没有子项，\(P(t)\) 立即成立；在归纳情形中，只需
+对子项应用归纳假设，再以完全显然的方式组合结果，就得到 \(P(t)\)。读者
+一边查看文法、一边记住归纳假设，现场重建证明，实际上比核对写出的论证更
+容易。在这种情况下，只写“对 \(t\) 作归纳”就是完全可以接受的证明。
+
+\section{语义风格}
+\label{sec:3.4}
+
+严谨地给出语言语法之后，下一步是同样精确地定义项如何求值，也就是语言的
+语义。形式化语义有三种基本方法。
+
+\begin{enumerate}
+  \item \termfirst{操作语义}{operational semantics}通过为程序语言定义一台
+    简单的抽象机来规定其行为。这里的“抽象”是说，机器代码直接采用该语言
+    的项，而不是某种底层微处理器指令集。对于简单语言，机器状态就是一个项；
+    机器行为由转移函数定义：对每个状态，或者在项上执行一步化简并给出下一
+    状态，或者宣告机器停机。项 \(t\) 的含义可以取为：以 \(t\) 为初始状态
+    启动机器后最终到达的状态。\footnote{严格地说，这里描述的是操作语义的
+    \termfirst{小步风格}{small-step style}，有时也称
+    \termfirst{结构操作语义}{structural operational semantics}
+    （Plotkin，1981）。\cref{ex:3.5.17}会介绍另一种大步风格，也称自然语义
+    （Kahn，1987）；在这种风格中，抽象机的一次转移就把项求值到最终结果。}
+
+    有时，为同一种语言给出两种或更多种操作语义很有用：有些更抽象，机器
+    状态接近程序员书写的项；另一些则更接近实际解释器或编译器操纵的结构。
+    证明这些机器执行同一个程序时的行为在某种适当意义下相互对应，就等于
+    证明该语言某个实现的正确性。
+
+  \item \termfirst{指称语义}{denotational semantics}对“含义”采取更抽象的
+    观点：项的含义不再只是一串机器状态，而是数字、函数之类的数学对象。
+    为语言给出指称语义，就是找出一组\termfirst{语义域}{semantic domain}，
+    再定义一个解释函数，把项映射到这些域中的元素。寻找适合模拟各种语言
+    特性的语义域，形成了丰富而优美的研究领域——
+    \termfirst{域理论}{domain theory}。
+
+    指称语义的一项主要优点，是它抽去求值的繁琐细节，突出语言的本质概念。
+    此外，所选语义域的性质可以用来推导强大的程序行为推理定律，例如证明
+    两个程序的行为完全相同，或证明某个程序的行为满足某项规约。最后，从
+    语义域的性质中，往往可以立即看出某些事情（无论可取与否）在该语言中
+    不可能发生。
+
+  \item \termfirst{公理语义}{axiomatic semantics}更直接地处理这些定律：
+    它不先用操作语义或指称语义定义程序行为，再由定义导出定律，而是直接
+    把定律本身作为语言的定义。一个项的含义，就是能够证明它具有的性质。
+
+    公理方法的优美之处，在于它把注意力集中到程序推理过程上。正是这一思路
+    为计算机科学带来了不变式等强大观念。
+\end{enumerate}
+
+在 20 世纪 60、70 年代，人们通常认为操作语义不如另外两种风格：它适合
+快速而粗略地定义语言特性，却不够优雅，数学能力也较弱。但到了 80 年代，
+更抽象的方法开始遇到越来越棘手的技术问题，\footnote{指称语义最难对付的
+问题是非确定性与并发；公理语义最难对付的则是过程。} 相比之下，操作方法
+的简单性与灵活性日益显得有吸引力。与此同时，一批研究者取得了新进展：
+Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以及 Milner
+关于 CCS 的工作（1980、1989、1999），都提出了更优雅的形式体系，并展示
+如何把在指称语义环境中发展出的许多强大数学技术迁移到操作语境。操作语义
+由此成为一个活跃的独立研究领域，也常常成为定义程序语言并研究其性质时的
+首选方法。本书只使用操作语义。
+
+\section{求值}
+\label{sec:3.5}
+
+暂且把数字放到一边，先从布尔表达式的操作语义开始。图~\ref{fig:3-1}汇总了
+这一定义，下面逐项考察。
+
+\begin{figure}[htbp]
+\centering
+\small
+\begin{minipage}{0.92\textwidth}
+\textbf{\(\mathcal{B}\)（无类型）：语法}\par\smallskip
+\(\begin{array}[t]{@{}rcll@{}}
+ t&::=&\tapltrue&\text{项：常量真}\\
+  &\mid&\taplfalse&\text{常量假}\\
+  &\mid&\taplif{t}{t}{t}&\text{条件式}\\[2pt]
+ v&::=&\tapltrue&\text{值：真值}\\
+  &\mid&\taplfalse&\text{假值}
+\end{array}\)
+\par\medskip
+\textbf{求值规则}\quad \(t\trans t'\)\par\smallskip
+\(\begin{aligned}
+ \taplif{\tapltrue}{t_2}{t_3}&\trans t_2
+   &&\textsc{E-IfTrue}\\
+ \taplif{\taplfalse}{t_2}{t_3}&\trans t_3
+   &&\textsc{E-IfFalse}\\[4pt]
+ \frac{t_1\trans t_1'}
+      {\taplif{t_1}{t_2}{t_3}\trans\taplif{t_1'}{t_2}{t_3}}
+   &&&\textsc{E-If}
+\end{aligned}\)
+\end{minipage}
+\caption{布尔值（\(\mathcal{B}\)）}
+\label{fig:3-1}
+\end{figure}
+
+图~\ref{fig:3-1}左栏的文法定义了两个表达式集合。第一个只是为方便而重复项
+的语法；第二个定义项的一个子集，称为值，它们是求值可能得到的最终结果。
+这里的值只有常量 \(\tapltrue\) 和 \(\taplfalse\)。全书都用元变量 \(v\)
+表示值。
+
+右栏定义项上的\termfirst{求值关系}{evaluation relation}，\footnote{有些
+专家更愿意把这个关系称为\termfirst{归约}{reduction}，把“求值”一词留给
+\cref{ex:3.5.17}中的“大步”变体；后者直接把项映射到最终值。} 写作
+\(t\trans t'\)，读作“\(t\) 一步求值为 \(t'\)”。直观上，如果抽象机当前
+处于状态 \(t\)，那么它可以执行一步计算，把状态变为 \(t'\)。这个关系由
+三条推导规则定义；也可以说是两条公理加一条规则，因为前两条没有前提。
+
+第一条规则 \textsc{E-IfTrue} 说：若正在求值的项是一个条件式，而且守卫
+就是常量 \(\tapltrue\)，机器便可丢弃条件结构，把 then 分支 \(t_2\) 留作
+新的机器状态，即下一个待求值项。同样，\textsc{E-IfFalse} 说，守卫就是
+\(\taplfalse\) 的条件式一步求值为 else 分支 \(t_3\)。规则名中的
+\textsc{E-} 表示它们属于求值关系；其他关系的规则会使用不同前缀。
+
+第三条规则 \textsc{E-If} 更有意思：若守卫 \(t_1\) 求值为 \(t_1'\)，那么
+整个条件式 \(\taplif{t_1}{t_2}{t_3}\) 求值为
+\(\taplif{t_1'}{t_2}{t_3}\)。用抽象机的语言说，如果一台只以 \(t_1\)
+为状态的机器可以走到 \(t_1'\)，那么处于
+\(\taplif{t_1}{t_2}{t_3}\) 状态的机器就可以走到
+\(\taplif{t_1'}{t_2}{t_3}\)。
+
+这些规则没有说什么，与它们说了什么同样重要。常量 \(\tapltrue\) 和
+\(\taplfalse\) 不求值为任何东西，因为它们没有出现在任何规则的左侧。
+此外，也没有规则允许在对 if 本身求值之前，先对其 then 或 else 子表达式
+求值。例如
+\[
+ \mathsf{if\ true\ then\ (if\ false\ then\ false\ else\ false)\
+ else\ true}
+\]
+不能求值为
+\(\mathsf{if\ true\ then\ false\ else\ true}\)。唯一的选择是先用
+\textsc{E-IfTrue} 对外层条件式求值。规则之间的这种配合，为条件式确定了
+一种特定的求值策略，与常见程序语言中熟悉的次序相同：求值条件式时，必须
+先求守卫；如果守卫本身也是条件式，又必须先求它的守卫；依此类推。
+\textsc{E-IfTrue} 和 \textsc{E-IfFalse} 告诉我们，当这一过程到达终点、
+遇到守卫已经完全求值的条件式时该做什么。从某种意义上说，前两条规则完成
+求值的实际工作，而 \textsc{E-If} 帮助确定工作发生的位置。为了突出规则
+性质的差异，常把前两条称为\termfirst{计算规则}{computation rule}，把
+\textsc{E-If} 称为\termfirst{同余规则}{congruence rule}。
+
+下面把这些直观说法表述得更精确。
+
+\begin{definition}
+\label{def:3.5.1}
+把一条推导规则的结论和所有前提（如果有）中的每个元变量，都一致地替换为
+同一个项，就得到该规则的一个\termfirst{实例}{instance}。
+\end{definition}
+
+例如
+\[
+ \mathsf{if\ true\ then\ true\ else\
+ (if\ false\ then\ false\ else\ false)}
+ \trans \mathsf{true}
+\]
+是 \textsc{E-IfTrue} 的一个实例：\(t_2\) 的两处出现都被替换成
+\(\tapltrue\)，\(t_3\) 则被替换成
+\[
+  \mathsf{if\ false\ then\ false\ else\ false}.
+\]
+
+\begin{definition}
+\label{def:3.5.2}
+如果对一条规则的每个实例，要么其结论属于关系 \(R\)，要么其某个前提不属于
+\(R\)，就说该规则被 \(R\)\termfirst{满足}{satisfied}。
+\end{definition}
+
+\begin{definition}
+\label{def:3.5.3}
+\termfirst{单步求值关系}{one-step evaluation relation} \(\trans\) 是项上
+满足图~\ref{fig:3-1}三条规则的最小二元关系。当有序对 \((t,t')\) 属于
+求值关系时，就说“求值陈述（或\termfirst{判断}{judgment}）
+\(t\trans t'\) 可导出”。
+\end{definition}
+
+这里“最小”一词的作用在于：陈述 \(t\trans t'\) 可导出，当且仅当规则能够
+为它提供根据——它或者是公理 \textsc{E-IfTrue}、\textsc{E-IfFalse}
+之一的实例，或者是 \textsc{E-If} 某个实例的结论，而且该实例的前提可导出。
+要说明一条陈述可导出，可以展示一棵\termfirst{推导树}{derivation tree}：
+叶节点标记为 \textsc{E-IfTrue} 或 \textsc{E-IfFalse} 的实例，内部节点
+标记为 \textsc{E-If} 的实例。例如，为避免公式超出版心，简写
+\[
+\begin{aligned}
+ s&\mathrel{\smash{\overset{\mathrm{def}}{=}}}
+   \mathsf{if\ true\ then\ false\ else\ false},\\
+ t&\mathrel{\smash{\overset{\mathrm{def}}{=}}}
+   \mathsf{if}\ s\ \mathsf{then\ true\ else\ true},\\
+ u&\mathrel{\smash{\overset{\mathrm{def}}{=}}}
+   \mathsf{if\ false\ then\ true\ else\ true}.
+\end{aligned}
+\]
+则以下推导树见证了
+\[
+ \mathsf{if}\ t\ \mathsf{then\ false\ else\ false}
+ \trans
+ \mathsf{if}\ u\ \mathsf{then\ false\ else\ false}
+\]
+的可导出性：
+\[
+\inferrule*[right=\textsc{E-If}]
+  {\inferrule*[right=\textsc{E-If}]
+    {s\trans\taplfalse\ \textsc{E-IfTrue}}
+    {t\trans u}}
+  {\mathsf{if}\ t\ \mathsf{then\ false\ else\ false}
+   \trans
+   \mathsf{if}\ u\ \mathsf{then\ false\ else\ false}}.
+\]
+
+称这种结构为树或许显得奇怪，因为它没有分支。事实上，见证求值陈述的推导树
+总是如此纤细：没有求值规则带有一个以上的前提，所以无法构造出分支推导树。
+等到考察类型关系等其他归纳定义的关系时，有些规则会有多个前提，届时这个
+术语就显得自然了。
+
+求值陈述 \(t\trans t'\) 可导出，当且仅当存在一棵以它为根节点标签的推导树。
+这个事实经常用于推理求值关系的性质，尤其是它直接导出一种称为
+\termfirst{对推导归纳}{induction on derivations}的证明技术。下面的定理
+展示了这种技术。
+
+\begin{theorem}[单步求值的确定性]
+\label{thm:3.5.4}
+若 \(t\trans t'\) 且 \(t\trans t''\)，则 \(t'=t''\)。
+\end{theorem}
+
+\begin{proof}
+对 \(t\trans t'\) 的推导作归纳。归纳的每一步都假定所需结论对所有更小的
+推导成立，再对当前推导根部使用的求值规则分情形讨论。（这里不是对求值序列
+的长度归纳：我们只考察一步求值。也可以说我们对 \(t\) 的结构归纳，因为
+“求值推导”的结构直接跟随被归约项的结构；同样也可以对
+\(t\trans t''\) 的推导归纳。）
+
+若 \(t\trans t'\) 推导的最后一条规则是 \textsc{E-IfTrue}，则 \(t\) 形如
+\(\taplif{t_1}{t_2}{t_3}\)，且 \(t_1=\tapltrue\)。显然，
+\(t\trans t''\) 推导的最后一条规则不可能是 \textsc{E-IfFalse}，因为
+\(t_1\) 不可能同时等于 \(\tapltrue\) 与 \(\taplfalse\)；也不可能是
+\textsc{E-If}，因为这条规则的前提要求存在某个 \(t_1'\) 使
+\(t_1\trans t_1'\)，而 \(\tapltrue\) 不求值为任何东西。因此第二个推导
+的最后一条规则只能也是 \textsc{E-IfTrue}，立即得到 \(t'=t''\)。
+
+类似地，若第一个推导最后使用 \textsc{E-IfFalse}，第二个推导最后也必须
+使用同一规则，结论立即成立。
+
+最后，若 \(t\trans t'\) 推导的最后一条规则是 \textsc{E-If}，则规则形式
+说明 \(t=\taplif{t_1}{t_2}{t_3}\)，并有某个 \(t_1'\) 满足
+\(t_1\trans t_1'\)。由上面相同的理由，\(t\trans t''\) 推导的最后一条
+规则只能也是 \textsc{E-If}，因此还有某个 \(t_1''\) 满足
+\(t_1\trans t_1''\)。归纳假设现在适用，因为这两个守卫推导分别是原来两个
+推导的子推导，所以 \(t_1'=t_1''\)。于是
+\[
+ t'=\taplif{t_1'}{t_2}{t_3}
+    =\taplif{t_1''}{t_2}{t_3}=t'',
+\]
+正是所需结论。
+\end{proof}
+
+\begin{exercise}[\(\star\)]
+\label{ex:3.5.5}
+仿照\cref{thm:3.3.4}，明确写出前一证明所用的归纳原理。
+\end{exercise}
+
+单步求值关系展示抽象机在求值项时怎样从一个状态走到下一个状态。但作为
+程序员，我们同样关心求值的最终结果，即机器无法再迈出一步的状态。
+
+\begin{definition}
+\label{def:3.5.6}
+如果没有求值规则可以应用于项 \(t\)，即不存在 \(t'\) 使
+\(t\trans t'\)，则称 \(t\) 处于\termfirst{范式}{normal form}。（有时
+简称“\(t\) 是一个范式”。）
+\end{definition}
+
+我们已经观察到，当前系统中的 \(\tapltrue\) 和 \(\taplfalse\) 都是范式：
+所有求值规则左侧的最外层构造子都是 if，显然无法实例化成
+\(\tapltrue\) 或 \(\taplfalse\)。可以把这一观察重述成关于值的一般事实。
+
+\begin{theorem}
+\label{thm:3.5.7}
+每个值都处于范式。
+\end{theorem}
+
+以后用算术表达式以及其他构造扩充系统时，我们始终会保证
+\cref{thm:3.5.7}继续成立。处于范式是“值”（即完全求值的结果）这一概念的
+组成部分；若某个语言定义不具备这条性质，它就从根本上出了问题。
+
+在当前系统中，\cref{thm:3.5.7}的逆命题也成立：每个范式都是值。一般而言
+则未必如此。事实上，等到本节稍后讨论算术表达式时，范式但非值的项将在
+运行时错误分析中扮演关键角色。
+
+\begin{theorem}
+\label{thm:3.5.8}
+若 \(t\) 处于范式，则 \(t\) 是值。
+\end{theorem}
+
+\begin{proof}
+假设 \(t\) 不是值。容易对 \(t\) 作结构归纳，证明它不处于范式。
+
+因为 \(t\) 不是值，所以它必形如 \(\taplif{t_1}{t_2}{t_3}\)。考察
+\(t_1\) 的可能形式。若 \(t_1=\tapltrue\)，则 \(t\) 与
+\textsc{E-IfTrue} 左侧匹配，显然不是范式；\(t_1=\taplfalse\) 时同理。
+若 \(t_1\) 既非 \(\tapltrue\) 又非 \(\taplfalse\)，它就不是值。归纳
+假设说明 \(t_1\) 不是范式，即存在 \(t_1'\) 使 \(t_1\trans t_1'\)。
+于是可用 \textsc{E-If} 导出
+\[
+ t\trans\taplif{t_1'}{t_2}{t_3},
+\]
+所以 \(t\) 也不是范式。
+\end{proof}
+
+有时把许多步求值视作一次大的状态转移会很方便。为此，定义多步求值关系，
+把一个项与从它出发经过零步或多步单步求值能够导出的所有项联系起来。
+
+\begin{definition}
+\label{def:3.5.9}
+\termfirst{多步求值关系}{multi-step evaluation relation} \(\transmulti\)
+是单步求值的自反传递闭包，即满足以下条件的最小关系：
+\begin{enumerate}
+  \item 若 \(t\trans t'\)，则 \(t\transmulti t'\)；
+  \item 对所有 \(t\)，都有 \(t\transmulti t\)；
+  \item 若 \(t\transmulti t'\) 且 \(t'\transmulti t''\)，则
+    \(t\transmulti t''\)。
+\end{enumerate}
+\end{definition}
+
+\begin{exercise}[\(\star\)]
+\label{ex:3.5.10}
+把\cref{def:3.5.9}改写成一组推导规则。
+\end{exercise}
+
+有了明确的多步求值记法，下面这样的事实就很容易陈述。
+
+\begin{theorem}[范式的唯一性]
+\label{thm:3.5.11}
+若 \(t\transmulti u\) 且 \(t\transmulti u'\)，并且 \(u,u'\) 都处于
+范式，则 \(u=u'\)。
+\end{theorem}
+
+\begin{proof}
+它是单步求值确定性（\cref{thm:3.5.4}）的推论。
+\end{proof}
+
+转向算术表达式之前，最后考察求值的另一个性质：每个项都能求值到一个值。
+显然，在带有递归函数定义等特性的更丰富语言中，这条性质未必成立。即使成立，
+它的证明通常也比下面的证明微妙得多。第 12 章会重新讨论这一点，展示类型
+系统如何成为某些语言终止性证明的骨架。
+
+计算机科学中的大多数终止性证明都有同样的基本形式。\footnote{第 12 章会
+看到结构略复杂一些的终止性证明。} 首先选择某个良基集 \(S\)，并给出把
+“机器状态”（这里就是项）映射到 \(S\) 的函数 \(f\)。然后证明，只要机器
+状态 \(t\) 能走一步到 \(t'\)，就有 \(f(t')<f(t)\)。于是，从 \(t\) 开始的
+无限求值序列可以通过 \(f\) 映射为 \(S\) 中的一条无限下降链。由于 \(S\)
+良基，不存在这样的无限下降链，因此也不存在无限求值序列。函数 \(f\) 常称为
+求值关系的\termfirst{终止性度量}{termination measure}。
+
+\begin{theorem}[求值的终止性]
+\label{thm:3.5.12}
+对每个项 \(t\)，都存在某个范式 \(t'\)，使 \(t\transmulti t'\)。
+\end{theorem}
+
+\begin{proof}
+注意每一步求值都会减小项的大小；自然数上的通常次序良基，所以项的大小就是
+一个终止性度量。
+\end{proof}
+
+\begin{exercise}[推荐，\(\star\star\)]
+\label{ex:3.5.13}
+\begin{enumerate}
+  \item 假设在图~\ref{fig:3-1}的规则中加入
+    \[
+      \taplif{\tapltrue}{t_2}{t_3}\trans t_3
+      \qquad(\textsc{E-Funny1}).
+    \]
+    上述定理
+    \ref{thm:3.5.4}、\ref{thm:3.5.7}、\ref{thm:3.5.8}、
+    \ref{thm:3.5.11}、\ref{thm:3.5.12}中，哪些仍然成立？
+
+  \item 换成加入以下规则：
+    \[
+      \frac{t_2\trans t_2'}
+           {\taplif{t_1}{t_2}{t_3}\trans\taplif{t_1}{t_2'}{t_3}}
+      \qquad(\textsc{E-Funny2}).
+    \]
+    现在上述哪些定理仍然成立？是否有证明需要修改？
+\end{enumerate}
+\end{exercise}
+
+下一项工作是把求值定义扩展到算术表达式。图~\ref{fig:3-2}概括了定义中新加
+的部分。（图右上角的说明提醒我们：该图是图~\ref{fig:3-1}的扩展，而不是
+独立成篇的语言。）
+
+项的定义仍只是重复\cref{sec:3.1}中的语法。值的定义稍有意思，因为需要
+引入“数值”这一新句法范畴。直观上，算术表达式的最终求值结果可以是数字：
+数字要么是 \(\taplzero\)，要么是某个数字的后继，但不能是任意值的后继；
+我们希望说 \(\taplsucc{\tapltrue}\) 是错误，而不是值。
+
+\begin{figure}[p]
+\centering
+\small
+\textbf{\(\mathcal{NB}\)（无类型）}\hfill
+\textit{扩展 \(\mathcal{B}\)（图~\ref{fig:3-1}）}\par\medskip
+\begin{minipage}{0.92\textwidth}
+\textbf{新增句法形式}\par\smallskip
+\(\begin{array}[t]{@{}rcll@{}}
+ t&::=&\cdots&\text{项}\\
+  &\mid&\taplzero&\text{常量零}\\
+  &\mid&\taplsucc{t}&\text{后继}\\
+  &\mid&\taplpred{t}&\text{前驱}\\
+  &\mid&\tapliszero{t}&\text{零测试}\\[2pt]
+ v&::=&\cdots&\text{值}\\
+  &\mid&nv&\text{数值}\\[2pt]
+ nv&::=&\taplzero&\text{数值}\\
+   &\mid&\taplsucc{nv}&\text{后继值}
+\end{array}\)
+\par\medskip
+\textbf{新增求值规则}\quad \(t\trans t'\)\par\smallskip
+\(\begin{aligned}
+ \frac{t_1\trans t_1'}{\taplsucc{t_1}\trans\taplsucc{t_1'}}
+   &&\textsc{E-Succ}\\[5pt]
+ \taplpred{\taplzero}&\trans\taplzero
+   &&\textsc{E-PredZero}\\
+ \taplpred{(\taplsucc{nv_1})}&\trans nv_1
+   &&\textsc{E-PredSucc}\\[4pt]
+ \frac{t_1\trans t_1'}{\taplpred{t_1}\trans\taplpred{t_1'}}
+   &&\textsc{E-Pred}\\[5pt]
+ \tapliszero{\taplzero}&\trans\tapltrue
+   &&\textsc{E-IszeroZero}\\
+ \tapliszero{(\taplsucc{nv_1})}&\trans\taplfalse
+   &&\textsc{E-IszeroSucc}\\[4pt]
+ \frac{t_1\trans t_1'}{\tapliszero{t_1}\trans\tapliszero{t_1'}}
+   &&\textsc{E-IsZero}
+\end{aligned}\)
+\end{minipage}
+\caption{算术表达式（\(\mathcal{NB}\)）}
+\label{fig:3-2}
+\end{figure}
+
+图~\ref{fig:3-2}右栏的求值规则沿用图~\ref{fig:3-1}中的模式。四条计算规则
+\textsc{E-PredZero}、\textsc{E-PredSucc}、\textsc{E-IszeroZero} 和
+\textsc{E-IszeroSucc} 说明 \(\mathsf{pred}\) 与 \(\mathsf{iszero}\)
+应用于数字时的行为；三条同余规则 \textsc{E-Succ}、\textsc{E-Pred} 与
+\textsc{E-IsZero} 则把求值引向复合项的“第一个”子项。
+
+严格地说，现在应当重述\cref{def:3.5.3}：“算术表达式上的单步求值关系，是
+满足图~\ref{fig:3-1} 和图~\ref{fig:3-2} 全部规则实例的最小关系……”为了避免把篇幅浪费
+在这种样板文字上，常见做法是把推导规则本身直接看作关系的定义，默认补上
+“包含所有规则实例的最小关系……”。
+
+数值句法范畴 \(nv\) 在这些规则中很重要。例如，在
+\textsc{E-PredSucc} 中，左侧写的是
+\(\taplpred{(\taplsucc{nv_1})}\)，而不是
+\(\taplpred{(\taplsucc{t_1})}\)。因此，该规则不能把
+\(\taplpred{(\taplsucc{(\taplpred{\taplzero})})}\) 求值成
+\(\taplpred{\taplzero}\)，因为这要求把元变量 \(nv_1\) 实例化为
+\(\taplpred{\taplzero}\)，而它不是数值。这个项唯一的下一求值步骤具有如下
+推导树：
+\[
+\inferrule*[right=\textsc{E-Pred}]
+ {\inferrule*[right=\textsc{E-Succ}]
+   {\taplpred{\taplzero}\trans\taplzero\ \textsc{E-PredZero}}
+   {\taplsucc{(\taplpred{\taplzero})}\trans\taplsucc{\taplzero}}}
+ {\taplpred{(\taplsucc{(\taplpred{\taplzero})})}
+  \trans
+  \taplpred{(\taplsucc{\taplzero})}}.
+\]
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:3.5.14}
+证明\cref{thm:3.5.4}对算术表达式上的求值关系仍然成立：若
+\(t\trans t'\) 且 \(t\trans t''\)，则 \(t'=t''\)。
+\end{exercise}
+
+形式化语言的操作语义，迫使我们规定所有项的行为；在这里包括
+\(\taplpred{\taplzero}\) 和 \(\taplsucc{\taplfalse}\) 这样的项。根据
+图~\ref{fig:3-2}的规则，\(\taplzero\) 的前驱被定义为
+\(\taplzero\)。另一方面，\(\taplfalse\) 的后继没有定义为求值到任何项，
+也就是说它是范式。我们把这样的项称为\termfirst{卡住}{stuck}。
+
+\begin{definition}
+\label{def:3.5.15}
+若项处于范式但不是值，就称它卡住。
+\end{definition}
+
+“卡住”为这台简单机器提供了一种简单的运行时错误概念。直观上，它刻画这样
+的情况：程序到达“无意义状态”，操作语义不知道接下来该做什么。在语言更
+具体的实现中，这些状态可能对应各种机器故障，如段错误、执行非法指令等。
+这里把所有此类不良行为归并为“卡住状态”这一个概念。
+
+\begin{exercise}[推荐，\(\star\star\star\)]
+\label{ex:3.5.16}
+形式化抽象机无意义状态的另一种方式，是引入新项 \(\taplwrong\)，并为操作
+语义添加规则：在当前语义会卡住的所有情形下，显式产生
+\(\taplwrong\)。具体来说，引入两个新句法范畴：
+\[
+\begin{array}{@{}rcll@{}}
+ badnat&::=&\taplwrong&\text{非数值范式：运行时错误}\\
+       &\mid&\tapltrue&\text{常量真}\\
+       &\mid&\taplfalse&\text{常量假}\\[2pt]
+ badbool&::=&\taplwrong&\text{非布尔范式：运行时错误}\\
+        &\mid&nv&\text{数值}
+\end{array}
+\]
+并为求值关系添加规则：
+\[
+\begin{aligned}
+ \taplif{badbool}{t_1}{t_2}&\trans\taplwrong
+   &&(\textsc{E-If-Wrong})\\
+ \taplsucc{badnat}&\trans\taplwrong
+   &&(\textsc{E-Succ-Wrong})\\
+ \taplpred{badnat}&\trans\taplwrong
+   &&(\textsc{E-Pred-Wrong})\\
+ \tapliszero{badnat}&\trans\taplwrong
+   &&(\textsc{E-IsZero-Wrong}).
+\end{aligned}
+\]
+证明这两种处理运行时错误的方式相互吻合：（1）先精确表述“两种处理方式
+相互吻合”这一直观；（2）再证明该表述。证明程序语言性质时经常如此：
+真正棘手的是准确表述需要证明的命题，证明本身应当很直接。
+\end{exercise}
+
+\begin{exercise}[推荐，\(\star\star\star\)]
+\label{ex:3.5.17}
+常用的操作语义有两种风格。本书采用
+\termfirst{小步语义}{small-step semantics}：求值关系的定义说明怎样用
+单个计算步骤逐点改写一个项，直至它最终成为值；再在其上定义多步求值关系，
+讨论项如何经过多步求值为值。另一种风格称为
+\termfirst{大步语义}{big-step semantics}，有时也称
+\termfirst{自然语义}{natural semantics}；它直接形式化“这个项求值为
+那个最终值”这一概念，写作 \(t\Downarrow v\)。布尔值与算术表达式语言的
+大步求值规则如下：
+\[
+\begin{gathered}
+ v\Downarrow v\quad(\textsc{B-Value})
+ \\[6pt]
+ \frac{t_1\Downarrow\tapltrue\qquad t_2\Downarrow v_2}
+      {\taplif{t_1}{t_2}{t_3}\Downarrow v_2}
+ \quad(\textsc{B-IfTrue})
+ \qquad
+ \frac{t_1\Downarrow\taplfalse\qquad t_3\Downarrow v_3}
+      {\taplif{t_1}{t_2}{t_3}\Downarrow v_3}
+ \quad(\textsc{B-IfFalse})
+ \\[8pt]
+ \frac{t_1\Downarrow nv_1}{\taplsucc{t_1}\Downarrow\taplsucc{nv_1}}
+ \quad(\textsc{B-Succ})
+ \qquad
+ \frac{t_1\Downarrow\taplzero}{\taplpred{t_1}\Downarrow\taplzero}
+ \quad(\textsc{B-PredZero})
+ \\[8pt]
+ \frac{t_1\Downarrow\taplsucc{nv_1}}{\taplpred{t_1}\Downarrow nv_1}
+ \quad(\textsc{B-PredSucc})
+ \\[8pt]
+ \frac{t_1\Downarrow\taplzero}{\tapliszero{t_1}\Downarrow\tapltrue}
+ \quad(\textsc{B-IszeroZero})
+ \qquad
+ \frac{t_1\Downarrow\taplsucc{nv_1}}
+      {\tapliszero{t_1}\Downarrow\taplfalse}
+ \quad(\textsc{B-IszeroSucc}).
+\end{gathered}
+\]
+证明这个语言的小步语义与大步语义一致，即
+\[
+ t\transmulti v\quad\Longleftrightarrow\quad t\Downarrow v.
+\]
+\end{exercise}
+
+\begin{exercise}[\(\star\star,\nrightarrow\)]
+\label{ex:3.5.18}
+假设要改变语言的求值策略，使 if 表达式先按顺序求值 then 分支和 else
+分支，再求值守卫。说明应如何修改求值规则才能达到这一效果。
+\end{exercise}
+
+\section{注记}
+\label{sec:3.6}
+
+抽象语法、具体语法、解析等思想，在许多编译器教材中都有介绍。Winskel
+（1993）和 Hennessy（1990）更详细地讨论了归纳定义、推导规则系统与归纳
+证明。
+
+这里采用的操作语义风格可以追溯到 Plotkin 的技术报告（1981）。大步风格
+（\cref{ex:3.5.17}）由 Kahn（1987）发展出来。更详细的论述可参见
+Astesiano（1991）和 Hennessy（1990）。
+
+Burstall（1969）把结构归纳引入了计算机科学。
+
+\bilingualepigraph
+  {问：为什么还要费心证明程序语言的性质？如果定义正确，这些证明几乎总是
+  很乏味。\par 答：因为定义几乎总是错的。}
+  {Q: Why bother doing proofs about programming languages? They are almost
+  always boring if the definitions are right.\par
+  A: The definitions are almost always wrong.}
+  {——佚名}

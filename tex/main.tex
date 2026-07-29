@@ -22,19 +22,33 @@
 \ifdefined\TAPLPrefaceReviewOnly
   \input{frontmatter/preface}
 \else
-  \tableofcontents
-  \input{frontmatter/preface}
+  \ifdefined\TAPLPartOneReviewOnly
+    \tableofcontents
+    \mainmatter
+    \input{chapters/chapter-01}
+    \input{chapters/chapter-02}
+    \part{\TAPLPartOneTitle}
+    \label{part:untyped-systems}
+    \input{chapters/chapter-03}
+    \input{chapters/chapter-04}
+    \input{chapters/chapter-05}
+    \input{chapters/chapter-06}
+    \input{chapters/chapter-07}
+  \else
+    \tableofcontents
+    \input{frontmatter/preface}
 
-  \mainmatter
-  \input{book-structure}
+    \mainmatter
+    \input{book-structure}
 
-  \appendix
-  \input{appendices/appendix-a}
-  \input{appendices/appendix-b}
+    \appendix
+    \input{appendices/appendix-a}
+    \input{appendices/appendix-b}
 
-  \backmatter
-  \input{backmatter/references}
-  \input{backmatter/index}
+    \backmatter
+    \input{backmatter/references}
+    \input{backmatter/index}
+  \fi
 \fi
 
 \end{document}
