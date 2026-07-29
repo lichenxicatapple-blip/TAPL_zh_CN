@@ -13,19 +13,21 @@ Rust 版本用 `Result` 报告负索引、上下文长度不一致等实现不�
 
 ## 运行与验证
 
-以下命令均从仓库根目录执行，工具链固定为 `rust-toolchain.toml` 中的
-Rust 1.97.1。命令行程序支持作者测试文件所用的自由变量声明 `x/;`：
+以下命令从仓库根目录开始执行；先进入 `code/`，使 Rust 自动采用该目录
+`rust-toolchain.toml` 固定的 Rust 1.97.1。命令行程序支持作者测试文件
+所用的自由变量声明 `x/;`：
 
 ```console
-cargo run -p tapl-untyped -- source/official-code/extracted/untyped/test.f
+cd code
+cargo run -p tapl-untyped -- ../source/official-code/extracted/untyped/test.f
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
-也可以运行 `make rust-check`。测试覆盖 de Bruijn 索引及上下文长度不变量、
-移位、捕获规避替换、图 5-3 的按值调用求值、作者 `untyped/test.f` 输入、
-解析错误与打印时的一致性检查。
+也可以回到仓库根目录运行 `make rust-check`。当前 6 个自动化用例直接验证
+作者 `untyped/test.f` 的解析、求值与打印，以及移位截点、捕获规避替换、
+按值调用先求参数、负索引与上下文长度错误、未绑定变量解析错误。
 
 ## 与作者 OCaml 实现的差异
 

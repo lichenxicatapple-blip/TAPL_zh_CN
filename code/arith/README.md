@@ -13,23 +13,29 @@
 
 ## 运行与验证
 
-以下命令均从仓库根目录执行，工具链固定为 `rust-toolchain.toml` 中的
-Rust 1.97.1：
+以下命令从仓库根目录开始执行；先进入 `code/`，使 Rust 自动采用该目录
+`rust-toolchain.toml` 固定的 Rust 1.97.1：
 
 ```console
-cargo run -p tapl-arith -- source/official-code/extracted/arith/test.f
+cd code
+cargo run -p tapl-arith -- ../source/official-code/extracted/arith/test.f
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
-也可以用 `make rust-check` 一次执行格式、Clippy 与测试检查。测试覆盖：
+也可以回到仓库根目录运行 `make rust-check`，一次执行格式、Clippy 与测试
+检查。当前自动化用例直接验证：
 
-- 数值、布尔值和卡住项的值判断；
-- 图 3-1、3-2 的小步规则与多步求值；
-- 练习 3.5.17 的大步求值；
-- 作者 `arith/test.f` 中的示例输入；
-- 解析错误及没有求值规则适用的边界情况。
+- 作者 `arith/test.f` 的 5 个示例能够解析并得到预期结果；
+- 一个含嵌套 `pred`/`succ` 的项按同余规则逐步求值；
+- 一个包含 `iszero`、`pred`、`succ`、条件式的代表性项上，大步与小步
+  求值结果一致；
+- `pred true` 在小步求值中保持卡住，大步求值返回无结果；
+- 缺少 `else` 分支的输入报告带字节位置的解析错误。
+
+这些用例并不构成对每条求值规则的穷举测试；规则覆盖以后续新增的逐规则测试
+结果为准。
 
 ## 与作者 OCaml 实现的差异
 
