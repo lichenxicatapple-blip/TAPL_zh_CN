@@ -6,6 +6,8 @@
 \chapter{无类型 lambda 演算}
 \label{chap:5}
 
+\section*{概述}
+
 本章回顾无类型 lambda 演算（也称纯 lambda 演算）的定义与若干基本性质。
 它是本书后续大多数类型系统底层的“计算基质”。
 
@@ -245,13 +247,27 @@ AST}。树表示使项的结构一目了然，因此非常适合严格的语言�
     \]
     可以更易读地写成
     \(\mathit{id}\,(\mathit{id}\,(\lambda z.\,\mathit{id}\,z))\)，其中含有
-    三个可归约式。完全 \(\beta\) 归约可以先选最内层，再选中间，最后选
-    最外层：
+    三个可归约式；分别标出如下：
     \[
     \begin{aligned}
-      \mathit{id}\,(\mathit{id}\,(\lambda z.\,\mathit{id}\,z))
+      &\taplredex{\mathit{id}\,
+        (\mathit{id}\,(\lambda z.\,\mathit{id}\,z))}\\
+      &\mathit{id}\,
+        (\taplredex{\mathit{id}\,(\lambda z.\,\mathit{id}\,z)})\\
+      &\mathit{id}\,
+        (\mathit{id}\,(\lambda z.\,\taplredex{\mathit{id}\,z})).
+    \end{aligned}
+    \]
+    完全 \(\beta\) 归约可以先选最内层，再选中间，最后选最外层：
+    \[
+    \begin{aligned}
+      \mathit{id}\,
+        (\mathit{id}\,(\lambda z.\,\taplredex{\mathit{id}\,z}))
       &\trans \mathit{id}\,(\mathit{id}\,(\lambda z.\,z))\\
+      \mathit{id}\,
+        (\taplredex{\mathit{id}\,(\lambda z.\,z)})
       &\trans \mathit{id}\,(\lambda z.\,z)\\
+      \taplredex{\mathit{id}\,(\lambda z.\,z)}
       &\trans \lambda z.\,z
       \not\trans.
     \end{aligned}
@@ -261,9 +277,12 @@ AST}。树表示使项的结构一目了然，因此非常适合严格的语言�
     最外层的可归约式。上面的项会按如下方式归约：
     \[
     \begin{aligned}
-      \mathit{id}\,(\mathit{id}\,(\lambda z.\,\mathit{id}\,z))
+      \taplredex{\mathit{id}\,
+        (\mathit{id}\,(\lambda z.\,\mathit{id}\,z))}
       &\trans \mathit{id}\,(\lambda z.\,\mathit{id}\,z)\\
+      \taplredex{\mathit{id}\,(\lambda z.\,\mathit{id}\,z)}
       &\trans \lambda z.\,\mathit{id}\,z\\
+      \lambda z.\,\taplredex{\mathit{id}\,z}
       &\trans \lambda z.\,z
       \not\trans.
     \end{aligned}
@@ -276,8 +295,10 @@ AST}。树表示使项的结构一目了然，因此非常适合严格的语言�
     把 \(\lambda z.\,\mathit{id}\,z\) 视为范式：
     \[
     \begin{aligned}
-      \mathit{id}\,(\mathit{id}\,(\lambda z.\,\mathit{id}\,z))
+      \taplredex{\mathit{id}\,
+        (\mathit{id}\,(\lambda z.\,\mathit{id}\,z))}
       &\trans \mathit{id}\,(\lambda z.\,\mathit{id}\,z)\\
+      \taplredex{\mathit{id}\,(\lambda z.\,\mathit{id}\,z)}
       &\trans \lambda z.\,\mathit{id}\,z
       \not\trans.
     \end{aligned}
@@ -297,8 +318,10 @@ AST}。树表示使项的结构一目了然，因此非常适合严格的语言�
     常量、字符串、值的元组、值的记录、值的列表等。} 上例按此策略归约为：
     \[
     \begin{aligned}
-      \mathit{id}\,(\mathit{id}\,(\lambda z.\,\mathit{id}\,z))
+      \mathit{id}\,
+        (\taplredex{\mathit{id}\,(\lambda z.\,\mathit{id}\,z)})
       &\trans \mathit{id}\,(\lambda z.\,\mathit{id}\,z)\\
+      \taplredex{\mathit{id}\,(\lambda z.\,\mathit{id}\,z)}
       &\trans \lambda z.\,\mathit{id}\,z
       \not\trans.
     \end{aligned}
@@ -365,13 +388,21 @@ lambda 演算的能力远比其微型定义看上去强大。本节发展若干�
 \[
 \begin{aligned}
  \mathit{test}\ \mathit{tru}\ v\ w
- &= (\lambda l.\,\lambda m.\,\lambda n.\,l\,m\,n)\ \mathit{tru}\ v\ w\\
- &\trans(\lambda m.\,\lambda n.\,\mathit{tru}\ m\ n)\ v\ w\\
- &\trans(\lambda n.\,\mathit{tru}\ v\ n)\ w\\
- &\trans\mathit{tru}\ v\ w\\
- &= (\lambda t.\,\lambda f.\,t)\ v\ w\\
- &\trans(\lambda f.\,v)\ w\\
- &\trans v.
+ &= \taplredex{(\lambda l.\,\lambda m.\,\lambda n.\,l\,m\,n)\
+      \mathit{tru}}\ v\ w
+ &&\text{按定义}\\
+ &\trans\taplredex{(\lambda m.\,\lambda n.\,\mathit{tru}\ m\ n)\ v}\ w
+ &&\text{归约带下划线的可归约式}\\
+ &\trans\taplredex{(\lambda n.\,\mathit{tru}\ v\ n)\ w}
+ &&\text{归约带下划线的可归约式}\\
+ &\trans\taplredex{\mathit{tru}\ v\ w}
+ &&\text{归约带下划线的可归约式}\\
+ &= \taplredex{(\lambda t.\,\lambda f.\,t)\ v}\ w
+ &&\text{按定义}\\
+ &\trans\taplredex{(\lambda f.\,v)\ w}
+ &&\text{归约带下划线的可归约式}\\
+ &\trans v
+ &&\text{归约带下划线的可归约式}.
 \end{aligned}
 \]
 
@@ -416,13 +447,22 @@ lambda 演算的能力远比其微型定义看上去强大。本节发展若干�
 \[
 \begin{aligned}
  \mathit{fst}\,(\mathit{pair}\ v\ w)
- &=\mathit{fst}\,((\lambda f.\,\lambda s.\,\lambda b.\,b\,f\,s)\ v\ w)\\
- &\trans\mathit{fst}\,((\lambda s.\,\lambda b.\,b\,v\,s)\ w)\\
- &\trans\mathit{fst}\,(\lambda b.\,b\,v\,w)\\
- &=(\lambda p.\,p\,\mathit{tru})\,(\lambda b.\,b\,v\,w)\\
- &\trans(\lambda b.\,b\,v\,w)\,\mathit{tru}\\
- &\trans\mathit{tru}\ v\ w\\
- &\transmulti v.
+ &=\mathit{fst}\,
+   (\taplredex{(\lambda f.\,\lambda s.\,\lambda b.\,b\,f\,s)\ v}\ w)
+ &&\text{按定义}\\
+ &\trans\mathit{fst}\,
+   (\taplredex{(\lambda s.\,\lambda b.\,b\,v\,s)\ w})
+ &&\text{归约带下划线的可归约式}\\
+ &\trans\mathit{fst}\,(\lambda b.\,b\,v\,w)
+ &&\text{归约带下划线的可归约式}\\
+ &=\taplredex{(\lambda p.\,p\,\mathit{tru})\,(\lambda b.\,b\,v\,w)}
+ &&\text{按定义}\\
+ &\trans\taplredex{(\lambda b.\,b\,v\,w)\,\mathit{tru}}
+ &&\text{归约带下划线的可归约式}\\
+ &\trans\taplredex{\mathit{tru}\ v\ w}
+ &&\text{归约带下划线的可归约式}\\
+ &\transmulti v
+ &&\text{同前}.
 \end{aligned}
 \]
 
@@ -518,21 +558,31 @@ Church 数的后继函数可以定义为：
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[
-  node distance=9mm,
   every node/.style={font=\small},
-  pair/.style={draw,rounded corners=1pt,inner xsep=8pt,inner ysep=3pt},
-  >=Stealth
+  >=Stealth,
+  component/.style={inner sep=1.5pt}
 ]
-  \node[pair] (p0) {\(\mathit{pair}\ c_0\ c_0\)};
-  \node[pair,below=of p0] (p1) {\(\mathit{pair}\ c_0\ c_1\)};
-  \node[pair,below=of p1] (p2) {\(\mathit{pair}\ c_1\ c_2\)};
-  \node[pair,below=of p2] (p3) {\(\mathit{pair}\ c_2\ c_3\)};
-  \node[pair,below=of p3] (p4) {\(\mathit{pair}\ c_3\ c_4\)};
-  \draw[->] (p0) -- node[right]{\(ss\)：复制并加一} (p1);
-  \draw[->] (p1) -- node[right]{\(ss\)：复制并加一} (p2);
-  \draw[->] (p2) -- node[right]{\(ss\)：复制并加一} (p3);
-  \draw[->] (p3) -- node[right]{\(ss\)：复制并加一} (p4);
-  \node[below=3mm of p4] {\(\vdots\)};
+  \foreach \row/\leftvalue/\rightvalue in {
+    0/0/0,1/0/1,2/1/2,3/2/3,4/3/4
+  }{
+    \node[component] (pair\row) at (0,-1.4*\row)
+      {\(\mathit{pair}\)};
+    \node[component] (left\row) at (1.8,-1.4*\row)
+      {\(c_{\leftvalue}\)};
+    \node[component] (right\row) at (3.15,-1.4*\row)
+      {\(c_{\rightvalue}\)};
+  }
+  \foreach \row/\nextrow in {0/1,1/2,2/3,3/4}{
+    \draw[->,bend right=30]
+      (pair\row.west) to node[left]{\(ss\)} (pair\nextrow.west);
+    \draw[->]
+      (right\row.south west) to
+      node[pos=.52,left=2pt,font=\scriptsize]{复制}
+      (left\nextrow.north east);
+    \draw[->]
+      (right\row.south) to node[right]{\(+1\)} (right\nextrow.north);
+  }
+  \node[below=3mm of pair4] {\(\vdots\)};
 \end{tikzpicture}
 \caption{前驱函数的“内层循环”}
 \label{fig:5-1}
@@ -747,10 +797,16 @@ Felleisen，1996，第 9 章），但这种推导同样相当复杂。}
 \(fct\) 进行递归调用，都会再展开一份 \(g\) 的函数体，并在其中放入新的
 \(fct\)，准备下一次展开。
 
-\begin{figure}[p]
+\begin{figure}[htbp]
 \centering
 \footnotesize
 \begin{minipage}{0.98\textwidth}
+为缩短公式，记
+\[
+ M_i=\lambda n.\,c_i\,(\mathit{plus}\ n)\,c_0,
+ \qquad
+ M_i'=\lambda n.\,c_i'\,(\mathit{plus}\ n)\,c_0.
+\]
 \begin{align*}
  \mathit{factorial}\ c_3
  &=\mathit{fix}\ g\ c_3\\
@@ -767,37 +823,28 @@ Felleisen，1996，第 9 章），但这种推导同样相当复杂。}
         {c_1}
         {\mathit{times}\ c_3\,(fct\,(\mathit{prd}\ c_3))}\\
  &\transmulti \mathit{times}\ c_3\,(fct\,(\mathit{prd}\ c_3))\\
- &\trans
- (\lambda n.\,c_3\,(\mathit{plus}\ n)\,c_0)\,
- (fct\,(\mathit{prd}\ c_3))\\
- &\transmulti
- (\lambda n.\,c_3\,(\mathit{plus}\ n)\,c_0)\,(fct\ c_2')\\
- &\transmulti
- \mathit{times}\ c_3\,(g\ fct\ c_2')\\
- &\transmulti
- \mathit{times}\ c_3\,
-   (\mathit{times}\ c_2'\,(g\ fct\ c_1'))\\
- &\transmulti
- \mathit{times}\ c_3\,
-   (\mathit{times}\ c_2'\,
-     (\mathit{times}\ c_1'\,(g\ fct\ c_0')))\\
- &\transmulti
- \mathit{times}\ c_3\,
-   (\mathit{times}\ c_2'\,
-     (\mathit{times}\ c_1'\,
-       (\taplif{\mathit{realeq}\ c_0'\ c_0}{c_1}{\cdots})))\\
- &\transmulti
- \mathit{times}\ c_3\,
-   (\mathit{times}\ c_2'\,(\mathit{times}\ c_1'\ c_1))\\
+ &\trans M_3\,(fct\,(\mathit{prd}\ c_3))\\
+ &\transmulti M_3\,(fct\ c_2')\\
+ &\transmulti M_3\,(g\ fct\ c_2')\\
+ &\transmulti M_3\,(M_2'\,(g\ fct\ c_1'))\\
+ &\transmulti M_3\,(M_2'\,(M_1'\,(g\ fct\ c_0')))\\
+ &\transmulti M_3\,
+   (M_2'\,(M_1'\,
+     (\taplif{\mathit{realeq}\ c_0'\ c_0}{c_1}{\cdots})))\\
+ &\transmulti M_3\,(M_2'\,(M_1'\ c_1))\\
  &\transmulti c_6'.
 \end{align*}
-这里 \(c_i'\) 与 \(c_i\) 行为等价。第一处先归约
-\(\mathit{times}\ c_3\)，再对参数 \(fct\,(\mathit{prd}\ c_3)\) 求值，
-以符合按值调用次序。
+这里每个 \(c_i'\) 都与 \(c_i\) 行为等价。
 \end{minipage}
 \caption{\(\mathit{factorial}\ c_3\) 的求值}
 \label{fig:5-2}
 \end{figure}
+\FloatBarrier
+
+\translatornote{作者勘误指出，原图从
+\(\mathit{times}\ c_3\,(fct\,(\mathit{prd}\ c_3))\) 开始的求值序列不符合
+按值调用：必须先把 \(\mathit{times}\ c_3\) 归约为函数值。本图已据此修正；
+\(M_i\) 与 \(M_i'\) 只是为了清楚展示修正后序列而引入的缩写。}
 
 \begin{exercise}[\(\star\)]
 \label{ex:5.2.9}
@@ -837,7 +884,7 @@ Church 编码把上述每个成分表示为 lambda 项，即函数：
 \begin{itemize}
   \item 项 \(c_0\) 表示数字 \(0\)。
 
-    数字也存在用项给出的“非规范表示”。例如，
+    如原书第 64 页所见，数字也存在用项给出的“非规范表示”。例如，
     \(\lambda s.\,\lambda z.\,(\lambda x.\,x)\,z\) 与 \(c_0\) 行为
     等价，因此也表示 \(0\)。
 
@@ -994,10 +1041,10 @@ Church 编码把上述每个成分表示为 lambda 项，即函数：
 \termfirst{\(\alpha\) 变换}{alpha-conversion}；这个术语至今仍很常用，
 所以也可以说我们在“相差 \(\alpha\) 变换”的意义下处理项。
 
-\begin{definition}[约定]
+\begin{convention}
 \label{conv:5.3.4}
 如果两个项只在受约束变量的名称上不同，那么它们在所有上下文中都可以互换。
-\end{definition}
+\end{convention}
 
 实际使用时，这意味着任何 lambda 绑定变量都可以在方便的时刻改成其他名称，
 只要在 lambda 函数体中一致地作同样修改。例如，计算
@@ -1031,7 +1078,7 @@ Church 编码把上述每个成分表示为 lambda 项，即函数：
 图~\ref{fig:5-3}汇总 lambda 项的操作语义。这里的值集比算术表达式时更有
 意思。按值调用求值到达 lambda 抽象就停止，因此值可以是任意 lambda 抽象。
 
-\begin{figure}[p]
+\begin{figure}[htbp]
 \centering
 \small
 \textbf{\(\lambda\)（无类型）}\par\medskip
@@ -1064,6 +1111,7 @@ Church 编码把上述每个成分表示为 lambda 项，即函数：
 \caption{无类型 lambda 演算（\(\lambda\)）}
 \label{fig:5-3}
 \end{figure}
+\FloatBarrier
 
 求值关系位于图的下半部分。与算术表达式的求值一样，规则分成两类：
 计算规则 \textsc{E-AppAbs}，以及同余规则 \textsc{E-App1}、
@@ -1113,7 +1161,7 @@ Barendregt 在 \emph{Handbook of Theoretical Computer Science} 中的文章
 1985；Friedman、Wand 和 Haynes，2001；Peyton Jones 和 Lester，1992）
 以及程序语言语义教材（如 Schmidt，1986；Gunter，1992；Winskel，1993；
 Mitchell，1996）也介绍 lambda 演算。Böhm 和 Berarducci（1985）提出了
-把各种数据结构系统编码为 lambda 项的方法。
+一种将种类广泛的数据结构编码为 lambda 项的系统方法。
 
 尽管“柯里化”以 Curry 命名，他本人否认发明过这个想法。通常认为它来自
 Schönfinkel（1924），但底层思想早已为 Frege、Cantor 等多位 19 世纪

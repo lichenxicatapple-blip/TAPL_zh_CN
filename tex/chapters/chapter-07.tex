@@ -17,14 +17,15 @@
 \texttt{fulluntyped} 实现还包含数字和布尔值等扩展。}
 
 \translatornote{原书的 OCaml 程序完整保留在正文中。本译本另在
-\texttt{code/untyped/} 提供行为等价的 Rust 实现，其中包括 de Bruijn
+\texttt{code/untyped/} 提供与第 5--7 章形式语义相对应的 Rust 参考实现，
+其中包括 de Bruijn
 索引、上下文长度一致性检查、移位、替换、按值调用求值、解析与打印；该工程
-随译稿一同编译并测试。}
+的语义覆盖和与作者工具的具体语法差异见该目录的 README。}
 
 \section{项与上下文}
 \label{sec:7.1}
 
-直接音译定义~\ref{def:6.1.2}，就得到表示项的抽象语法树的数据类型：
+把定义~\ref{def:6.1.2} 直接转写为数据类型，就得到表示项的抽象语法树：
 
 \begin{lstlisting}
 type term =
@@ -51,12 +52,14 @@ type term =
 其次，为了调试，最好在每个变量结点上再携带一个数字，作为一致性检查。约定
 这个数字始终等于该变量出现处的上下文总长度。
 
+\noindent\begin{minipage}{\linewidth}
 \begin{lstlisting}
 type term =
     TmVar of info * int * int
   | TmAbs of info * term
   | TmApp of info * term * term
 \end{lstlisting}
+\end{minipage}
 
 每次打印变量时，都要验证这个数字是否等于当前上下文的实际大小；若不相等，
 就说明某处漏做了一次移位操作。
@@ -108,8 +111,9 @@ type context = (string * binding) list
 type binding = NameBind
 \end{lstlisting}
 
-其中没有携带任何有意义的信息。稍后在第 10 章，我们会为 \texttt{binding}
-类型加入其他分支，用于记录变量对应的类型假设以及类似信息。
+其中没有携带任何有意义的信息。稍后在\chapref{10}，我们会为
+\texttt{binding} 类型加入其他分支，用于记录变量对应的类型假设以及类似
+信息。
 
 打印函数还依赖若干底层函数：\texttt{pr} 把字符串送往标准输出流；
 \texttt{ctxlength} 返回上下文长度；\texttt{index2name} 根据变量索引查找
@@ -176,7 +180,7 @@ let termSubst j s t =
 \texttt{tmmap} 的特例。给定项 \(t\) 和一个函数 \texttt{onvar}，
 \texttt{tmmap onvar t} 的结果与 \(t\) 具有相同形状，但其中每个变量都被
 调用 \texttt{onvar} 得到的结果替换。在更大型的演算中，这种记法技巧能省去
-大量乏味的重复；\S25.2 会进一步说明。
+大量乏味的重复；\taplsecref{25.2}{sec:25.2} 会进一步说明。
 
 在 lambda 演算的操作语义中，唯一使用替换的地方是 \(\beta\) 归约规则。
 如前所述，这条规则实际完成了几项操作：先把要替换受约束变量的项向上移动
@@ -227,8 +231,8 @@ let rec eval ctx t =
   with NoRuleApplies -> t
 \end{lstlisting}
 
-\begin{exercise}[推荐，\(\star\star\star\)]
-把这个实现改为使用练习 5.3.8 引入的“大步”求值风格。
+\begin{exercise}[推荐，\(\star\star\star,\nrightarrow\)]
+把这个实现改为使用\cref{ex:5.3.8}引入的“大步”求值风格。
 \end{exercise}
 
 \section{注记}

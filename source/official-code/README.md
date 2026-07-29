@@ -21,5 +21,9 @@ OCaml 行为和示例的核对依据，不作为本项目 Rust 代码的构建�
 bcd6f38a3fae1665a99e3cbe0a5bb10a0027bd77b352352165f6a308b60ef604  arith.tar.gz
 c6959c97e3f71e8fde4d8384e5f7883391b86811b2619af8241c60fade4c5b6f  untyped.tar.gz
 e3985d1e3bafd07d79bd30f122ba58ad14439bc7e42eb355435af3cf71532ab3  fulluntyped.tar.gz
-91a5c89d43f3aa4d9119728b07eb39f7ab07a76dbd5cb9b1deddd6c46d02be60  errata.txt
+91a5c89d43f3aa4d9119728b07eb39f7ab07a76dbd5cb9b1deddd6c46d02be60  errata.txt（上游原始 CRLF 字节）
+324527b7a62e1d6f82c139f62e095b230fac0a45bc1b8f0747bd62272fb4e29c  errata.txt（仓库 LF 规范化文件）
 ```
+
+Git 按仓库文本规范把 `errata.txt` 的 CRLF 行尾转换为 LF，因此上游下载文件
+与仓库内快照内容相同、字节哈希不同；上面同时记录两个校验对象。

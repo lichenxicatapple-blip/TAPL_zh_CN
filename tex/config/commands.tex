@@ -28,6 +28,10 @@
 \newcommand{\termsize}{\operatorname{size}}
 \newcommand{\termdepth}{\operatorname{depth}}
 \newcommand{\taplsubst}[3]{[#1\mapsto #2]#3}
+\newcommand{\taplredex}[1]{\underline{#1}}
+\newcommand{\taplobjparens}[1]{%
+  \mathopen{\text{\ttfamily\bfseries(}}#1\mathclose{\text{\ttfamily\bfseries)}}%
+}
 \newcommand{\tapltodo}[1]{\textcolor{TAPLTodo}{【待确认：#1】}}
 \newcommand{\SystemF}{\ensuremath{\mathrm{F}}}
 \newcommand{\SystemFomega}{\ensuremath{\mathrm{F}_{\omega}}}
@@ -62,6 +66,21 @@
   before skip=9pt plus 2pt minus 2pt,
   after skip=9pt plus 2pt minus 2pt
 }
+\newtcolorbox{taplauthornotebox}{
+  breakable,
+  colback=white,
+  colframe=TAPLAuthorNoteRule,
+  boxrule=0.35pt,
+  arc=0pt,
+  boxsep=0pt,
+  left=7pt,
+  right=7pt,
+  top=5pt,
+  bottom=5pt,
+  before skip=8pt plus 2pt minus 2pt,
+  after skip=8pt plus 2pt minus 2pt,
+  fontupper=\footnotesize
+}
 \newenvironment{keystatement}
   {\begin{taplkeystatementbox}}
   {\end{taplkeystatementbox}}
@@ -69,6 +88,11 @@
   \begin{tapltranslatornotebox}
     \textbf{译者注：}#1
   \end{tapltranslatornotebox}
+}
+\newcommand{\authornote}[1]{%
+  \begin{taplauthornotebox}
+    #1
+  \end{taplauthornotebox}
 }
 \newcommand{\bilingualepigraph}[3]{%
   \begin{flushright}
@@ -103,6 +127,7 @@
 \newtheorem{exercise}[definition]{练习}
 \newtheorem{example}[definition]{例}
 \newtheorem{axiom}[definition]{公理}
+\newtheorem{convention}[definition]{约定}
 
 \theoremstyle{plain}
 \newtheorem{theorem}[definition]{定理}
@@ -118,6 +143,7 @@
 \crefname{exercise}{练习}{练习}
 \crefname{example}{例}{例}
 \crefname{axiom}{公理}{公理}
+\crefname{convention}{约定}{约定}
 \crefname{theorem}{定理}{定理}
 \crefname{lemma}{引理}{引理}
 \crefname{proposition}{命题}{命题}

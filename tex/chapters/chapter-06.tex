@@ -50,8 +50,9 @@
 
 de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子，而不再通过
 名字引用绑定子，就能以更直接——尽管可读性稍差——的方式表示项。具体做法
-是用自然数替代具名变量，其中数字 \(k\) 表示“由外向内数，第 \(k\) 个包围
-这次出现的 \(\lambda\) 所约束的变量”。例如，普通项
+是用自然数替代具名变量，其中数字 \(k\) 表示“从这次变量出现的位置由内向
+外数（从 \(0\) 起），第 \(k\) 个包围它的 \(\lambda\) 所约束的变量”。
+例如，普通项
 \(\lambda x.\,x\) 对应无名项 \(\lambda.\,0\)，而
 \(\lambda x.\,\lambda y.\,x\,(y\,x)\) 对应
 \(\lambda.\,\lambda.\,1\,(0\,1)\)。无名项也称为
@@ -114,9 +115,8 @@ de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子�
 （即命名上下文），此后凡是需要给自由变量选择编号，都一致地使用这套指派。
 例如，假定采用
 \[
-\begin{array}{c|ccccc}
- \Gamma & x,4 & y,3 & z,2 & a,1 & b,0
-\end{array}
+ \Gamma=x\mapsto4,\quad y\mapsto3,\quad z\mapsto2,\quad
+ a\mapsto1,\quad b\mapsto0,
 \]
 那么 \(x\,(y\,z)\) 表示成 \(4\,(3\,2)\)，
 \(\lambda w.\,y\,w\) 表示成 \(\lambda.\,4\,0\)，而
@@ -136,7 +136,7 @@ de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子�
 \(\{x_n,\ldots,x_0\}\)。
 \end{definition}
 
-\begin{exercise}[\(\star\star\star\)]
+\begin{exercise}[\(\star\star\star,\nrightarrow\)]
 参照定义 3.2.3 的风格，给出 \(n\)-项集合的另一种构造，并像命题 3.2.6
 那样证明它与上面的定义等价。
 \end{exercise}
@@ -218,7 +218,7 @@ de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子�
 \end{enumerate}
 \end{exercise}
 
-\begin{exercise}[\(\star\star\star\)]
+\begin{exercise}[\(\star\star,\nrightarrow\)]
 \label{ex:6.2.3}
 证明：若 \(t\) 是 \(n\)-项，且当 \(d<0\) 时 \(t\) 中每个自由变量的
 索引均不小于 \(|d|\)，则 \(\uparrow^d_c(t)\) 是
@@ -247,9 +247,9 @@ de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子�
      s, & k=j,\\
      k, & \text{其他情形};
    \end{cases}\\
- [j\mapsto s](\lambda.\,t_1)
+ [j\mapsto s]\taplobjparens{\lambda.\,t_1}
    &=\lambda.\,[j+1\mapsto \uparrow^1(s)]t_1;\\
- [j\mapsto s](t_1\,t_2)
+ [j\mapsto s]\taplobjparens{t_1\,t_2}
    &=([j\mapsto s]t_1)\,([j\mapsto s]t_2).
 \end{aligned}
 \]
@@ -266,12 +266,12 @@ de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子�
 \end{enumerate}
 \end{exercise}
 
-\begin{exercise}[\(\star\star\star\)]
+\begin{exercise}[\(\star\star,\nrightarrow\)]
 证明：若 \(s,t\) 都是 \(n\)-项且 \(j\leq n\)，则
 \([j\mapsto s]t\) 是 \(n\)-项。
 \end{exercise}
 
-\begin{exercise}[\(\star\)]
+\begin{exercise}[\(\star,\nrightarrow\)]
 拿出一张纸，不看上面的替换与移位定义，自己重新推导出它们。
 \end{exercise}
 

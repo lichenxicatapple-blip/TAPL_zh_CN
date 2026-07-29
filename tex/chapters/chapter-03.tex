@@ -26,7 +26,9 @@
 \(\mathsf{iszero}\)；后者应用于 \(\taplzero\) 时返回 \(\tapltrue\)，
 应用于其他数字时返回 \(\taplfalse\)。下面的文法对这些形式作了紧凑概括。
 \footnote{本章研究的是无类型布尔值与自然数演算（见图~\ref{fig:3-2}）。
-相应的 OCaml 实现名为 \texttt{arith}，将在第 4 章介绍。}
+相应的 OCaml 实现名为 \texttt{arith}，将在第 4 章介绍。有关下载并构建
+这一检查器的说明，见作者网站
+\url{https://www.cis.upenn.edu/~bcpierce/tapl/}。}
 
 \[
 \begin{array}{@{}rcll@{}}
@@ -66,6 +68,10 @@
 表达式、类型表达式、种类表达式等），而“项”将专门指表示计算的短语，也就是
 可以替换元变量 \(t\) 的短语。
 
+为使示例简洁，我们还使用通常的阿拉伯数字；在形式表示中，数字是对
+\(\taplzero\) 嵌套应用 \(\mathsf{succ}\) 得到的。例如，
+\(\taplsucc{(\taplsucc{(\taplsucc{\taplzero})})}\) 简写作 \(3\)。
+
 在当前语言中，程序就是一个由上述文法形式构成的项。下面是几个程序及其求值
 结果：
 \[
@@ -86,11 +92,7 @@
 使用外观相似的函数应用语法。} 项的文法只定义抽象语法，并未提到括号。
 当然，在眼下这个极其简单的语言里，有无括号区别不大：括号通常用于消除文法
 歧义，而这个文法不存在歧义——每个词法单元序列至多能解析成一个项。第 5 章
-会回到括号与抽象语法的话题。
-
-为使示例简洁，我们还使用通常的阿拉伯数字；在形式表示中，数字是对
-\(\taplzero\) 嵌套应用 \(\mathsf{succ}\) 得到的。例如，
-\(\taplsucc{(\taplsucc{(\taplsucc{\taplzero})})}\) 简写作 \(3\)。
+（原书第 52 页）会回到括号与抽象语法的话题。
 
 求值结果总具有格外简单的形式：它们不是布尔常量，就是数字，即对
 \(\taplzero\) 嵌套零次或多次 \(\mathsf{succ}\) 得到的项。这些项称为
@@ -204,7 +206,8 @@
 证明集合 \(S_i\) 是累积的，即对每个 \(i\) 都有 \(S_i\subseteq S_{i+1}\)。
 \end{exercise}
 
-上述定义从不同方向刻画了同一个项集：\cref{def:3.2.1,def:3.2.2}只是把它
+上述定义从不同方向刻画了同一个项集：\cref{def:3.2.1}和
+\cref{def:3.2.2}只是把它
 描述为满足某些“闭包性质”的最小集合；\cref{def:3.2.3}则展示如何把这个
 集合实际构造为一个序列的极限。
 
@@ -571,8 +574,9 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
 
 \begin{definition}
 \label{def:3.5.1}
-把一条推导规则的结论和所有前提（如果有）中的每个元变量，都一致地替换为
-同一个项，就得到该规则的一个\termfirst{实例}{instance}。
+对一条推导规则中的每个元变量分别选取一个项，并在结论与所有前提（如果有）
+中一致地替换该元变量的全部出现，就得到该规则的一个
+\termfirst{实例}{instance}。
 \end{definition}
 
 例如
@@ -818,7 +822,7 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
 数字要么是 \(\taplzero\)，要么是某个数字的后继，但不能是任意值的后继；
 我们希望说 \(\taplsucc{\tapltrue}\) 是错误，而不是值。
 
-\begin{figure}[p]
+\begin{figure}[htbp]
 \centering
 \small
 \textbf{\(\mathcal{NB}\)（无类型）}\hfill
@@ -917,11 +921,23 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
 \(\taplwrong\)。具体来说，引入两个新句法范畴：
 \[
 \begin{array}{@{}rcll@{}}
- badnat&::=&\taplwrong&\text{非数值范式：运行时错误}\\
-       &\mid&\tapltrue&\text{常量真}\\
-       &\mid&\taplfalse&\text{常量假}\\[2pt]
- badbool&::=&\taplwrong&\text{非布尔范式：运行时错误}\\
-        &\mid&nv&\text{数值}
+ badnat&::=&
+   \left.
+   \begin{array}{@{}rl@{\quad}l@{}}
+      &\taplwrong&\text{运行时错误}\\
+     \mid&\tapltrue&\text{常量真}\\
+     \mid&\taplfalse&\text{常量假}
+   \end{array}
+   \right\}
+   &\text{非数值范式}\\[8pt]
+ badbool&::=&
+   \left.
+   \begin{array}{@{}rl@{\quad}l@{}}
+      &\taplwrong&\text{运行时错误}\\
+     \mid&nv&\text{数值}
+   \end{array}
+   \right\}
+   &\text{非布尔范式}
 \end{array}
 \]
 并为求值关系添加规则：

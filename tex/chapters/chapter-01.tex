@@ -162,7 +162,7 @@ Kennedy，1994。）
 特别是在大规模软件组合中，模块语言负责封装和连接大型系统的组件，而类型
 系统构成了模块语言的骨架。类型出现在模块的接口中，也出现在类等相关结构
 的接口中；事实上，接口本身可以看作“模块的类型”，它概括了模块提供的
-功能，在实现者与使用者之间形成一种局部契约。
+功能，在实现者与使用者之间形成一种部分契约。
 
 用接口清晰的模块组织大型系统，会促成一种更抽象的设计风格：接口可以独立
 于最终实现来设计和讨论。对接口作更抽象的思考，通常会带来更好的设计。
@@ -186,8 +186,8 @@ Kennedy，1994。）
 语言都提供了对机器服务的抽象。所谓安全性，是指语言能够保证这些抽象的
 完整性，也能保证程序员利用语言的定义机制引入的更高层抽象的完整性。例如，
 语言可以提供数组及其访问、更新操作，以此抽象底层内存。使用这种语言的
-程序员会期待：只有显式调用数组的更新操作才能改变数组，而不能因为写出了
-另一个数据结构的末尾就意外改变它。同样，人们会期待
+程序员会期待：只有显式调用数组的更新操作才能改变数组，而不能因为对另一个
+数据结构发生越界写入就意外改变它。同样，人们会期待
 \termfirst{词法作用域变量}{lexically scoped variable}只能在其作用域内
 访问，\termfirst{调用栈}{call stack}确实按栈的方式工作，等等。在安全
 语言中，这些
@@ -313,13 +313,13 @@ Coq（Barras 等，1997）和 Alf（Magnusson 和 Nordström，1994），都直�
 以类型论为基础。Constable（1998）和 Pfenning（1999）讨论了这些系统的
 历史。
 
-随着\termfirst{文档类型定义}{Document Type Definition}（XML，1998）和
-其他用于描述
-XML 结构化数据的模式——例如当时新出现的 XML Schema 标准（XS，2000）
-——引发“Web 元数据”的迅速增长，数据库领域对类型系统的兴趣也在不断
-上升。用于查询和操作 XML 的新语言，直接以这些模式语言为基础，提供功能
-强大的静态类型系统（Hosoya 和 Pierce，2000；Hosoya、Vouillon 和 Pierce，
-2001；Hosoya 和 Pierce，2001；Relax，2000；Shields，2001）。
+随着以\termfirst{文档类型定义}{Document Type Definition}（XML，1998）
+和其他描述 XML 结构化数据的模式——例如当时新出现的 XML Schema 标准
+（XS，2000）——为形式的“Web 元数据”迅速增长，数据库领域对类型系统的
+兴趣也在不断上升。用于查询和操作 XML 的新语言，直接以这些模式语言为
+基础，提供功能强大的静态类型系统（Hosoya 和 Pierce，2000；Hosoya、
+Vouillon 和 Pierce，2001；Hosoya 和 Pierce，2001；Relax，2000；
+Shields，2001）。
 
 类型系统还有一种截然不同的应用，出现在计算语言学领域：带类型 lambda
 演算构成了\termfirst{范畴语法}{categorial grammar}等形式体系的基础
@@ -362,6 +362,7 @@ XML 结构化数据的模式——例如当时新出现的 XML Schema 标准（X
 相关进展，以显示该领域所作贡献的重要性。右栏的引文均可在参考文献中找到。
 
 \input{../figures/redrawn/chapter-01/type-history}
+\FloatBarrier
 
 \section{延伸阅读}
 
@@ -386,6 +387,9 @@ Abadi 和 Cardelli 的 \emph{A Theory of Objects}（1996）展开了许多与
 \emph{Foundations of Object-Oriented Languages: Types and Semantics}
 （2002）覆盖相近的内容。Palsberg 和 Schwartzbach（1994）以及 Castagna
 （1997）的著作中也有面向对象类型系统的入门材料。
+
+\translatornote{作者勘误指出，原文此处的 ``these ideas'' 指代不够明确；
+译文保留原文的概括表达，不擅自指定唯一的先行词。}
 
 Gunter（1992）、Winskel（1993）和 Mitchell（1996）的教材深入讨论了
 无类型语言和带类型语言的语义基础。Hennessy（1990）还详细介绍了操作语义。
