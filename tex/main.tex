@@ -2,6 +2,7 @@
   UTF8,
   11pt,
   openany,
+  oneside,
   scheme=chinese,
   fontset=fandol
 ]{ctexbook}
@@ -13,7 +14,10 @@
 \begin{document}
 
 \frontmatter
+\hypersetup{pageanchor=false}
 \input{frontmatter/titlepage}
+\setcounter{page}{2}% The unnumbered title page still occupies frontmatter page i.
+\hypersetup{pageanchor=true}
 
 \ifdefined\TAPLPrefaceReviewOnly
   \input{frontmatter/preface}
