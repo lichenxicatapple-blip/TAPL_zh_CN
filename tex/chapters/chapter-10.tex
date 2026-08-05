@@ -136,7 +136,7 @@ type term =
 系统中，证明反演引理会比在 \(\lambda_{\to}\) 中费力得多，这项区别便会
 变得重要。）
 
-\begin{taplocamlcode}[fontsize=\footnotesize]
+\begin{taplocamlcode}
 let rec typeof ctx t =
   match t with
     TmTrue(fi) ->
@@ -172,7 +172,7 @@ let rec typeof ctx t =
 
 第二，等号运算符计算复合值的结构相等，而不是指针相等。也就是说：
 \enlargethispage{3\baselineskip}
-\begin{taplocamlcode}[fontsize=\footnotesize,aboveskip=4pt,belowskip=4pt]
+\begin{taplocamlcode}
 let t = TmApp(t1,t2) in
 let t' = TmApp(t1,t2) in
 (=) t t'
