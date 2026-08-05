@@ -5,12 +5,10 @@ Languages*。项目规范见 `AGENTS.md`。
 
 ## 当前状态
 
-- 已核验本地教材版本和文件性质。
-- 已建立本地 PDF 页码与原书印刷页码映射。
-- 已建立 LaTeX 工程骨架。
-- 已使用可复现脚本切分全部 625 个 PDF 页面。
-- 前言已完成翻译和独立初审，正在落实人工总审意见。
-- 第 1 章尚未开始。
+- 原始教材的版本、页码映射和全部 625 个 PDF 页面的可复现切分已核验。
+- 前言及第 1--7 章已经人类总审确认。
+- 第 8--14 章已形成连续草稿并完成独立初审，正在等待人类总审。
+- 第 15 章及以后尚未获准开始正文翻译。
 
 ## 关键文件
 
@@ -51,15 +49,9 @@ make verify-splits
 make pdf
 ```
 
-编译结果写入 `build/main.pdf`。项目支持 XeLaTeX（latexmk）或 Tectonic。
-
-前言人工校对使用不包含未完成章节骨架的专用成品：
-
-```sh
-make review-preface
-```
-
-生成文件为 `output/pdf/preface-review.pdf`。
+书稿固定输出为 `output/pdf/tapl-zh.pdf`；后续章节会继续加入这一份产物，
+不按分部生成不同 PDF。`build/main.pdf` 仅是编译过程中的中间副本。项目支持
+XeLaTeX（latexmk）或 Tectonic。
 
 ## Git 版本管理
 

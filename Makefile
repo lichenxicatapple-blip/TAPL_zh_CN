@@ -1,7 +1,7 @@
 PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 PYGMENTS_PATH := $(abspath .venv/bin)
 
-.PHONY: setup pdf review-preface review-part-01 review-part-02 preface-figures split verify-splits preface-assets init-review rust-snippets rust-check check-terms check-links clean
+.PHONY: setup pdf preface-figures split verify-splits preface-assets init-review rust-snippets rust-check check-terms check-links clean
 
 setup:
 	python3 -m venv .venv
@@ -9,7 +9,7 @@ setup:
 	.venv/bin/python -m pip install -r requirements.txt
 
 pdf: check-terms check-links rust-snippets preface-figures
-	mkdir -p build
+	mkdir -p build output/pdf
 	@if command -v latexmk >/dev/null && command -v xelatex >/dev/null; then \
 		cd tex && PATH="$(PYGMENTS_PATH):$$PATH" latexmk -xelatex -shell-escape \
 			-interaction=nonstopmode -halt-on-error \
@@ -24,60 +24,7 @@ pdf: check-terms check-links rust-snippets preface-figures
 		echo "A XeLaTeX toolchain (latexmk + xelatex) or tectonic is required"; \
 		exit 1; \
 	fi
-
-review-preface: check-terms check-links preface-figures
-	mkdir -p build output/pdf
-	@if command -v latexmk >/dev/null && command -v xelatex >/dev/null; then \
-		cd tex && PATH="$(PYGMENTS_PATH):$$PATH" latexmk -xelatex -shell-escape \
-			-interaction=nonstopmode -halt-on-error \
-			review-preface.tex && \
-			mv -f review-preface.pdf ../build/review-preface.pdf && \
-			latexmk -C review-preface.tex; \
-	elif command -v tectonic >/dev/null; then \
-		cd tex && PATH="$(PYGMENTS_PATH):$$PATH" tectonic \
-			-Z shell-escape-cwd="$$(pwd)" --keep-logs --keep-intermediates \
-			--outdir ../build review-preface.tex; \
-	else \
-		echo "A XeLaTeX toolchain (latexmk + xelatex) or tectonic is required"; \
-		exit 1; \
-	fi
-	cp build/review-preface.pdf output/pdf/preface-review.pdf
-
-review-part-01: check-terms check-links rust-snippets preface-figures
-	mkdir -p build output/pdf
-	@if command -v latexmk >/dev/null && command -v xelatex >/dev/null; then \
-		cd tex && PATH="$(PYGMENTS_PATH):$$PATH" latexmk -xelatex -shell-escape \
-			-interaction=nonstopmode -halt-on-error \
-			review-part-01.tex && \
-			mv -f review-part-01.pdf ../build/review-part-01.pdf && \
-			latexmk -C review-part-01.tex; \
-	elif command -v tectonic >/dev/null; then \
-		cd tex && PATH="$(PYGMENTS_PATH):$$PATH" tectonic \
-			-Z shell-escape-cwd="$$(pwd)" --keep-logs --keep-intermediates \
-			--outdir ../build review-part-01.tex; \
-	else \
-		echo "A XeLaTeX toolchain (latexmk + xelatex) or tectonic is required"; \
-		exit 1; \
-	fi
-	cp build/review-part-01.pdf output/pdf/part-01-review.pdf
-
-review-part-02: check-terms check-links rust-snippets preface-figures
-	mkdir -p build output/pdf
-	@if command -v latexmk >/dev/null && command -v xelatex >/dev/null; then \
-		cd tex && PATH="$(PYGMENTS_PATH):$$PATH" latexmk -xelatex -shell-escape \
-			-interaction=nonstopmode -halt-on-error \
-			review-part-02.tex && \
-			mv -f review-part-02.pdf ../build/review-part-02.pdf && \
-			latexmk -C review-part-02.tex; \
-	elif command -v tectonic >/dev/null; then \
-		cd tex && PATH="$(PYGMENTS_PATH):$$PATH" tectonic \
-			-Z shell-escape-cwd="$$(pwd)" --keep-logs --keep-intermediates \
-			--outdir ../build review-part-02.tex; \
-	else \
-		echo "A XeLaTeX toolchain (latexmk + xelatex) or tectonic is required"; \
-		exit 1; \
-	fi
-	cp build/review-part-02.pdf output/pdf/part-02-review.pdf
+	cp build/main.pdf output/pdf/tapl-zh.pdf
 
 preface-figures:
 	$(PYTHON) scripts/verify_preface_dependency_figure.py

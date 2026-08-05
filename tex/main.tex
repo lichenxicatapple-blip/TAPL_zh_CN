@@ -19,70 +19,17 @@
 \setcounter{page}{2}% The unnumbered title page still occupies frontmatter page i.
 \hypersetup{pageanchor=true}
 
-\ifdefined\TAPLPrefaceReviewOnly
-  \input{frontmatter/preface}
-\else
-  \ifdefined\TAPLPartTwoReviewOnly
-    \tableofcontents
-    \mainmatter
-    \input{chapters/chapter-01}
-    \input{chapters/chapter-02}
-    \part{\TAPLPartOneTitle}
-    \label{part:untyped-systems}
-    \input{chapters/chapter-03}
-    \input{chapters/chapter-04}
-    \input{chapters/chapter-05}
-    \input{chapters/chapter-06}
-    \input{chapters/chapter-07}
-    \part{\TAPLPartTwoTitle}
-    \label{part:simple-types}
-    \input{chapters/chapter-08}
-    \input{chapters/chapter-09}
-    \input{chapters/chapter-10}
-    \input{chapters/chapter-11}
-    \input{chapters/chapter-12}
-    \input{chapters/chapter-13}
-    \input{chapters/chapter-14}
-    \taplappendicespart
-    \appendix
-    \input{appendices/appendix-a}
-    \backmatter
-    \input{solutions/translator-solutions}
-  \else\ifdefined\TAPLPartOneReviewOnly
-    \tableofcontents
-    \mainmatter
-    \input{chapters/chapter-01}
-    \input{chapters/chapter-02}
-    \part{\TAPLPartOneTitle}
-    \label{part:untyped-systems}
-    \input{chapters/chapter-03}
-    \input{chapters/chapter-04}
-    \input{chapters/chapter-05}
-    \input{chapters/chapter-06}
-    \input{chapters/chapter-07}
-    \taplappendicespart
-    \appendix
-    \input{appendices/appendix-a}
-    \backmatter
-    \input{solutions/translator-solutions}
-  \else
-    \tableofcontents
-    \input{frontmatter/preface}
+\tableofcontents
+\input{frontmatter/preface}
 
-    \mainmatter
-    \input{book-structure}
+\mainmatter
+\input{book-structure}
 
-    \taplappendicespart
-    \appendix
-    \input{appendices/appendix-a}
-    \input{appendices/appendix-b}
+\taplappendicespart
+\appendix
+\input{appendices/appendix-a}
 
-    \backmatter
-    \input{solutions/translator-solutions}
-    \bookmarksetup{startatroot}
-    \input{backmatter/references}
-    \input{backmatter/index}
-  \fi\fi
-\fi
+\backmatter
+\input{solutions/translator-solutions}
 
 \end{document}
