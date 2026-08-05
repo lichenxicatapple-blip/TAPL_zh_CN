@@ -1,0 +1,116 @@
+\section*{第 2 章：数学预备知识}
+\addcontentsline{toc}{section}{第 2 章：数学预备知识}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:2.2.6}
+\textbf{练习 2.2.6}
+
+要证明 \(R'\) 是 \(R\) 的自反闭包，需要核对三个条件：它包含 \(R\)，
+它是自反关系，并且它是满足前两个条件的最小关系。
+
+\begin{enumerate}[label=\textup{(\arabic*)},leftmargin=2.2em]
+  \item 由
+  \[
+    R'=R\cup\{(s,s)\mid s\in S\}
+  \]
+  立即得到 \(R\subseteq R'\)。
+
+  \item 任取 \(s\in S\)。根据右侧集合的定义，
+  \((s,s)\in\{(s,s)\mid s\in S\}\)，因而 \((s,s)\in R'\)。
+  所以 \(R'\) 是自反关系。
+
+  \item 设 \(R''\) 是 \(S\) 上任意一个包含 \(R\) 的自反关系。
+  由 \(R\subseteq R''\)，可知 \(R''\) 包含 \(R\) 中的所有有序对；
+  又因为 \(R''\) 自反，所以对每个 \(s\in S\) 都有
+  \((s,s)\in R''\)。因此
+  \[
+    R\cup\{(s,s)\mid s\in S\}\subseteq R'',
+  \]
+  即 \(R'\subseteq R''\)。
+\end{enumerate}
+
+由此，\(R'\) 是包含 \(R\) 的最小自反关系，所以它正是 \(R\) 的
+自反闭包。
+
+\taplsolutionbacklink{ex:2.2.6}{返回练习 2.2.6}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:2.2.7}
+\textbf{练习 2.2.7}
+
+先注意 \(R_i\subseteq R_{i+1}\)，所以序列
+\(R_0,R_1,\ldots\) 单调递增。
+
+\begin{enumerate}[label=\textup{(\arabic*)},leftmargin=2.2em]
+  \item 因为 \(R=R_0\subseteq\bigcup_iR_i=R^+\)，所以 \(R^+\)
+    包含 \(R\)。
+
+  \item 证明 \(R^+\) 具有传递性。若
+    \((s,t)\in R^+\) 且 \((t,u)\in R^+\)，则存在 \(i,j\)，使
+    \((s,t)\in R_i\) 且 \((t,u)\in R_j\)。令 \(k=\max(i,j)\)。
+    由单调性，两对都属于 \(R_k\)，所以按 \(R_{k+1}\) 的定义，
+    \((s,u)\in R_{k+1}\subseteq R^+\)。
+
+  \item 证明最小性。这里的“最小”按关系之间的包含关系理解。设 \(Q\)
+    是任意一个包含 \(R\) 的传递关系；我们需要证明
+    \[
+      R^+\subseteq Q
+    \]
+    因为 \(R^+=\bigcup_iR_i\)，只要对 \(i\) 作归纳，证明每一层都满足
+    \(R_i\subseteq Q\) 即可。
+
+    \textbf{基例。}由 \(R_0=R\) 以及假设 \(R\subseteq Q\)，立即得到
+    \(R_0\subseteq Q\)。
+
+    \textbf{归纳步骤。}假设 \(R_i\subseteq Q\)，下面证明
+    \(R_{i+1}\subseteq Q\)。任取 \((s,u)\in R_{i+1}\)。根据
+    \(R_{i+1}\) 的定义，分为两种情形：
+    \begin{enumerate}[label=\textup{\alph*.},leftmargin=2.2em]
+      \item 若 \((s,u)\in R_i\)，则由归纳假设直接得到
+        \((s,u)\in Q\)。
+
+      \item 否则，存在某个 \(t\)，使
+        \((s,t)\in R_i\) 且 \((t,u)\in R_i\)。由归纳假设，
+        \((s,t),(t,u)\in Q\)；再由 \(Q\) 的传递性，得到
+        \((s,u)\in Q\)。
+    \end{enumerate}
+    两种情形下都有 \((s,u)\in Q\)，所以
+    \(R_{i+1}\subseteq Q\)。归纳可知，对所有 \(i\) 都有
+    \(R_i\subseteq Q\)，因而
+    \[
+      R^+=\bigcup_iR_i\subseteq Q
+    \]
+    由于 \(Q\) 是任意一个包含 \(R\) 的传递关系，\(R^+\) 包含于所有
+    这样的关系，所以它是其中最小的一个。
+\end{enumerate}
+
+所以 \(R^+\) 是包含 \(R\) 的最小传递关系，即 \(R\) 的传递闭包。
+
+\taplsolutionbacklink{ex:2.2.7}{返回练习 2.2.7}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:2.2.8}
+\textbf{练习 2.2.8}
+
+定义 \(S\) 上的关系
+\[
+  Q=\{(s,t)\in S\times S\mid P(s)\Rightarrow P(t)\}
+\]
+关系 \(Q\) 是自反的，因为 \(P(s)\Rightarrow P(s)\)；它也是传递的，因为
+\[
+  P(r)\Rightarrow P(s),\quad P(s)\Rightarrow P(t)
+  \quad\Longrightarrow\quad
+  P(r)\Rightarrow P(t)
+\]
+“\(P\) 被 \(R\) 保持”恰好说明 \(R\subseteq Q\)。而 \(R^*\) 是包含
+\(R\) 的最小自反传递关系，所以 \(R^*\subseteq Q\)。因此，若
+\((s,t)\in R^*\) 且 \(P(s)\) 成立，就有 \(P(t)\) 成立；也就是说，
+\(P\) 被 \(R^*\) 保持。
+
+\taplsolutionbacklink{ex:2.2.8}{返回练习 2.2.8}
+\end{taplsolutionentrybox}

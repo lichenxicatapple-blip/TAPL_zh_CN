@@ -13,7 +13,7 @@
 \section{函数类型}
 \label{sec:9.1}
 
-第~\ref{chap:8}~章为算术表达式引入了一个简单的静态类型系统，其中有两种
+\chapref{8}为算术表达式引入了一个简单的静态类型系统，其中有两种
 类型：\(\tapltype{Bool}\) 对求值结果为布尔值的项分类，
 \(\tapltype{Nat}\) 对求值结果为数字的项分类。不属于任何一种类型的
 “病类型”项，既包括求值时到达卡住状态的所有项，例如
@@ -25,8 +25,9 @@
 构件组合起来；为简洁起见，本章忽略自然数。也就是说，我们要为变量、抽象与
 应用引入类型规则，并要求这些规则：
 \begin{enumerate}[label=(\alph*)]
-  \item 维持类型安全性，即满足类型保持性与进展性定理
-    \ref{thm:8.3.2} 和 \ref{thm:8.3.3}；
+  \item 维持类型安全性，即满足
+    \taplnamedref{thm:8.3.2}{进展性定理}和
+    \taplnamedref{thm:8.3.3}{类型保持性定理}；
   \item 不至于过分保守，即应当能为我们真正关心的大多数程序指派类型。
 \end{enumerate}
 
@@ -36,11 +37,11 @@
 还是函数：
 \[
 \mathsf{if}\ \langle\text{漫长而棘手的计算}\rangle\
-\mathsf{then\ true\ else}\ (\lambda x.x).
+\mathsf{then\ true\ else}\ (\lambda x.x)
 \]
 而且这个漫长而棘手的计算一般甚至可能发散；任何企图精确预测其结果的类型
 检查器也会随之发散。\footnote{本章研究的是带布尔值
-（图~\ref{fig:8-1}）的简单类型 lambda 演算（图~\ref{fig:9-1}）。
+（\cref{fig:8-1}）的简单类型 lambda 演算（\cref{fig:9-1}）。
 相应的 OCaml 实现为 \texttt{fullsimple}。}
 
 \begin{figure}[!ht]
@@ -48,7 +49,7 @@
 \begin{minipage}{0.97\linewidth}
 \small
 \noindent\textbf{\(\lambda_{\to}\) [带类型]}\hfill
-\textit{基于 \(\lambda\)（图~\ref{fig:5-3}）}
+\textit{基于 \(\lambda\)（\cref{fig:5-3}）}
 \par\smallskip
 \[
 \begin{array}{@{}rcll@{}}
@@ -100,7 +101,7 @@ v&::=&\lambda x\taplnewmaterial{{:}T}.\,t&\text{值：抽象值}\\[2pt]
 \]
 \noindent
 \taplnewmaterial{\text{浅灰区域}}\quad
-表示相对于图~\ref{fig:5-3} 新增或改变的带类型材料。
+表示相对于\cref{fig:5-3} 新增或改变的带类型材料。
 \end{minipage}
 \caption{纯简单类型 lambda 演算（\(\lambda_{\to}\)）}
 \label{fig:9-1}
@@ -115,7 +116,7 @@ v&::=&\lambda x\taplnewmaterial{{:}T}.\,t&\text{值：抽象值}\\[2pt]
 简单项，还是下面这样的复合项，都能归为产生函数的项：
 \[
 \taplif{\tapltrue}{(\lambda x.\tapltrue)}
- {(\lambda x.\lambda y.y)}.
+ {(\lambda x.\lambda y.y)}
 \]
 
 但这种粗略分析显然太保守：\(\lambda x.\tapltrue\) 和
@@ -175,7 +176,7 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
 \[
 \inferrule*[right=\textsc{T-Abs}]
  {x:T_1\vdash t_2:T_2}
- {\vdash\lambda x:T_1.\,t_2:T_1\to T_2}.
+ {\vdash\lambda x:T_1.\,t_2:T_1\to T_2}
 \]
 
 项可能含有嵌套的 lambda 抽象，所以一般需要同时谈论若干项此类假设。类型
@@ -205,7 +206,7 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
 变量的类型规则也直接由上述讨论得到：变量具有当前假定它具有的类型。
 \[
 \inferrule*[right=\textsc{T-Var}]
- {x:T\in\Gamma}{\Gamma\vdash x:T}.
+ {x:T\in\Gamma}{\Gamma\vdash x:T}
 \]
 前提 \(x:T\in\Gamma\) 读作“\(\Gamma\) 中为 \(x\) 假定的类型是 \(T\)”。
 
@@ -214,14 +215,14 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
 \inferrule*[right=\textsc{T-App}]
  {\Gamma\vdash t_1:T_{11}\to T_{12}\\
   \Gamma\vdash t_2:T_{11}}
- {\Gamma\vdash t_1\,t_2:T_{12}}.
+ {\Gamma\vdash t_1\,t_2:T_{12}}
 \]
 若 \(t_1\) 求值为一个把 \(T_{11}\) 型参数映射到 \(T_{12}\) 型结果的函数
 （并假定其自由变量所表示的值具有 \(\Gamma\) 中给出的类型），而 \(t_2\)
 求值为 \(T_{11}\) 型结果，那么把 \(t_1\) 应用于 \(t_2\) 就产生
 \(T_{12}\) 型的值。
 
-布尔常量与条件表达式的类型规则与以前相同（图~\ref{fig:8-1}）。不过，
+布尔常量与条件表达式的类型规则与以前相同（\cref{fig:8-1}）。不过，
 \textsc{T-If} 中的元变量 \(T\) 现在可以实例化为任意函数类型，所以分支为
 函数的条件表达式也能赋型：
 \[
@@ -231,17 +232,17 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
 \\[-1pt]
 &\qquad\blacktriangleright
 (\lambda x:\tapltype{Bool}.\,x):
-\tapltype{Bool}\to\tapltype{Bool}.
+\tapltype{Bool}\to\tapltype{Bool}
 \end{aligned}
 \]
 \footnote{从这里开始，展示实现交互的例子会同时给出结果及其类型；显而易见时
 有时会省略。}
 
-上述规则汇总在图~\ref{fig:9-1} 中；为求完整，图中也列出了语法与求值规则。
+上述规则汇总在\cref{fig:9-1} 中；为求完整，图中也列出了语法与求值规则。
 图中高亮区域表示相对于无类型 lambda 演算新增的材料，包括全新的规则，
 也包括在旧规则中加入的部分。与布尔值和自然数一样，完整演算的定义被拆成
 两部分：一部分是图中没有任何基本类型的纯简单类型 lambda 演算；另一部分是
-图~\ref{fig:8-1} 已给出的布尔值规则——当然，必须为该图的每个类型陈述都
+\cref{fig:8-1} 已给出的布尔值规则——当然，必须为该图的每个类型陈述都
 加上上下文 \(\Gamma\)。
 
 我们常用符号 \(\lambda_{\to}\) 指简单类型 lambda 演算；基本类型集合不同时
@@ -297,10 +298,10 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
 \section{类型关系的性质}
 \label{sec:9.3}
 
-与第~\ref{chap:8}~章一样，证明类型安全性之前需要建立几个基本引理。其中
+与\chapref{8}一样，证明类型安全性之前需要建立几个基本引理。其中
 大部分与前面类似：只需在类型关系中加入上下文，并在每个证明中增加对 lambda
 抽象、应用和变量的处理。唯一实质上新增的要求，是类型关系的替换引理
-（引理~\ref{lem:9.3.8}）。
+（\cref{lem:9.3.8}）。
 
 首先，反演引理记录类型推导怎样构成：针对每一种句法形式，它说明“若这种
 形式的项是良类型的，那么它的子项必定具有如下形式的类型……”
@@ -336,7 +337,7 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
 该类型陈述的推导；若不存在，请证明。
 \end{exercise}
 
-\S\ref{sec:9.2} 为了简化类型检查选择了显式类型的演算呈现方式。为此，
+\taplsecref{9.2}{sec:9.2} 为了简化类型检查选择了显式类型的演算呈现方式。为此，
 我们只给函数抽象中的受约束变量添加类型标注，其他地方均未标注。这在什么
 意义上“已经足够”？一种回答来自类型唯一性定理：良类型项与其类型推导一一
 对应——可以从项唯一地恢复类型推导，反之当然也可以。事实上，这种对应如此
@@ -372,11 +373,12 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
 \end{lemma}
 
 \begin{proof}
-直接得到，与算术表达式的典范形式引理
-\ref{lem:8.3.1} 的证明类似。
+直接得到，与
+\taplnamedref{lem:8.3.1}{算术表达式的典范形式引理}
+的证明类似。
 \end{proof}
 
-借助典范形式引理，可以证明与定理~\ref{thm:8.3.2} 对应的进展性定理。
+借助典范形式引理，可以证明与\cref{thm:8.3.2} 对应的进展性定理。
 定理陈述需要稍作改变：这里只关心没有自由变量的闭项。对开项而言，进展性
 确实不成立，例如 \(f\ \tapltrue\) 是范式，却不是值。不过，这并不代表语言
 有缺陷，因为我们真正关心求值的完整程序总是闭项。
@@ -389,14 +391,14 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
 
 \begin{proof}
 对类型推导作直接归纳。布尔常量和条件表达式的情形，与带类型算术表达式的
-进展性证明（定理~\ref{thm:8.3.2}）完全相同。变量情形不可能发生，因为
+进展性证明（\cref{thm:8.3.2}）完全相同。变量情形不可能发生，因为
 \(t\) 是闭项。抽象情形立即成立，因为抽象是值。
 
 唯一有意思的是应用情形：
 \[
 t=t_1\,t_2,\qquad
 \vdash t_1:T_{11}\to T_{12},\qquad
-\vdash t_2:T_{11}.
+\vdash t_2:T_{11}
 \]
 由归纳假设，\(t_1\) 要么是值，要么能迈出一步；\(t_2\) 也一样。若
 \(t_1\) 能迈出一步，规则 \textsc{E-App1} 适用于 \(t\)。若 \(t_1\)
@@ -409,10 +411,10 @@ t=t_1\,t_2,\qquad
 特别有趣，但能让后续证明对类型推导作若干有用的变换。
 
 第一个结构引理说明，可以按需要
-\termfirst{置换}{permutation}上下文元素，而不会改变从该上下文可以导出的
+置换上下文元素，而不会改变从该上下文可以导出的
 类型陈述集合。回想上文的要求：上下文中的所有绑定都必须有不同名字；每次为
 上下文加入绑定时，都默认新名字不同于已经绑定的全部名字，必要时按照
-约定~\ref{conv:5.3.4} 重命名。
+\cref{conv:5.3.4} 重命名。
 
 \begin{lemma}[置换]
 \label{lem:9.3.6}
@@ -456,7 +458,7 @@ t=t_1\,t_2,\qquad
 \medskip\noindent
 \textbf{情形 \rulename{T-Var}：}
 \[
-t=z,\qquad z:T\in(\Gamma,x:S).
+t=z,\qquad z:T\in(\Gamma,x:S)
 \]
 要根据 \(z\) 是 \(x\) 还是另一个变量分成两个子情形。若 \(z=x\)，则
 \(\taplsubst{x}{s}{z}=s\)，所需结论是 \(\Gamma\vdash s:S\)，这正是
@@ -467,21 +469,21 @@ t=z,\qquad z:T\in(\Gamma,x:S).
 \[
 \begin{gathered}
 t=\lambda y:T_2.\,t_1,\qquad T=T_2\to T_1,\\
-\Gamma,x:S,y:T_2\vdash t_1:T_1.
+\Gamma,x:S,y:T_2\vdash t_1:T_1
 \end{gathered}
 \]
-由约定~\ref{conv:5.3.4}，可以假定 \(x\ne y\) 且
+由\cref{conv:5.3.4}，可以假定 \(x\ne y\) 且
 \(y\notin\fv(s)\)。对给定子推导使用置换，得到
 \(\Gamma,y:T_2,x:S\vdash t_1:T_1\)。对另一给定推导
 \(\Gamma\vdash s:S\) 使用弱化，得到
 \(\Gamma,y:T_2\vdash s:S\)。于是由归纳假设，
 \[
-\Gamma,y:T_2\vdash\taplsubst{x}{s}{t_1}:T_1.
+\Gamma,y:T_2\vdash\taplsubst{x}{s}{t_1}:T_1
 \]
 再由 \textsc{T-Abs}，
 \[
 \Gamma\vdash
-\lambda y:T_2.\,\taplsubst{x}{s}{t_1}:T_2\to T_1.
+\lambda y:T_2.\,\taplsubst{x}{s}{t_1}:T_2\to T_1
 \]
 根据替换定义，这恰是所需结论
 \(\Gamma\vdash\taplsubst{x}{s}{t}:T\)。
@@ -492,7 +494,7 @@ t=\lambda y:T_2.\,t_1,\qquad T=T_2\to T_1,\\
 \begin{gathered}
 t=t_1\,t_2,\qquad
 \Gamma,x:S\vdash t_1:T_2\to T_1,\\
-\Gamma,x:S\vdash t_2:T_2,\qquad T=T_1.
+\Gamma,x:S\vdash t_2:T_2,\qquad T=T_1
 \end{gathered}
 \]
 由归纳假设，
@@ -519,7 +521,7 @@ t=t_1\,t_2,\qquad
 t=\taplif{t_1}{t_2}{t_3},\\
 \Gamma,x:S\vdash t_1:\tapltype{Bool},\qquad
 \Gamma,x:S\vdash t_2:T,\qquad
-\Gamma,x:S\vdash t_3:T.
+\Gamma,x:S\vdash t_3:T
 \end{gathered}
 \]
 三次使用归纳假设，得到
@@ -527,7 +529,7 @@ t=\taplif{t_1}{t_2}{t_3},\\
 \begin{aligned}
 \Gamma&\vdash\taplsubst{x}{s}{t_1}:\tapltype{Bool},\\
 \Gamma&\vdash\taplsubst{x}{s}{t_2}:T,\\
-\Gamma&\vdash\taplsubst{x}{s}{t_3}:T.
+\Gamma&\vdash\taplsubst{x}{s}{t_3}:T
 \end{aligned}
 \]
 再用 \textsc{T-If} 即得结论。
@@ -543,12 +545,12 @@ t=\taplif{t_1}{t_2}{t_3},\\
 
 \begin{proof}
 留作练习（推荐，三星）。其结构与算术表达式的类型保持性证明
-（定理~\ref{thm:8.3.3}）非常相似，区别是这里要使用替换引理。
+（\cref{thm:8.3.3}）非常相似，区别是这里要使用替换引理。
 \end{proof}
 
 \begin{exercise}[推荐，\(\star\star\star\)]
 \label{ex:9.3.10}
-练习~\ref{ex:8.3.6} 考察了简单的带类型算术表达式演算是否具有主体扩张
+\cref{ex:8.3.6} 考察了简单的带类型算术表达式演算是否具有主体扩张
 性质。该性质对简单类型 lambda 演算的“函数部分”成立吗？也就是说，假设
 \(t\) 不含条件表达式，\(t\trans t'\) 与 \(\Gamma\vdash t':T\) 是否
 蕴含 \(\Gamma\vdash t:T\)？
@@ -573,8 +575,8 @@ t=\taplif{t_1}{t_2}{t_3},\\
 
 \begin{exercise}[\(\star\)]
 \label{ex:9.4.1}
-图~\ref{fig:8-1} 中 \(\tapltype{Bool}\) 类型的哪些规则是引入规则，
-哪些是消去规则？图~\ref{fig:8-2} 中 \(\tapltype{Nat}\) 的规则又如何？
+\cref{fig:8-1} 中 \(\tapltype{Bool}\) 类型的哪些规则是引入规则，
+哪些是消去规则？\cref{fig:8-2} 中 \(\tapltype{Nat}\) 的规则又如何？
 \end{exercise}
 
 引入／消去术语来自类型论与逻辑之间一种称为
@@ -598,7 +600,7 @@ Curry 与 Howard 注意到，这种证据具有强烈的计算意味。例如，
 \midrule
 命题 & 类型\\
 命题 \(P\supset Q\) & 类型 \(P\to Q\)\\
-命题 \(P\land Q\) & 类型 \(P\times Q\)（见 \S\ref{sec:11.6}）\\
+命题 \(P\land Q\) & 类型 \(P\times Q\)（见 \taplsecref{11.6}{sec:11.6}）\\
 命题 \(P\) 的证明 & 类型为 \(P\) 的项 \(t\)\\
 命题 \(P\) 可证明 & 类型 \(P\) \termfirst{有居项}{inhabited}
   （某个项属于它）\\
@@ -628,7 +630,7 @@ Wickline、Lee、Pfenning 与 Davies，1998，以及其中引用的其他资料�
 \section{擦除与可赋型性}
 \label{sec:9.5}
 
-图~\ref{fig:9-1} 直接在简单类型项上定义了求值关系。类型标注在求值中不起
+\cref{fig:9-1} 直接在简单类型项上定义了求值关系。类型标注在求值中不起
 任何作用——我们不做任何运行时检查来保证函数应用于适当类型的参数——但在
 求值项时仍会让这些标注随项一起传递。
 
@@ -648,7 +650,7 @@ Wickline、Lee、Pfenning 与 Davies，1998，以及其中引用的其他资料�
 \operatorname{erase}(\lambda x:T_1.\,t_2)
   &=\lambda x.\operatorname{erase}(t_2),\\
 \operatorname{erase}(t_1\,t_2)
-  &=\operatorname{erase}(t_1)\ \operatorname{erase}(t_2).
+  &=\operatorname{erase}(t_1)\ \operatorname{erase}(t_2)
 \end{aligned}
 \]
 \end{definition}
@@ -673,7 +675,7 @@ Wickline、Lee、Pfenning 与 Davies，1998，以及其中引用的其他资料�
 对求值推导作直接归纳。
 \end{proof}
 
-这里所考察的“编译”太直接，因此定理~\ref{thm:9.5.2} 几乎显然到了平凡的
+这里所考察的“编译”太直接，因此\cref{thm:9.5.2} 几乎显然到了平凡的
 程度。不过，对更有意思的语言和编译器，它会成为十分重要的性质：它说明，
 直接以程序员所写语言表述的“高层”语义，与语言实现实际采用的另一种低层
 求值策略一致。

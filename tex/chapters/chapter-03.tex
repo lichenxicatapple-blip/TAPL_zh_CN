@@ -14,7 +14,7 @@
 得几乎不值一提，但它很适合用来直接引入几个基本概念：抽象语法、归纳定义与
 证明、求值，以及运行时错误的建模。第 5--7 章会在强大得多的无类型 lambda
 演算上展开同一套内容；到那时，我们还必须处理名称绑定与替换。再往后，
-第 8 章将正式开始研究类型系统：它会回到本章的简单语言，用它引入静态类型
+第 8 章将回到本章的简单语言，以它为例正式开始研究类型系统，并引入静态类型
 的基本概念；第 9 章再把这些概念扩展到 lambda 演算。
 
 \section{引言}
@@ -25,20 +25,21 @@
 \(\mathsf{succ}\)（后继）和 \(\mathsf{pred}\)（前驱），以及测试操作
 \(\mathsf{iszero}\)；后者应用于 \(\taplzero\) 时返回 \(\tapltrue\)，
 应用于其他数字时返回 \(\taplfalse\)。下面的文法对这些形式作了紧凑概括。
-\footnote{本章研究的是无类型布尔值与自然数演算（见图~\ref{fig:3-2}）。
+\footnote{本章研究的是无类型布尔值与自然数演算（见\cref{fig:3-2}）。
 相应的 OCaml 实现名为 \texttt{arith}，将在第 4 章介绍。有关下载并构建
 这一检查器的说明，见作者网站
 \url{https://www.cis.upenn.edu/~bcpierce/tapl/}。}
 
+\phantomsection\label{grammar:3.1-terms}
 \[
 \begin{array}{@{}rcll@{}}
- t &::=& \tapltrue & \text{项：常量真}\\
-   &\mid& \taplfalse & \text{常量假}\\
-   &\mid& \taplif{t}{t}{t} & \text{条件表达式}\\
-   &\mid& \taplzero & \text{常量零}\\
-   &\mid& \taplsucc{t} & \text{后继}\\
-   &\mid& \taplpred{t} & \text{前驱}\\
-   &\mid& \tapliszero{t} & \text{零测试}
+ t &::=& \tapltrue & \tapltranslateditalic{项：常量真}\\
+   &\mid& \taplfalse & \tapltranslateditalic{常量假}\\
+   &\mid& \taplif{t}{t}{t} & \tapltranslateditalic{条件表达式}\\
+   &\mid& \taplzero & \tapltranslateditalic{常量零}\\
+   &\mid& \taplsucc{t} & \tapltranslateditalic{后继}\\
+   &\mid& \taplpred{t} & \tapltranslateditalic{前驱}\\
+   &\mid& \tapliszero{t} & \tapltranslateditalic{零测试}
 \end{array}
 \]
 
@@ -86,17 +87,20 @@
 自动处理示例；这里的实现是 \texttt{arith}，显示的响应就是实现的实际输出。
 
 在示例中，为便于阅读，\(\mathsf{succ}\)、\(\mathsf{pred}\) 和
-\(\mathsf{iszero}\) 的复合参数都放在括号里。\footnote{事实上，原书网站
-用于处理本章示例的 \texttt{arith} 实现确实要求在这些复合参数外加括号，
-即使没有括号也能无歧义地解析。这样做是为了与后面的演算保持一致；后者会
-使用外观相似的函数应用语法。} 项的文法只定义抽象语法，并未提到括号。
+\(\mathsf{iszero}\) 的复合参数都放在括号里。\footnote{从抽象语法看，
+本章的简单语言即使省略这些括号也不会产生歧义。不过，为使示例的写法与后面
+采用相似函数应用语法的演算保持一致，原书网站提供的 \texttt{arith} 实现仍
+规定复合参数必须加括号。因此，这些括号是该工具所采用的具体语法约定，并非
+消除歧义所必需。} 项的文法只定义抽象语法，并未提到括号。
 当然，在眼下这个极其简单的语言里，有无括号区别不大：括号通常用于消除文法
-歧义，而这个文法不存在歧义——每个词法单元序列至多能解析成一个项。第 5 章
-（原书第 52 页）会回到括号与抽象语法的话题。
+歧义，而这个文法不存在歧义——每个词法单元序列至多能解析成一个项。
+\hyperref[sec:5.1-abstract-concrete-syntax]{第 5 章的“抽象语法与具体语法”一节}
+会回到括号与抽象语法的话题。
 
 求值结果总具有格外简单的形式：它们不是布尔常量，就是数字，即对
 \(\taplzero\) 嵌套零次或多次 \(\mathsf{succ}\) 得到的项。这些项称为
-\termfirst{值}{value}；在我们形式化项的求值次序时，它们将扮演特殊角色。
+\termfirst{值}{value}。后面用形式化规则规定项的求值顺序时，值将用来判断
+一个子项是否已经求值完成，并据此决定下一步对哪一部分求值。
 
 注意，项的语法允许构造出 \(\taplsucc{\tapltrue}\) 和
 \(\taplif{\taplzero}{\taplzero}{\taplzero}\) 这样看起来可疑的项。稍后
@@ -129,7 +133,11 @@
 
 与上一节的文法一样，这一定义也没有说明如何用括号标记复合子项。严格地说，
 我们真正做的是把 \(\mathcal{T}\) 定义为树的集合，而不是字符串的集合。
-示例中的括号只是为了说明页面上项的线性表示与底层真实树形之间的关系。
+例如，在上一节的 \(\mathsf{iszero\ (pred\ (succ\ 0))}\) 中，括号表明
+\(\mathsf{succ\ 0}\) 是 \(\mathsf{pred}\) 的参数，而整个
+\(\mathsf{pred\ (succ\ 0)}\) 又是 \(\mathsf{iszero}\) 的参数。一般来说，
+项在书中写成一行，而其抽象语法实际上是树形结构；示例中的括号正是用来说明
+二者如何对应。
 
 同一归纳定义还可以采用逻辑系统“自然演绎式”表述中常见的二维推导规则格式：
 
@@ -159,7 +167,8 @@
 
 前三条规则重述\cref{def:3.2.1}的第一项；后四条则刻画第 2、3 项。每条规则
 都读作：“如果我们已经建立横线上方列出的前提，就可以导出横线下方的结论。”
-通常像这里一样，不再明说 \(\mathcal{T}\) 是满足这些规则的最小集合。
+此处没有明说 \(\mathcal{T}\) 是满足这些规则的最小集合；采用推导规则给出
+定义时，通常会省略这一点。
 
 这里有两个术语值得说明。第一，不带前提的规则（如上面的前三条）常称为
 \termfirst{公理}{axiom}。本书把\termfirst{推导规则}{inference rule}
@@ -182,12 +191,12 @@
  S_{i+1}={}&\{\tapltrue,\taplfalse,\taplzero\}\\
  &{}\cup\{\taplsucc{t_1},\taplpred{t_1},\tapliszero{t_1}
           \mid t_1\in S_i\}\\
- &{}\cup\{\taplif{t_1}{t_2}{t_3}\mid t_1,t_2,t_3\in S_i\}.
+ &{}\cup\{\taplif{t_1}{t_2}{t_3}\mid t_1,t_2,t_3\in S_i\}
 \end{aligned}
 \]
 最后令
 \[
-  S=\bigcup_i S_i.
+  S=\bigcup_i S_i
 \]
 \(S_0\) 为空；\(S_1\) 只含常量；\(S_2\) 含常量，以及只用一次
 \(\mathsf{succ}\)、\(\mathsf{pred}\)、\(\mathsf{iszero}\) 或
@@ -200,11 +209,13 @@
 \label{ex:3.2.4}
 \(S_3\) 有多少个元素？
 \end{exercise}
+\taplauthorsolutionlink{sol:author:3.2.4}{3.2.4}
 
 \begin{exercise}[\(\star\star\)]
 \label{ex:3.2.5}
 证明集合 \(S_i\) 是累积的，即对每个 \(i\) 都有 \(S_i\subseteq S_{i+1}\)。
 \end{exercise}
+\taplauthorsolutionlink{sol:author:3.2.5}{3.2.5}
 
 上述定义从不同方向刻画了同一个项集：\cref{def:3.2.1}和
 \cref{def:3.2.2}只是把它
@@ -259,8 +270,9 @@
 值得注意的是，这个证明对自然数采用完全归纳，而不是更熟悉的“基础情形／
 归纳情形”形式。对于每个 \(i\)，我们假设所需谓词对所有严格小于 \(i\) 的
 数都成立，再证明它对 \(i\) 也成立。实质上，这里的每一步都是归纳步骤；
-\(i=0\) 的特殊之处只在于：可以调用归纳假设的那些较小 \(i\) 所成的集合
-恰好为空。全书大多数归纳证明——尤其是“结构归纳”证明——也都适用这一说明。
+当 \(i=0\) 时，不存在满足 \(j<i\) 的自然数 \(j\)，因此这一步不需要使用
+任何归纳假设。这正是 \(i=0\) 与其他归纳步骤唯一不同的地方。全书大多数
+归纳证明——尤其是“结构归纳”证明——也都适用这一说明。
 
 \section{项上的归纳}
 \label{sec:3.3}
@@ -287,7 +299,7 @@
  \Consts(\tapliszero{t_1}) &= \Consts(t_1),\\
  \Consts(\taplif{t_1}{t_2}{t_3})
    &= \Consts(t_1)\cup\Consts(t_2)\\
-   &\quad{}\cup\Consts(t_3).
+   &\quad{}\cup\Consts(t_3)
 \end{aligned}
 \]
 \end{definition}
@@ -306,7 +318,7 @@
  \termsize(\taplpred{t_1})&=\termsize(t_1)+1,&
  \termsize(\tapliszero{t_1})&=\termsize(t_1)+1,\\
  \termsize(\taplif{t_1}{t_2}{t_3})
-   &=\termsize(t_1)+\termsize(t_2)+\termsize(t_3)+1.
+   &=\termsize(t_1)+\termsize(t_2)+\termsize(t_3)+1
 \end{aligned}
 \]
 也就是说，\(t\) 的大小就是其抽象语法树中的节点数。
@@ -322,11 +334,13 @@
  \termdepth(\tapliszero{t_1})&=\termdepth(t_1)+1,\\
  \termdepth(\taplif{t_1}{t_2}{t_3})
    &=\max\{\termdepth(t_1),\termdepth(t_2),\\
-   &\hspace{5.8em}\termdepth(t_3)\}+1.
+   &\hspace{5.8em}\termdepth(t_3)\}+1
 \end{aligned}
 \]
-等价地，按照\cref{def:3.2.3}，\(\termdepth(t)\) 是使
-\(t\in S_i\) 成立的最小 \(i\)。
+等价地，按照\cref{def:3.2.3}，从 \(S_0\) 开始逐层构造项时，\(t\) 最早
+出现在哪个集合 \(S_i\) 中，\(\termdepth(t)\) 就等于这个最小的层号 \(i\)。
+例如，\(\mathsf{pred\ (succ\ 0)}\) 最早出现在 \(S_3\) 中，因此其深度为
+\(3\)。
 \end{definition}
 
 下面归纳证明一个简单事实，把项中常量的个数与项的大小联系起来。（性质本身
@@ -353,7 +367,7 @@
  \lvert\Consts(t)\rvert
  =\lvert\Consts(t_1)\rvert
  \leq\termsize(t_1)
- <\termsize(t).
+ <\termsize(t)
 \]
 
 \paragraph{情形：\(t=\taplif{t_1}{t_2}{t_3}\)。}
@@ -366,13 +380,14 @@
  &\leq\lvert\Consts(t_1)\rvert+\lvert\Consts(t_2)\rvert
       +\lvert\Consts(t_3)\rvert\\
  &\leq\termsize(t_1)+\termsize(t_2)+\termsize(t_3)\\
- &<\termsize(t).
+ &<\termsize(t)
 \end{aligned}
 \]
 \end{proof}
 
-把这个证明重述为一条一般的推理原则，可以看清它的形式。我们顺带再列出两条
-证明项的性质时常用的类似原则。
+上述证明采用的并不只是针对这个引理的特殊技巧，而是一种通用的归纳方法。
+略去其中关于常量个数和项的大小的具体内容，就可以提炼出下面这条项上的归纳
+原理。我们顺带再列出两条证明项的性质时常用的类似原则。
 
 \begin{theorem}[项上的归纳原理]
 \label{thm:3.3.4}
@@ -396,6 +411,7 @@
 \begin{proof}
 留作练习（\(\star\star\)）。
 \end{proof}
+\taplauthorsolutionlink{sol:author:3.3.4}{3.3.4}
 
 对项的深度或大小作归纳，类似于自然数上的完全归纳
 （\cref{ax:2.4.2}）。普通结构归纳则对应普通的自然数归纳原理
@@ -457,8 +473,8 @@
 
     有时，为同一种语言给出两种或更多种操作语义很有用：有些更抽象，机器
     状态接近程序员书写的项；另一些则更接近实际解释器或编译器操纵的结构。
-    证明这些机器执行同一个程序时的行为在某种适当意义下相互对应，就等于
-    证明该语言某个实现的正确性。
+    若能证明这些不同的机器在执行同一个程序时，其行为在某种适当意义下
+    相互对应，那么也就证明了其中较具体的机器正确实现了该语言。
 
   \item \termfirst{指称语义}{denotational semantics}对“含义”采取更抽象的
     观点：项的含义不再只是一串机器状态，而是数字、函数之类的数学对象。
@@ -495,38 +511,41 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
 \section{求值}
 \label{sec:3.5}
 
-暂且把数字放到一边，先从布尔表达式的操作语义开始。图~\ref{fig:3-1}汇总了
+暂且把数字放到一边，先从布尔表达式的操作语义开始。\cref{fig:3-1}汇总了
 这一定义，下面逐项考察。
 
 \begin{figure}[htbp]
 \centering
-\small
-\begin{minipage}{0.92\textwidth}
-\textbf{\(\mathcal{B}\)（无类型）：语法}\par\smallskip
-\(\begin{array}[t]{@{}rcll@{}}
- t&::=&\tapltrue&\text{项：常量真}\\
-  &\mid&\taplfalse&\text{常量假}\\
-  &\mid&\taplif{t}{t}{t}&\text{条件式}\\[2pt]
- v&::=&\tapltrue&\text{值：真值}\\
-  &\mid&\taplfalse&\text{假值}
-\end{array}\)
-\par\medskip
-\textbf{求值规则}\quad \(t\trans t'\)\par\smallskip
-\(\begin{aligned}
- \taplif{\tapltrue}{t_2}{t_3}&\trans t_2
-   &&\textsc{E-IfTrue}\\
- \taplif{\taplfalse}{t_2}{t_3}&\trans t_3
-   &&\textsc{E-IfFalse}\\[4pt]
- \frac{t_1\trans t_1'}
-      {\taplif{t_1}{t_2}{t_3}\trans\taplif{t_1'}{t_2}{t_3}}
-   &&&\textsc{E-If}
-\end{aligned}\)
+\footnotesize
+\begin{minipage}{0.94\textwidth}
+\textbf{\(\mathcal{B}\)（无类型）}\par
+\taplformalsystemcolumns
+  {\textbf{语法}\par\smallskip
+   \(\begin{array}[t]{@{}rcll@{}}
+    t&::=&\tapltrue&\tapltranslateditalic{项：常量真}\\
+     &\mid&\taplfalse&\tapltranslateditalic{常量假}\\
+     &\mid&\taplif{t}{t}{t}&\tapltranslateditalic{条件式}\\[2pt]
+    v&::=&\tapltrue&\tapltranslateditalic{值：真值}\\
+     &\mid&\taplfalse&\tapltranslateditalic{假值}
+   \end{array}\)}
+  {\textbf{求值规则}\quad \(t\trans t'\)\par\smallskip
+   \(\begin{array}{@{}rcl@{\quad}l@{}}
+    \taplif{\tapltrue}{t_2}{t_3}&\trans&t_2
+      &\textsc{E-IfTrue}\\
+    \taplif{\taplfalse}{t_2}{t_3}&\trans&t_3
+      &\textsc{E-IfFalse}\\[4pt]
+    \multicolumn{3}{c}{%
+      \displaystyle
+      \frac{t_1\trans t_1'}
+           {\taplif{t_1}{t_2}{t_3}\trans\taplif{t_1'}{t_2}{t_3}}}
+      &\textsc{E-If}
+   \end{array}\)}
 \end{minipage}
 \caption{布尔值（\(\mathcal{B}\)）}
 \label{fig:3-1}
 \end{figure}
 
-图~\ref{fig:3-1}左栏的文法定义了两个表达式集合。第一个只是为方便而重复项
+\cref{fig:3-1}左栏的文法定义了两个表达式集合。第一个只是为方便而重复项
 的语法；第二个定义项的一个子集，称为值，它们是求值可能得到的最终结果。
 这里的值只有常量 \(\tapltrue\) 和 \(\taplfalse\)。全书都用元变量 \(v\)
 表示值。
@@ -570,6 +589,19 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
 性质的差异，常把前两条称为\termfirst{计算规则}{computation rule}，把
 \textsc{E-If} 称为\termfirst{同余规则}{congruence rule}。
 
+\translatornote{这里的“同余”与数论中的同余无关。在操作语义中，它表示
+求值关系与相应的语法上下文相容：如果一个子项能够走一步，那么把它放进该
+上下文后，整个项也能相应地走一步。以 \textsc{E-If} 为例，令
+\[
+C[\square]
+=
+\mathsf{if}\ \square\ \mathsf{then}\ t_2\ \mathsf{else}\ t_3,
+\]
+则 \(t_1\trans t_1'\) 可以推出
+\(C[t_1]\trans C[t_1']\)。因此，\textsc{E-If} 本身并不选择求值结果，
+而是把守卫中的一步求值传递到整个条件式；直观上可以把它理解为一条
+“上下文传播规则”。}
+
 下面把这些直观说法表述得更精确。
 
 \begin{definition}
@@ -588,29 +620,51 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
 是 \textsc{E-IfTrue} 的一个实例：\(t_2\) 的两处出现都被替换成
 \(\tapltrue\)，\(t_3\) 则被替换成
 \[
-  \mathsf{if\ false\ then\ false\ else\ false}.
+  \mathsf{if\ false\ then\ false\ else\ false}
 \]
 
 \begin{definition}
 \label{def:3.5.2}
-如果对一条规则的每个实例，要么其结论属于关系 \(R\)，要么其某个前提不属于
-\(R\)，就说该规则被 \(R\)\termfirst{满足}{satisfied}。
+在本节中，把式子 \(t\trans t'\) 看作有序对 \((t,t')\)。考察一条规则的
+任意一个实例：如果它的所有前提所表示的有序对均属于关系 \(R\)，那么其结论
+所表示的有序对也必须属于 \(R\)。如果这项要求对该规则的每个实例都成立，
+就说关系 \(R\)\termfirst{满足}{satisfied}这条规则。
 \end{definition}
+
+\translatornote{可以暂时把关系 \(R\) 想成一张“允许的一步求值表”：若
+\((t,t')\in R\)，这张表就允许项 \(t\) 一步求值为 \(t'\)。规则
+\textsc{E-If} 要求：只要表中已经允许 \(t_1\trans t_1'\)，就还必须允许
+\[
+\taplif{t_1}{t_2}{t_3}
+\trans
+\taplif{t_1'}{t_2}{t_3}
+\]
+换成有序对的说法就是：只要 \((t_1,t_1')\in R\)，上面这个条件式求值
+步骤所对应的有序对也必须属于 \(R\)。若 \((t_1,t_1')\notin R\)，这个规则
+实例便不对 \(R\) 提出进一步要求。\textsc{E-IfTrue} 和
+\textsc{E-IfFalse} 没有前提，因此它们每个实例的结论都必须出现在这张表中。}
 
 \begin{definition}
 \label{def:3.5.3}
-\termfirst{单步求值关系}{one-step evaluation relation} \(\trans\) 是项上
-满足图~\ref{fig:3-1}三条规则的最小二元关系。当有序对 \((t,t')\) 属于
-求值关系时，就说“求值陈述（或\termfirst{判断}{judgment}）
-\(t\trans t'\) 可导出”。
+\termfirst{单步求值关系}{one-step evaluation relation} \(\trans\) 收录
+\cref{fig:3-1}三条规则能够推出的全部一步求值，并且不收录其他项对。
+形式地说，它是项上满足这三条规则的最小二元关系。当有序对 \((t,t')\)
+属于该关系时，就说\termfirst{判断}{judgment} \(t\trans t'\) 可导出。
 \end{definition}
 
-这里“最小”一词的作用在于：陈述 \(t\trans t'\) 可导出，当且仅当规则能够
-为它提供根据——它或者是公理 \textsc{E-IfTrue}、\textsc{E-IfFalse}
-之一的实例，或者是 \textsc{E-If} 某个实例的结论，而且该实例的前提可导出。
-要说明一条陈述可导出，可以展示一棵\termfirst{推导树}{derivation tree}：
+\translatornote{这里的“最小”按关系所包含的项对多少来比较。仅仅要求一个
+关系满足三条规则，还不能唯一确定它：例如，包含所有项对的关系也满足这些
+规则，因为任何规则实例的结论都在其中；但它还会包含
+\((\tapltrue,\taplfalse)\) 这样没有求值规则作为根据的项对。取满足规则的
+最小关系，正是为了排除这些多余项对，只留下规则所要求的一步求值。}
+
+换句话说，判断 \(t\trans t'\) 可导出，当且仅当三条规则能够为它提供根据：
+它或者是公理 \textsc{E-IfTrue}、\textsc{E-IfFalse} 之一的实例，或者是
+\textsc{E-If} 某个实例的结论，而且该实例的前提可导出。要说明一个判断
+可导出，可以展示一棵\termfirst{推导树}{derivation tree}：
 叶节点标记为 \textsc{E-IfTrue} 或 \textsc{E-IfFalse} 的实例，内部节点
-标记为 \textsc{E-If} 的实例。例如，为避免公式超出版心，简写
+标记为 \textsc{E-If} 的实例。例如，为了不让后面的公式超出页面宽度，先作
+如下简写：
 \[
 \begin{aligned}
  s&\mathrel{\smash{\overset{\mathrm{def}}{=}}}
@@ -618,16 +672,16 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
  t&\mathrel{\smash{\overset{\mathrm{def}}{=}}}
    \mathsf{if}\ s\ \mathsf{then\ true\ else\ true},\\
  u&\mathrel{\smash{\overset{\mathrm{def}}{=}}}
-   \mathsf{if\ false\ then\ true\ else\ true}.
+   \mathsf{if\ false\ then\ true\ else\ true}
 \end{aligned}
 \]
-则以下推导树见证了
+以下推导树证明了判断
 \[
  \mathsf{if}\ t\ \mathsf{then\ false\ else\ false}
  \trans
  \mathsf{if}\ u\ \mathsf{then\ false\ else\ false}
 \]
-的可导出性：
+可以由求值规则导出：
 \[
 \inferrule*[right=\textsc{E-If}]
   {\inferrule*[right=\textsc{E-If}]
@@ -635,15 +689,27 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
     {t\trans u}}
   {\mathsf{if}\ t\ \mathsf{then\ false\ else\ false}
    \trans
-   \mathsf{if}\ u\ \mathsf{then\ false\ else\ false}}.
+   \mathsf{if}\ u\ \mathsf{then\ false\ else\ false}}
 \]
 
-称这种结构为树或许显得奇怪，因为它没有分支。事实上，见证求值陈述的推导树
-总是如此纤细：没有求值规则带有一个以上的前提，所以无法构造出分支推导树。
+\translatornote{读推导树时，横线下方是要证明的结论，横线上方是使用右侧规则
+所需的前提。可以从最下面向上检查：最下面的 \textsc{E-If} 要求先证明
+\(t\trans u\)；中间的 \textsc{E-If} 又把这个问题化为证明
+\(s\trans\taplfalse\)；而根据 \(s\) 的定义，最上面的判断直接由
+\textsc{E-IfTrue} 得到。
+
+这里推导树有三层，并不表示整项连续求值了三步。根节点仍然只断言一次单步
+求值。两次 \textsc{E-If} 都是同余规则：它们只是把叶节点中的同一个单步
+计算 \(s\trans\taplfalse\) 逐层传递到外面的两个条件式中。推导树的高度表示
+证明这一次求值需要展开多少层规则，而不是程序执行了多少步。}
+
+称这种结构为树或许显得奇怪，因为它没有分支。事实上，用来证明求值判断
+可导出的推导树总是如此纤细：没有求值规则带有一个以上的前提，所以无法构造
+出分支推导树。
 等到考察类型关系等其他归纳定义的关系时，有些规则会有多个前提，届时这个
 术语就显得自然了。
 
-求值陈述 \(t\trans t'\) 可导出，当且仅当存在一棵以它为根节点标签的推导树。
+求值判断 \(t\trans t'\) 可导出，当且仅当存在一棵以它为根节点标签的推导树。
 这个事实经常用于推理求值关系的性质，尤其是它直接导出一种称为
 \termfirst{对推导归纳}{induction on derivations}的证明技术。下面的定理
 展示了这种技术。
@@ -660,23 +726,26 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
 “求值推导”的结构直接跟随被归约项的结构；同样也可以对
 \(t\trans t''\) 的推导归纳。）
 
-若 \(t\trans t'\) 推导的最后一条规则是 \textsc{E-IfTrue}，则 \(t\) 形如
-\(\taplif{t_1}{t_2}{t_3}\)，且 \(t_1=\tapltrue\)。显然，
-\(t\trans t''\) 推导的最后一条规则不可能是 \textsc{E-IfFalse}，因为
-\(t_1\) 不可能同时等于 \(\tapltrue\) 与 \(\taplfalse\)；也不可能是
-\textsc{E-If}，因为这条规则的前提要求存在某个 \(t_1'\) 使
-\(t_1\trans t_1'\)，而 \(\tapltrue\) 不求值为任何东西。因此第二个推导
-的最后一条规则只能也是 \textsc{E-IfTrue}，立即得到 \(t'=t''\)。
+若 \(t\trans t'\) 推导的最后一条规则是 \textsc{E-IfTrue}，则我们知道
+\(t\) 形如 \(\taplif{t_1}{t_2}{t_3}\)，其中 \(t_1=\tapltrue\)。此时，
+\(t\trans t''\) 推导的最后一条规则不可能是 \textsc{E-IfFalse}，因为同一个
+\(t_1\) 不可能既等于 \(\tapltrue\) 又等于 \(\taplfalse\)。此外，第二个
+推导的最后一条规则也不可能是 \textsc{E-If}，因为该规则的前提要求存在某个
+\(t_1'\) 使 \(t_1\trans t_1'\)，而我们已经看到 \(\tapltrue\) 不求值为
+任何东西。因此，第二个推导的最后一条规则只能是 \textsc{E-IfTrue}，立即
+得到 \(t'=t''\)。
 
-类似地，若第一个推导最后使用 \textsc{E-IfFalse}，第二个推导最后也必须
-使用同一规则，结论立即成立。
+类似地，若 \(t\trans t'\) 推导的最后一条规则是 \textsc{E-IfFalse}，则
+\(t\trans t''\) 推导的最后一条规则也必须相同，结论立即成立。
 
 最后，若 \(t\trans t'\) 推导的最后一条规则是 \textsc{E-If}，则规则形式
 说明 \(t=\taplif{t_1}{t_2}{t_3}\)，并有某个 \(t_1'\) 满足
 \(t_1\trans t_1'\)。由上面相同的理由，\(t\trans t''\) 推导的最后一条
-规则只能也是 \textsc{E-If}，因此还有某个 \(t_1''\) 满足
-\(t_1\trans t_1''\)。归纳假设现在适用，因为这两个守卫推导分别是原来两个
-推导的子推导，所以 \(t_1'=t_1''\)。于是
+规则只能也是 \textsc{E-If}；这说明 \(t\) 仍形如
+\(\taplif{t_1}{t_2}{t_3}\)（这一点我们已经知道），并有某个 \(t_1''\)
+满足 \(t_1\trans t_1''\)。归纳假设现在适用，因为
+\(t_1\trans t_1'\) 与 \(t_1\trans t_1''\) 的推导分别是原来两个推导的
+子推导，所以 \(t_1'=t_1''\)。于是
 \[
  t'=\taplif{t_1'}{t_2}{t_3}
     =\taplif{t_1''}{t_2}{t_3}=t'',
@@ -688,6 +757,7 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
 \label{ex:3.5.5}
 仿照\cref{thm:3.3.4}，明确写出前一证明所用的归纳原理。
 \end{exercise}
+\taplauthorsolutionlink{sol:author:3.5.5}{3.5.5}
 
 单步求值关系展示抽象机在求值项时怎样从一个状态走到下一个状态。但作为
 程序员，我们同样关心求值的最终结果，即机器无法再迈出一步的状态。
@@ -755,6 +825,7 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
 \label{ex:3.5.10}
 把\cref{def:3.5.9}改写成一组推导规则。
 \end{exercise}
+\taplauthorsolutionlink{sol:author:3.5.10}{3.5.10}
 
 有了明确的多步求值记法，下面这样的事实就很容易陈述。
 
@@ -794,27 +865,27 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
 \begin{exercise}[推荐，\(\star\star\)]
 \label{ex:3.5.13}
 \begin{enumerate}
-  \item 假设在图~\ref{fig:3-1}的规则中加入
+  \item 假设在\cref{fig:3-1}的规则中加入
     \[
       \taplif{\tapltrue}{t_2}{t_3}\trans t_3
-      \qquad(\textsc{E-Funny1}).
+      \qquad(\textsc{E-Funny1})
     \]
-    上述定理
-    \ref{thm:3.5.4}、\ref{thm:3.5.7}、\ref{thm:3.5.8}、
-    \ref{thm:3.5.11}、\ref{thm:3.5.12}中，哪些仍然成立？
+    上述\cref{thm:3.5.4,thm:3.5.7,thm:3.5.8,thm:3.5.11,thm:3.5.12}中，
+    哪些仍然成立？
 
   \item 换成加入以下规则：
     \[
       \frac{t_2\trans t_2'}
            {\taplif{t_1}{t_2}{t_3}\trans\taplif{t_1}{t_2'}{t_3}}
-      \qquad(\textsc{E-Funny2}).
+      \qquad(\textsc{E-Funny2})
     \]
     现在上述哪些定理仍然成立？是否有证明需要修改？
 \end{enumerate}
 \end{exercise}
+\taplauthorsolutionlink{sol:author:3.5.13}{3.5.13}
 
-下一项工作是把求值定义扩展到算术表达式。图~\ref{fig:3-2}概括了定义中新加
-的部分。（图右上角的说明提醒我们：该图是图~\ref{fig:3-1}的扩展，而不是
+下一项工作是把求值定义扩展到算术表达式。\cref{fig:3-2}概括了定义中新加
+的部分。（图右上角的说明提醒我们：该图是\cref{fig:3-1}的扩展，而不是
 独立成篇的语言。）
 
 项的定义仍只是重复\cref{sec:3.1}中的语法。值的定义稍有意思，因为需要
@@ -825,52 +896,69 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
 \begin{figure}[!t]
 \centering
 \small
-\textbf{\(\mathcal{NB}\)（无类型）}\hfill
-\textit{扩展 \(\mathcal{B}\)（图~\ref{fig:3-1}）}\par\medskip
-\begin{minipage}{0.92\textwidth}
-\textbf{新增句法形式}\par\smallskip
-\(\begin{array}[t]{@{}rcll@{}}
- t&::=&\cdots&\text{项}\\
-  &\mid&\taplzero&\text{常量零}\\
-  &\mid&\taplsucc{t}&\text{后继}\\
-  &\mid&\taplpred{t}&\text{前驱}\\
-  &\mid&\tapliszero{t}&\text{零测试}\\[2pt]
- v&::=&\cdots&\text{值}\\
-  &\mid&nv&\text{数值}\\[2pt]
- nv&::=&\taplzero&\text{数值}\\
-   &\mid&\taplsucc{nv}&\text{后继值}
-\end{array}\)
-\par\medskip
-\textbf{新增求值规则}\quad \(t\trans t'\)\par\smallskip
-\(\begin{aligned}
- \frac{t_1\trans t_1'}{\taplsucc{t_1}\trans\taplsucc{t_1'}}
-   &&\textsc{E-Succ}\\[5pt]
- \taplpred{\taplzero}&\trans\taplzero
-   &&\textsc{E-PredZero}\\
- \taplpred{(\taplsucc{nv_1})}&\trans nv_1
-   &&\textsc{E-PredSucc}\\[4pt]
- \frac{t_1\trans t_1'}{\taplpred{t_1}\trans\taplpred{t_1'}}
-   &&\textsc{E-Pred}\\[5pt]
- \tapliszero{\taplzero}&\trans\tapltrue
-   &&\textsc{E-IszeroZero}\\
- \tapliszero{(\taplsucc{nv_1})}&\trans\taplfalse
-   &&\textsc{E-IszeroSucc}\\[4pt]
- \frac{t_1\trans t_1'}{\tapliszero{t_1}\trans\tapliszero{t_1'}}
-   &&\textsc{E-IsZero}
-\end{aligned}\)
+\begin{minipage}{0.96\textwidth}
+\taplfigureheader{\(\mathcal{NB}\)（无类型）}
+  {\(\mathcal{B}\)（\cref{fig:3-1}）}
+\taplformalsystemcolumns
+  {\textbf{新增句法形式}\par\smallskip
+   \(\begin{array}[t]{@{}rcll@{}}
+    t&::=&\cdots&\tapltranslateditalic{项}\\
+     &\mid&\taplzero&\tapltranslateditalic{常量零}\\
+     &\mid&\taplsucc{t}&\tapltranslateditalic{后继}\\
+     &\mid&\taplpred{t}&\tapltranslateditalic{前驱}\\
+     &\mid&\tapliszero{t}&\tapltranslateditalic{零测试}\\[2pt]
+    v&::=&\cdots&\tapltranslateditalic{值}\\
+     &\mid&nv&\tapltranslateditalic{数值}\\[2pt]
+    nv&::=&\taplzero&\tapltranslateditalic{数值}\\
+      &\mid&\taplsucc{nv}&\tapltranslateditalic{后继值}
+   \end{array}\)}
+  {\textbf{新增求值规则}\quad \(t\trans t'\)\par\smallskip
+   \(\begin{array}{@{}rcl@{\quad}l@{}}
+    \multicolumn{3}{c}{%
+      \displaystyle
+      \frac{t_1\trans t_1'}{\taplsucc{t_1}\trans\taplsucc{t_1'}}}
+      &\textsc{E-Succ}\\[5pt]
+    \taplpred{\taplzero}&\trans&\taplzero
+      &\textsc{E-PredZero}\\
+    \taplpred{(\taplsucc{nv_1})}&\trans&nv_1
+      &\textsc{E-PredSucc}\\[4pt]
+    \multicolumn{3}{c}{%
+      \displaystyle
+      \frac{t_1\trans t_1'}{\taplpred{t_1}\trans\taplpred{t_1'}}}
+      &\textsc{E-Pred}\\[5pt]
+    \tapliszero{\taplzero}&\trans&\tapltrue
+      &\textsc{E-IszeroZero}\\
+    \tapliszero{(\taplsucc{nv_1})}&\trans&\taplfalse
+      &\textsc{E-IszeroSucc}\\[4pt]
+    \multicolumn{3}{c}{%
+      \displaystyle
+      \frac{t_1\trans t_1'}{\tapliszero{t_1}\trans\tapliszero{t_1'}}}
+      &\textsc{E-IsZero}
+   \end{array}\)}
 \end{minipage}
 \caption{算术表达式（\(\mathcal{NB}\)）}
 \label{fig:3-2}
 \end{figure}
 
-图~\ref{fig:3-2}右栏的求值规则沿用图~\ref{fig:3-1}中的模式。四条计算规则
+\cref{fig:3-2}右栏的求值规则沿用\cref{fig:3-1}中的模式。四条计算规则
 \textsc{E-PredZero}、\textsc{E-PredSucc}、\textsc{E-IszeroZero} 和
 \textsc{E-IszeroSucc} 说明 \(\mathsf{pred}\) 与 \(\mathsf{iszero}\)
 应用于数字时的行为；三条同余规则 \textsc{E-Succ}、\textsc{E-Pred} 与
-\textsc{E-IsZero} 则把求值引向复合项的“第一个”子项。
+\textsc{E-IsZero} 则规定：对这些复合项求值时，应先让其参数 \(t_1\)
+求值一步。
+
+\translatornote{这里的不对称源于 \(\mathsf{succ}\) 与
+\(\mathsf{pred}\) 的不同作用。\(\mathsf{succ}\) 用来构造数值：当其参数
+成为数值 \(nv\) 后，\(\taplsucc{nv}\) 本身已经是数值，无须继续计算；
+因此 \textsc{E-Succ} 只负责把求值引向参数。\(\mathsf{pred}\) 则用于
+观察并拆解数值：它先通过 \textsc{E-Pred} 求值参数，随后还必须根据所得
+数值的形状，使用 \textsc{E-PredZero} 或 \textsc{E-PredSucc} 得出结果。
+\par\smallskip
+换言之，\textsc{E-PredSucc} 拆掉的是由 \(\mathsf{succ}\) 构造出的
+最外层结构，并不是一条关于 \(\mathsf{succ}\) 自身的求值规则。}
 
 严格地说，现在应当重述\cref{def:3.5.3}：“算术表达式上的单步求值关系，是
-满足图~\ref{fig:3-1} 和图~\ref{fig:3-2} 全部规则实例的最小关系……”为了避免把篇幅浪费
+满足\cref{fig:3-1} 和\cref{fig:3-2} 全部规则实例的最小关系……”为了避免把篇幅浪费
 在这种样板文字上，常见做法是把推导规则本身直接看作关系的定义，默认补上
 “包含所有规则实例的最小关系……”。
 
@@ -889,7 +977,7 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
    {\taplsucc{(\taplpred{\taplzero})}\trans\taplsucc{\taplzero}}}
  {\taplpred{(\taplsucc{(\taplpred{\taplzero})})}
   \trans
-  \taplpred{(\taplsucc{\taplzero})}}.
+  \taplpred{(\taplsucc{\taplzero})}}
 \]
 
 \begin{exercise}[\(\star\star\)]
@@ -897,10 +985,11 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
 证明\cref{thm:3.5.4}对算术表达式上的求值关系仍然成立：若
 \(t\trans t'\) 且 \(t\trans t''\)，则 \(t'=t''\)。
 \end{exercise}
+\taplauthorsolutionlink{sol:author:3.5.14}{3.5.14}
 
 形式化语言的操作语义，迫使我们规定所有项的行为；在这里包括
 \(\taplpred{\taplzero}\) 和 \(\taplsucc{\taplfalse}\) 这样的项。根据
-图~\ref{fig:3-2}的规则，\(\taplzero\) 的前驱被定义为
+\cref{fig:3-2}的规则，\(\taplzero\) 的前驱被定义为
 \(\taplzero\)。另一方面，\(\taplfalse\) 的后继没有定义为求值到任何项，
 也就是说它是范式。我们把这样的项称为\termfirst{卡住}{stuck}。
 
@@ -924,20 +1013,20 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
  badnat&::=&
    \left.
    \begin{array}{@{}rl@{\quad}l@{}}
-      &\taplwrong&\text{运行时错误}\\
-     \mid&\tapltrue&\text{常量真}\\
-     \mid&\taplfalse&\text{常量假}
+      &\taplwrong&\tapltranslateditalic{运行时错误}\\
+     \mid&\tapltrue&\tapltranslateditalic{常量真}\\
+     \mid&\taplfalse&\tapltranslateditalic{常量假}
    \end{array}
    \right\}
-   &\text{非数值范式}\\[8pt]
+   &\tapltranslateditalic{非数值范式}\\[8pt]
  badbool&::=&
    \left.
    \begin{array}{@{}rl@{\quad}l@{}}
-      &\taplwrong&\text{运行时错误}\\
-     \mid&nv&\text{数值}
+      &\taplwrong&\tapltranslateditalic{运行时错误}\\
+     \mid&nv&\tapltranslateditalic{数值}
    \end{array}
    \right\}
-   &\text{非布尔范式}
+   &\tapltranslateditalic{非布尔范式}
 \end{array}
 \]
 并为求值关系添加规则：
@@ -950,13 +1039,14 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
  \taplpred{badnat}&\trans\taplwrong
    &&(\textsc{E-Pred-Wrong})\\
  \tapliszero{badnat}&\trans\taplwrong
-   &&(\textsc{E-IsZero-Wrong}).
+   &&(\textsc{E-IsZero-Wrong})
 \end{aligned}
 \]
-证明这两种处理运行时错误的方式相互吻合：（1）先精确表述“两种处理方式
-相互吻合”这一直观；（2）再证明该表述。证明程序语言性质时经常如此：
+证明这两种处理运行时错误的方式相互吻合：（1）先精确说明这里的“相互
+吻合”究竟是什么意思；（2）再证明这一精确表述。证明程序语言性质时经常如此：
 真正棘手的是准确表述需要证明的命题，证明本身应当很直接。
 \end{exercise}
+\taplauthorsolutionlink{sol:author:3.5.16}{3.5.16}
 
 \begin{exercise}[推荐，\(\star\star\star\)]
 \label{ex:3.5.17}
@@ -994,20 +1084,22 @@ Plotkin 的结构操作语义（1981）、Kahn 的自然语义（1987），以�
  \qquad
  \frac{t_1\Downarrow\taplsucc{nv_1}}
       {\tapliszero{t_1}\Downarrow\taplfalse}
- \quad(\textsc{B-IszeroSucc}).
+ \quad(\textsc{B-IszeroSucc})
 \end{gathered}
 \]
 证明这个语言的小步语义与大步语义一致，即
 \[
- t\transmulti v\quad\Longleftrightarrow\quad t\Downarrow v.
+ t\transmulti v\quad\Longleftrightarrow\quad t\Downarrow v
 \]
 \end{exercise}
+\taplauthorsolutionlink{sol:author:3.5.17}{3.5.17}
 
 \begin{exercise}[\(\star\star,\nrightarrow\)]
 \label{ex:3.5.18}
 假设要改变语言的求值策略，使 if 表达式先按顺序求值 then 分支和 else
 分支，再求值守卫。说明应如何修改求值规则才能达到这一效果。
 \end{exercise}
+\taplsolutionlink{sol:translator:3.5.18}{3.5.18}
 
 \section{注记}
 \label{sec:3.6}
@@ -1024,8 +1116,9 @@ Burstall（1969）把结构归纳引入了计算机科学。
 
 \bilingualepigraph
   {问：为什么还要费心证明程序语言的性质？如果定义正确，这些证明几乎总是
-  很乏味。\par 答：因为定义几乎总是错的。}
+   很乏味。\par
+   答：因为定义几乎总是错的。}
   {Q: Why bother doing proofs about programming languages? They are almost
-  always boring if the definitions are right.\par
-  A: The definitions are almost always wrong.}
+   always boring if the definitions are right.\par
+   A: The definitions are almost always wrong.}
   {——佚名}

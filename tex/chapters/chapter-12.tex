@@ -13,7 +13,7 @@
 \termfirst{可规范化的}{normalizable}。
 
 不同于此前考察的类型安全性质，规范化性质不能推广到完整程序语言，因为这类
-语言几乎总会用一般递归（\S\ref{sec:11.11}）或递归类型
+语言几乎总会用一般递归（\taplsecref{11.11}{sec:11.11}）或递归类型
 （\chapref{20}）等构造扩展简单类型 lambda 演算，而这些构造可以
 写出不终止程序。不过，\taplsecref{30.3}{sec:30.3} 讨论
 System \(F_\omega\) 的
@@ -38,8 +38,8 @@ System \(F_\omega\) 的
 
 这里考察以单一基本类型 \(A\) 为基础的简单类型 lambda 演算。该演算的规范化
 证明并非完全平凡，因为项的每一步归约都可能复制子项中的可归约式。
-\footnote{本章研究带一个基本类型 \(A\)（图~\ref{fig:11-1}）的简单类型
-lambda 演算（图~\ref{fig:9-1}）。}
+\footnote{本章研究带一个基本类型 \(A\)（\cref{fig:11-1}）的简单类型
+lambda 演算（\cref{fig:9-1}）。}
 
 \begin{exercise}[\(\star\)]
 \label{ex:12.1.1}
@@ -62,7 +62,7 @@ lambda 演算（图~\ref{fig:9-1}）。}
 \mathcal R_{T_1\to T_2}(t)
 &\quad\Longleftrightarrow\quad
 t\text{ 停止，并且对每个 }s:T_1,\
-\mathcal R_{T_1}(s)\text{ 都蕴含 }\mathcal R_{T_2}(t\,s).
+\mathcal R_{T_1}(s)\text{ 都蕴含 }\mathcal R_{T_2}(t\,s)
 \end{aligned}
 \]
 \end{definition}
@@ -74,7 +74,7 @@ t\text{ 停止，并且对每个 }s:T_1,\
 因此，对函数类型的项需要更强的条件：它们不仅自身应当停止，应用于停止的
 参数时还应当产生停止的结果。
 
-定义~\ref{def:12.1.2} 的形式是
+\cref{def:12.1.2} 的形式是
 \termfirst{逻辑关系}{logical relation}证明技术的典型形式；这里只处理一元
 关系，严格地说更应称为\termfirst{逻辑谓词}{logical predicate}。若想证明
 基本类型 \(A\) 的全部闭项都具有某项性质 \(P\)，可以对类型作归纳，证明：
@@ -138,7 +138,7 @@ x_1:T_1,\ldots,x_n:T_n\vdash t:T,
 \[
 \mathcal R_T(
   \taplsubst{x_1}{v_1}{\cdots
-    \taplsubst{x_n}{v_n}{t}}).
+    \taplsubst{x_n}{v_n}{t}})
 \]
 \end{lemma}
 
@@ -149,7 +149,7 @@ x_1:T_1,\ldots,x_n:T_n\vdash t:T,
 \medskip\noindent
 \textbf{情形 \rulename{T-Var}：}
 \[
-t=x_i,\qquad T=T_i.
+t=x_i,\qquad T=T_i
 \]
 立即成立。
 
@@ -159,7 +159,7 @@ t=x_i,\qquad T=T_i.
 \begin{gathered}
 t=\lambda x:S_1.\,s_2,\qquad
 x_1:T_1,\ldots,x_n:T_n,x:S_1\vdash s_2:S_2,\\
-T=S_1\to S_2.
+T=S_1\to S_2
 \end{gathered}
 \]
 显然，
@@ -173,16 +173,16 @@ T=S_1\to S_2.
 \mathcal R_{S_2}\bigl(
  (\lambda x:S_1.\,
    \taplsubst{x_1}{v_1}{\cdots
-    \taplsubst{x_n}{v_n}{s_2}})\,s\bigr).
+    \taplsubst{x_n}{v_n}{s_2}})\,s\bigr)
 \]
-于是设 \(s\) 是这样的项。由引理~\ref{lem:12.1.3}，存在某个 \(v\)，使
-\(s\transmulti v\)。由引理~\ref{lem:12.1.4}，
+于是设 \(s\) 是这样的项。由\cref{lem:12.1.3}，存在某个 \(v\)，使
+\(s\transmulti v\)。由\cref{lem:12.1.4}，
 \(\mathcal R_{S_1}(v)\)。现在使用归纳假设，得到
 \[
 \mathcal R_{S_2}\bigl(
 \taplsubst{x_1}{v_1}{\cdots
  \taplsubst{x_n}{v_n}{
-  \taplsubst{x}{v}{s_2}}}\bigr).
+  \taplsubst{x}{v}{s_2}}}\bigr)
 \]
 而
 \[
@@ -193,16 +193,16 @@ T=S_1\to S_2.
 &\qquad\transmulti
 \taplsubst{x_1}{v_1}{\cdots
  \taplsubst{x_n}{v_n}{
-  \taplsubst{x}{v}{s_2}}}.
+  \taplsubst{x}{v}{s_2}}}
 \end{aligned}
 \]
-再由引理~\ref{lem:12.1.4} 得到
+再由\cref{lem:12.1.4} 得到
 \[
 \mathcal R_{S_2}\Bigl(
  \taplobjparens{\lambda x:S_1.\,
    \taplsubst{x_1}{v_1}{\cdots
     \taplsubst{x_n}{v_n}{s_2}}}\,s
-\Bigr).
+\Bigr)
 \]
 也就是说，
 \[
@@ -210,14 +210,14 @@ T=S_1\to S_2.
  \taplobjparens{
   \taplsubst{x_1}{v_1}{\cdots
    \taplsubst{x_n}{v_n}{\lambda x:S_1.\,s_2}}}\,s
-\Bigr).
+\Bigr)
 \]
 由于 \(s\) 任取，\(\mathcal R_{S_1\to S_2}\) 的定义给出
 \[
 \mathcal R_{S_1\to S_2}\Bigl(
  \taplsubst{x_1}{v_1}{\cdots
   \taplsubst{x_n}{v_n}{\lambda x:S_1.\,s_2}}
-\Bigr).
+\Bigr)
 \]
 
 \medskip\noindent
@@ -227,7 +227,7 @@ T=S_1\to S_2.
 t=t_1\,t_2,\\
 x_1:T_1,\ldots,x_n:T_n\vdash t_1:T_{11}\to T_{12},\\
 x_1:T_1,\ldots,x_n:T_n\vdash t_2:T_{11},\qquad
-T=T_{12}.
+T=T_{12}
 \end{gathered}
 \]
 归纳假设分别给出
@@ -238,7 +238,7 @@ T=T_{12}.
 与
 \[
 \mathcal R_{T_{11}}(
- \taplsubst{x_1}{v_1}{\cdots\taplsubst{x_n}{v_n}{t_2}}).
+ \taplsubst{x_1}{v_1}{\cdots\taplsubst{x_n}{v_n}{t_2}})
 \]
 由 \(\mathcal R_{T_{11}\to T_{12}}\) 的定义可得
 \[
@@ -254,11 +254,11 @@ T=T_{12}.
 \mathcal R_{T_{12}}\Bigl(
  \taplsubst{x_1}{v_1}{\cdots
   \taplsubst{x_n}{v_n}{\taplobjparens{t_1\,t_2}}}
-\Bigr).
+\Bigr)
 \]
 \end{proof}
 
-现在只需在引理~\ref{lem:12.1.5} 中令 \(t\) 为闭项，再回想每个
+现在只需在\cref{lem:12.1.5} 中令 \(t\) 为闭项，再回想每个
 \(\mathcal R_T\) 的元素都可规范化，就得到规范化性质。
 
 \begin{theorem}[规范化]
@@ -267,14 +267,14 @@ T=T_{12}.
 \end{theorem}
 
 \begin{proof}
-由引理~\ref{lem:12.1.5} 得 \(\mathcal R_T(t)\)，再由
-引理~\ref{lem:12.1.3} 得 \(t\) 可规范化。
+由\cref{lem:12.1.5} 得 \(\mathcal R_T(t)\)，再由
+\cref{lem:12.1.3} 得 \(t\) 可规范化。
 \end{proof}
 
 \begin{exercise}[推荐，\(\star\star\star\)]
 \label{ex:12.1.7}
 扩展本章的证明技术，说明简单类型 lambda 演算加入布尔值
-（图~\ref{fig:8-1}）与积（图~\ref{fig:11-5}）之后仍然可规范化。
+（\cref{fig:8-1}）与积（\cref{fig:11-5}）之后仍然可规范化。
 \end{exercise}
 
 \section{注记}

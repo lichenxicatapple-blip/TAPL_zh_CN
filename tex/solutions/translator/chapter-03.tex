@@ -1,0 +1,49 @@
+\section*{第 3 章：无类型算术表达式}
+\addcontentsline{toc}{section}{第 3 章：无类型算术表达式}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:3.5.18}
+\textbf{练习 3.5.18}
+
+要强制采用“先 then 分支，再 else 分支，最后守卫”的次序，可以把条件式
+规则改成：
+\[
+\inferrule*[right=\textsc{E-IfThen}]
+  {t_2\trans t_2'}
+  {\taplif{t_1}{t_2}{t_3}
+   \trans
+   \taplif{t_1}{t_2'}{t_3}}
+\]
+\[
+\inferrule*[right=\textsc{E-IfElse}]
+  {t_3\trans t_3'}
+  {\taplif{t_1}{v_2}{t_3}
+   \trans
+   \taplif{t_1}{v_2}{t_3'}}
+\]
+\[
+\inferrule*[right=\textsc{E-If}]
+  {t_1\trans t_1'}
+  {\taplif{t_1}{v_2}{v_3}
+   \trans
+   \taplif{t_1'}{v_2}{v_3}}
+\]
+最后保留两个计算规则，但要求两个分支都已经是值：
+\[
+\begin{gathered}
+  \taplif{\tapltrue}{v_2}{v_3}\trans v_2
+  \quad(\textsc{E-IfTrue}),\\[4pt]
+  \taplif{\taplfalse}{v_2}{v_3}\trans v_3
+  \quad(\textsc{E-IfFalse})
+\end{gathered}
+\]
+
+这些值限制决定了求值次序：只要 \(t_2\) 还能归约，就只能使用
+\textsc{E-IfThen}；等 \(t_2\) 成为值后，才轮到 \(t_3\)；两个分支都成为
+值后，才允许归约守卫。尤其不能把原来的 \textsc{E-IfTrue}、
+\textsc{E-IfFalse} 原样保留，否则守卫一旦已经是布尔值，就会跳过尚未求值
+的分支。
+
+\taplsolutionbacklink{ex:3.5.18}{返回练习 3.5.18}
+\end{taplsolutionentrybox}

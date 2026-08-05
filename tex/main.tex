@@ -43,6 +43,11 @@
     \input{chapters/chapter-12}
     \input{chapters/chapter-13}
     \input{chapters/chapter-14}
+    \taplappendicespart
+    \appendix
+    \input{appendices/appendix-a}
+    \backmatter
+    \input{solutions/translator-solutions}
   \else\ifdefined\TAPLPartOneReviewOnly
     \tableofcontents
     \mainmatter
@@ -55,6 +60,11 @@
     \input{chapters/chapter-05}
     \input{chapters/chapter-06}
     \input{chapters/chapter-07}
+    \taplappendicespart
+    \appendix
+    \input{appendices/appendix-a}
+    \backmatter
+    \input{solutions/translator-solutions}
   \else
     \tableofcontents
     \input{frontmatter/preface}
@@ -62,11 +72,14 @@
     \mainmatter
     \input{book-structure}
 
+    \taplappendicespart
     \appendix
     \input{appendices/appendix-a}
     \input{appendices/appendix-b}
 
     \backmatter
+    \input{solutions/translator-solutions}
+    \bookmarksetup{startatroot}
     \input{backmatter/references}
     \input{backmatter/index}
   \fi\fi

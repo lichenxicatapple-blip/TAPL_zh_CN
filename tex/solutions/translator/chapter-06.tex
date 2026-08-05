@@ -1,0 +1,165 @@
+\section*{第 6 章：项的无名表示}
+\addcontentsline{toc}{section}{第 6 章：项的无名表示}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:6.1.4}
+\textbf{练习 6.1.4}
+
+对每个 \(n,i\in\Nat\)，递归定义
+\[
+\begin{aligned}
+S_{n,0}&=\varnothing,\\
+S_{n,i+1}
+  &=
+  \{0,\ldots,n-1\}\\
+  &\quad{}\cup
+  \{\lambda.\,t\mid t\in S_{n+1,i}\}\\
+  &\quad{}\cup
+  \{t_1\,t_2\mid t_1,t_2\in S_{n,i}\},
+\end{aligned}
+\]
+并令
+\[
+  S_n=\bigcup_iS_{n,i}
+\]
+先同时对 \(n\) 证明 \(S_{n,i}\subseteq S_{n,i+1}\)。基例为空集；
+归纳步骤逐一检查变量、抽象和应用三种生成方式即可。
+
+现在证明 \(\{S_n\}\) 满足定义 6.1.2 的三条闭包条件。若 \(0\leq k<n\)，
+则 \(k\in S_{n,1}\)。若 \(t\in S_{n+1}\)，则 \(t\) 属于某个
+\(S_{n+1,i}\)，故 \(\lambda.\,t\in S_{n,i+1}\)。若
+\(t_1,t_2\in S_n\)，取一个同时不小于二者所在阶段的 \(i\)，利用累积性可得
+\(t_1,t_2\in S_{n,i}\)，于是 \(t_1t_2\in S_{n,i+1}\)。
+
+还需证明最小性。设集合族 \(\{U_n\}\) 满足定义 6.1.2 的三条规则。
+对 \(i\) 作归纳，同时证明所有 \(n\) 都有 \(S_{n,i}\subseteq U_n\)。
+基例显然；归纳步骤中，变量由第一条规则进入 \(U_n\)，抽象由对
+\(S_{n+1,i}\) 的归纳假设和第二条规则进入 \(U_n\)，应用则由对两个子项的
+归纳假设和第三条规则进入 \(U_n\)。因此 \(S_n\subseteq U_n\)。
+
+所以 \(\{S_n\}\) 是满足三条规则的最小集合族，与定义 6.1.2 中的
+\(\{T_n\}\) 相同。
+
+\taplsolutionbacklink{ex:6.1.4}{返回练习 6.1.4}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:6.2.3}
+\textbf{练习 6.2.3}
+
+证明一个稍强的、显式记录当前绑定深度的命题。设 \(t\in T_{n+c}\)，并把
+索引 \(k\geq c\) 的出现视为相对于外层上下文的自由变量，其外层索引为
+\(k-c\)。若 \(d<0\) 时这些外层索引都不小于 \(|d|\)，则
+\[
+  \uparrow^d_c(t)\in T_{\max(n+d,0)+c}
+\]
+对 \(t\) 的结构作归纳。
+
+\begin{itemize}
+  \item 若 \(t=k\)，当 \(k<c\) 时移位不改变 \(k\)，而
+    \(k<c\leq\max(n+d,0)+c\)。当 \(k\geq c\) 时，结果为 \(k+d\)。
+    若 \(d\geq0\)，显然
+    \(c\leq k+d<n+d+c\)；若 \(d<0\)，前提
+    \(k-c\geq|d|\) 保证 \(k+d\geq c\)，而 \(k<n+c\) 保证
+    \(k+d<n+d+c\)。因此结果属于目标项集。
+  \item 若 \(t=\lambda.\,t_1\)，则 \(t_1\in T_{n+c+1}\)。
+    对 \(t_1\) 使用归纳假设，截点改为 \(c+1\)，得到
+    \[
+      \uparrow^d_{c+1}(t_1)
+      \in T_{\max(n+d,0)+c+1}
+    \]
+    再用定义 6.1.2 的抽象规则，得到
+    \(\lambda.\,\uparrow^d_{c+1}(t_1)
+      \in T_{\max(n+d,0)+c}\)。
+  \item 若 \(t=t_1t_2\)，分别对两个子项使用归纳假设，再用应用规则即可。
+\end{itemize}
+
+在上述结论中取 \(c=0\)，就得到题目要求的
+\[
+  \uparrow^d(t)\in T_{\max(n+d,0)}
+\]
+
+\taplsolutionbacklink{ex:6.2.3}{返回练习 6.2.3}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:6.2.6}
+\textbf{练习 6.2.6}
+
+对 \(t\) 的结构作归纳；归纳命题同时对所有 \(n\) 成立。
+
+\begin{itemize}
+  \item 若 \(t=k\)，则 \(k<n\)。若 \(k=j\)，替换结果为
+    \(s\in T_n\)；否则结果仍为 \(k\in T_n\)。
+  \item 若 \(t=\lambda.\,t_1\)，则 \(t_1\in T_{n+1}\)，而
+    \[
+      [j\mapsto s]t
+      =\lambda.\,[j+1\mapsto\uparrow^1(s)]t_1
+    \]
+    由移位性质，\(\uparrow^1(s)\in T_{n+1}\)，且
+    \(j+1\leq n+1\)。对 \(t_1\) 使用归纳假设，得到
+    \[
+      [j+1\mapsto\uparrow^1(s)]t_1\in T_{n+1}
+    \]
+    再用抽象规则，整个结果属于 \(T_n\)。
+  \item 若 \(t=t_1t_2\)，归纳假设分别给出
+    \([j\mapsto s]t_1\in T_n\) 与
+    \([j\mapsto s]t_2\in T_n\)，再用应用规则即可。
+\end{itemize}
+
+\taplsolutionbacklink{ex:6.2.6}{返回练习 6.2.6}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:6.2.7}
+\textbf{练习 6.2.7}
+
+可以从“进入一个绑定子时，外部自由变量的编号都要让出一个位置”这一不变量
+重新推导两个定义。
+
+先定义在截点 \(c\) 之上移位：
+\[
+\begin{aligned}
+\uparrow^d_c(k)
+  &=
+  \begin{cases}
+    k,&k<c,\\
+    k+d,&k\geq c,
+  \end{cases}\\
+\uparrow^d_c(\lambda.\,t_1)
+  &=\lambda.\,\uparrow^d_{c+1}(t_1),\\
+\uparrow^d_c(t_1t_2)
+  &=\uparrow^d_c(t_1)\,\uparrow^d_c(t_2)
+\end{aligned}
+\]
+变量分支只移动当前绑定深度之外的变量；进入抽象时，截点加一。
+
+再定义替换。变量 \(j\) 命中时换成 \(s\)，其他变量保持不变；进入抽象时，
+目标变量在函数体中的编号变成 \(j+1\)，而 \(s\) 的自由变量也必须整体
+上移一位：
+\[
+\begin{aligned}
+[j\mapsto s]k
+  &=
+  \begin{cases}
+    s,&k=j,\\
+    k,&k\neq j,
+  \end{cases}\\
+[j\mapsto s](\lambda.\,t_1)
+  &=\lambda.\,[j+1\mapsto\uparrow^1(s)]t_1,\\
+[j\mapsto s](t_1t_2)
+  &=([j\mapsto s]t_1)([j\mapsto s]t_2)
+\end{aligned}
+\]
+
+自检时可用两个关键例子：\([0\mapsto s](\lambda.\,1)\) 应把外层变量替换
+为上移后的 \(s\)，而 \([0\mapsto s](\lambda.\,0)\) 必须保持抽象内部的
+受约束变量 \(0\) 不变。这两点分别检验了“进入抽象时移动替换项”和“不能
+误替换受约束变量”。
+
+\taplsolutionbacklink{ex:6.2.7}{返回练习 6.2.7}
+\end{taplsolutionentrybox}

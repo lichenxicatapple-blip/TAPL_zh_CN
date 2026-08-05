@@ -9,6 +9,7 @@
 \usepackage{caption}
 \captionsetup{labelfont=bf}
 \usepackage{placeins}
+\usepackage{needspace}
 \usepackage{booktabs}
 \usepackage{longtable}
 \usepackage{tabularx}
@@ -23,6 +24,7 @@
 \usepackage{mathpartir}
 
 \usepackage{listings}
+\usepackage[cachedir=../build/_minted-\jobname]{minted}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning}
 \usepackage{pgfplots}
@@ -46,6 +48,10 @@
 \definecolor{TAPLKeyStatementBorder}{HTML}{71869A}
 \definecolor{TAPLNewMaterialBackground}{HTML}{ECECEC}
 \definecolor{TAPLTodo}{HTML}{A61B1B}
+\definecolor{TAPLSolutionBackground}{HTML}{F4F7F9}
+\definecolor{TAPLSolutionBorder}{HTML}{8194A3}
+\definecolor{TAPLAuthorSolutionBackground}{HTML}{FFFFFF}
+\definecolor{TAPLAuthorSolutionBorder}{HTML}{B8C1C8}
 
 \pagestyle{fancy}
 \fancyhf{}
@@ -58,6 +64,7 @@
   \renewcommand{\headrulewidth}{0pt}
   \renewcommand{\footrulewidth}{0pt}
 }
+\raggedbottom
 
 \hypersetup{
   colorlinks=true,
@@ -78,3 +85,38 @@
   backgroundcolor=\color{TAPLCodeBackground},
   breaklines=true
 }
+
+\setminted{
+  style=friendly,
+  bgcolor=TAPLCodeBackground,
+  breaklines,
+  fontsize=\small,
+  frame=single,
+  framesep=3pt,
+  rulecolor=\color{black!55},
+  tabsize=2,
+  encoding=utf8
+}
+
+% Pygments 的 friendly 样式默认把注释设为斜体。英文注释尚可接受，但这会
+% 令中文和标点切换到不协调的斜体字形。保留 friendly 的注释颜色，只取消
+% Comment、Comment.Hashbang、Comment.Multiline、Comment.PreprocFile 和
+% Comment.Single 的斜体。minted 每次排版代码前都会重新载入样式，因此把
+% 覆盖逻辑附加到其样式初始化末尾。
+\makeatletter
+\newcommand{\taplmintedcommentupright}{%
+  \@namedef{PYG@tok@c}{\def\PYG@tc####1{\textcolor[rgb]{0.38,0.63,0.69}{####1}}}%
+  \@namedef{PYG@tok@ch}{\def\PYG@tc####1{\textcolor[rgb]{0.38,0.63,0.69}{####1}}}%
+  \@namedef{PYG@tok@cm}{\def\PYG@tc####1{\textcolor[rgb]{0.38,0.63,0.69}{####1}}}%
+  \@namedef{PYG@tok@cpf}{\def\PYG@tc####1{\textcolor[rgb]{0.38,0.63,0.69}{####1}}}%
+  \@namedef{PYG@tok@c1}{\def\PYG@tc####1{\textcolor[rgb]{0.38,0.63,0.69}{####1}}}%
+}
+\apptocmd{\minted@defstyle}{\taplmintedcommentupright}{}{%
+  \PackageError{tapl}{Unable to normalize minted comment style}{}%
+}
+\makeatother
+
+\newminted[taplocamlcode]{ocaml}{}
+\newminted[taplrustcode]{rust}{}
+\BeforeBeginEnvironment{taplocamlcode}{\Needspace{7\baselineskip}}
+\BeforeBeginEnvironment{taplrustcode}{\Needspace{7\baselineskip}}

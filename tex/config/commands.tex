@@ -8,6 +8,11 @@
 \newcommand{\judge}[1]{\mathrel{\vdash} #1}
 \newcommand{\trans}{\mathrel{\longrightarrow}}
 \newcommand{\transmulti}{\mathrel{\longrightarrow^{*}}}
+\newcommand{\otrans}{\mathrel{\overset{o}{\longrightarrow}}}
+\newcommand{\wtrans}{\mathrel{\overset{w}{\longrightarrow}}}
+\newcommand{\otransmulti}{\mathrel{\overset{o}{\longrightarrow^{*}}}}
+\newcommand{\wtransmulti}{\mathrel{\overset{w}{\longrightarrow^{*}}}}
+\newcommand{\bigstep}{\mathrel{\Downarrow}}
 \newcommand{\fv}{\operatorname{FV}}
 \newcommand{\dom}{\operatorname{dom}}
 \newcommand{\range}{\operatorname{range}}
@@ -39,6 +44,22 @@
 \newcommand{\taplfigureheader}[2]{%
   \noindent\textbf{#1}\hfill\textit{扩展 #2}\par\smallskip
 }
+\newcommand{\taplformalsystemcolumns}[2]{%
+  \par\smallskip
+  \noindent
+  \begin{tabularx}{\linewidth}{%
+    @{}>{\raggedright\arraybackslash}p{0.38\linewidth}%
+    !{\hspace{0.018\linewidth}\vrule width 0.4pt\hspace{0.018\linewidth}}%
+    >{\raggedright\arraybackslash}X@{}%
+  }
+    \hline
+    \noalign{\vskip 6pt}
+    #1 & #2 \\
+    \noalign{\vskip 6pt}
+    \hline
+  \end{tabularx}%
+  \par
+}
 \renewcommand{\thefigure}{%
   \ifnum\value{chapter}>0\relax
     \thechapter-\arabic{figure}%
@@ -53,6 +74,23 @@
 \newcommand{\SystemF}{\ensuremath{\mathrm{F}}}
 \newcommand{\SystemFomega}{\ensuremath{\mathrm{F}_{\omega}}}
 \newcommand{\SystemFomegasub}{\ensuremath{\mathrm{F}_{\omega<:}}}
+
+% Text translating source italics keeps a Song face and uses a controlled
+% synthetic slant instead of switching Chinese text to Kai via \emph.  Latin
+% and CJK faces are selected together so the same public command also works in
+% math arrays and in mixed-script phrases.
+\newfontfamily\tapltranslateditaliclatinfont[
+  FakeSlant=0.18
+]{lmroman10-regular.otf}
+\newCJKfontfamily\tapltranslateditaliccjkfont[
+  FakeSlant=0.18
+]{FandolSong-Regular.otf}
+\newcommand{\tapltranslateditalictext}[1]{{%
+  \tapltranslateditaliclatinfont\tapltranslateditaliccjkfont #1}}
+\newcommand{\tapltranslateditalic}[1]{%
+  \ensuremath{\text{\tapltranslateditalictext{#1}}}%
+}
+
 \newtcolorbox{tapltranslatornotebox}{
   breakable,
   colback=TAPLTranslatorNoteBackground,
@@ -98,6 +136,35 @@
   after skip=8pt plus 2pt minus 2pt,
   fontupper=\footnotesize
 }
+\newtcolorbox{taplsolutionentrybox}{
+  breakable,
+  colback=TAPLSolutionBackground,
+  colframe=TAPLSolutionBorder,
+  boxrule=0.45pt,
+  arc=1.5pt,
+  boxsep=0pt,
+  left=10pt,
+  right=10pt,
+  top=9pt,
+  bottom=9pt,
+  before skip=10pt plus 2pt minus 2pt,
+  after skip=10pt plus 2pt minus 2pt
+}
+\newtcolorbox{taplauthorsolutionentrybox}{
+  breakable,
+  colback=TAPLAuthorSolutionBackground,
+  colframe=TAPLAuthorSolutionBorder,
+  boxrule=0pt,
+  leftrule=1.5pt,
+  arc=0pt,
+  boxsep=0pt,
+  left=10pt,
+  right=8pt,
+  top=7pt,
+  bottom=7pt,
+  before skip=10pt plus 2pt minus 2pt,
+  after skip=10pt plus 2pt minus 2pt
+}
 \newenvironment{keystatement}
   {\begin{taplkeystatementbox}}
   {\end{taplkeystatementbox}}
@@ -111,24 +178,79 @@
     #1
   \end{taplauthornotebox}
 }
-\newcommand{\bilingualepigraph}[3]{%
+\newcommand{\taplrustcounterpart}[2][]{%
+  \ifstrequal{#1}{break}{\tcbbreak}{}%
+  \par\Needspace{8\baselineskip}\smallskip
+  \begingroup
+    \noindent
+    {\footnotesize\bfseries Rust 对照实现（译者增补）\par}
+    \nobreak\smallskip
+    \inputminted{rust}{../build/code-snippets/#2.rs}%
+  \endgroup
+  \par\medskip
+}
+\newcommand{\taplrustsupport}[2][]{%
+  \ifstrequal{#1}{break}{\tcbbreak}{}%
+  \par\Needspace{8\baselineskip}\smallskip
+  \begingroup
+    \noindent
+    {\footnotesize\bfseries Rust 辅助实现（译者增补）\par}
+    \nobreak\smallskip
+    \inputminted{rust}{../build/code-snippets/#2.rs}%
+  \endgroup
+  \par\medskip
+}
+\newcommand{\taplsolutionlink}[2]{%
+  \par\smallskip
+  \noindent
+  {\footnotesize
+    \hyperref[#1]{%
+      \textcolor{TAPLLink}{\textbf{查看练习 #2 的译者参考解答}}%
+    }%
+  }%
+  \par\smallskip
+}
+\newcommand{\taplauthorsolutionlink}[2]{%
+  \par\smallskip
+  \noindent
+  {\footnotesize
+    \hyperref[#1]{%
+      \textcolor{TAPLLink}{\textbf{查看原书附录 A 中的 #2 解答}}%
+    }%
+  }%
+  \par\smallskip
+}
+\newcommand{\taplsolutionbacklink}[2]{%
+  \medskip
+  \noindent
+  {\footnotesize
+    \hyperref[#1]{\textcolor{TAPLLink}{\textbf{#2}}}%
+  }%
+}
+% Part VII exists in the source book.  Review builds may contain only the
+% earlier parts, so force the original part number before creating it.
+\newcommand{\taplappendicespart}{%
+  \setcounter{part}{6}%
+  \part{\TAPLPartSevenTitle}%
+  \label{part:appendices}%
+}
+\newcommand{\bilingualepigraph}[4][0.72\textwidth]{%
   \begin{flushright}
-    \begin{minipage}{0.82\textwidth}
-      \itshape
-      #1\par
+    \begin{minipage}{#1}
+      \itshape\raggedright
+      #2\par
       \smallskip
-      {\small #2\par}
+      {\small #3\par}
       \medskip
-      \raggedleft
-      #3\par
+      {\raggedleft #4\par}
     \end{minipage}
   \end{flushright}
 }
 \newcommand{\chapref}[1]{%
   \ifcsname r@chap:#1\endcsname
-    \hyperref[chap:#1]{第~\ref*{chap:#1}~章}%
+    \hyperref[chap:#1]{\mbox{第\ref*{chap:#1}章}}%
   \else
-    第~#1~章%
+    \mbox{第#1章}%
   \fi
 }
 \newcommand{\taplsecref}[2]{%
@@ -137,6 +259,14 @@
   \else
     \S#1%
   \fi
+}
+\newcommand{\tapltightreftext}[1]{%
+  \begingroup
+    \xeCJKsetup{CJKecglue={}}#1%
+  \endgroup
+}
+\newcommand{\taplnamedref}[2]{%
+  \hyperref[#1]{\tapltightreftext{#2\ref*{#1}}}%
 }
 
 \theoremstyle{definition}
@@ -156,17 +286,57 @@
 \newtheorem{remark}[definition]{注}
 \renewcommand{\proofname}{证明}
 
-\crefname{definition}{定义}{定义}
-\crefname{exercise}{练习}{练习}
-\crefname{example}{例}{例}
-\crefname{axiom}{公理}{公理}
-\crefname{convention}{约定}{约定}
-\crefname{theorem}{定理}{定理}
-\crefname{lemma}{引理}{引理}
-\crefname{proposition}{命题}{命题}
-\crefname{corollary}{推论}{推论}
-\crefname{remark}{注}{注}
-\crefname{figure}{图}{图}
-\crefname{table}{表}{表}
-\crefname{chapter}{第}{章}
-\crefname{section}{节}{节}
+% Chinese structural references are set without the western word-number space.
+\newcommand{\taplsettightcref}[2]{%
+  \crefname{#1}{#2}{#2}%
+  \Crefname{#1}{#2}{#2}%
+  \crefformat{#1}{\tapltightreftext{##2#2##1##3}}%
+  \Crefformat{#1}{\tapltightreftext{##2#2##1##3}}%
+  \crefrangeformat{#1}{\tapltightreftext{##3#2##1##4至##5##2##6}}%
+  \Crefrangeformat{#1}{\tapltightreftext{##3#2##1##4至##5##2##6}}%
+  \crefmultiformat{#1}
+    {\tapltightreftext{##2#2##1##3}}
+    {\tapltightreftext{和##2##1##3}}
+    {\tapltightreftext{、##2##1##3}}
+    {\tapltightreftext{和##2##1##3}}%
+  \Crefmultiformat{#1}
+    {\tapltightreftext{##2#2##1##3}}
+    {\tapltightreftext{和##2##1##3}}
+    {\tapltightreftext{、##2##1##3}}
+    {\tapltightreftext{和##2##1##3}}%
+}
+\newcommand{\taplsetwrappedcref}[3]{%
+  \crefname{#1}{#2}{#2}%
+  \Crefname{#1}{#2}{#2}%
+  \crefformat{#1}{\tapltightreftext{##2#2##1#3##3}}%
+  \Crefformat{#1}{\tapltightreftext{##2#2##1#3##3}}%
+  \crefrangeformat{#1}{%
+    \tapltightreftext{##3#2##1#3##4至##5#2##2#3##6}}%
+  \Crefrangeformat{#1}{%
+    \tapltightreftext{##3#2##1#3##4至##5#2##2#3##6}}%
+  \crefmultiformat{#1}
+    {\tapltightreftext{##2#2##1#3##3}}
+    {\tapltightreftext{和##2#2##1#3##3}}
+    {\tapltightreftext{、##2#2##1#3##3}}
+    {\tapltightreftext{和##2#2##1#3##3}}%
+  \Crefmultiformat{#1}
+    {\tapltightreftext{##2#2##1#3##3}}
+    {\tapltightreftext{和##2#2##1#3##3}}
+    {\tapltightreftext{、##2#2##1#3##3}}
+    {\tapltightreftext{和##2#2##1#3##3}}%
+}
+
+\taplsettightcref{definition}{定义}
+\taplsettightcref{exercise}{练习}
+\taplsettightcref{example}{例}
+\taplsettightcref{axiom}{公理}
+\taplsettightcref{convention}{约定}
+\taplsettightcref{theorem}{定理}
+\taplsettightcref{lemma}{引理}
+\taplsettightcref{proposition}{命题}
+\taplsettightcref{corollary}{推论}
+\taplsettightcref{remark}{注}
+\taplsettightcref{figure}{图}
+\taplsettightcref{table}{表}
+\taplsetwrappedcref{chapter}{第}{章}
+\taplsetwrappedcref{section}{第}{节}

@@ -7,6 +7,10 @@ name = "tapl-arith"
 version = "0.1.0"
 
 [[package]]
+name = "tapl-book-snippets"
+version = "0.1.0"
+
+[[package]]
 name = "tapl-simple"
 version = "0.1.0"
 

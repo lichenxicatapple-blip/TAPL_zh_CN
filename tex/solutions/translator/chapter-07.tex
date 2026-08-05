@@ -1,0 +1,33 @@
+\section*{第 7 章：无类型 lambda 演算的 ML 实现}
+\addcontentsline{toc}{section}{第 7 章：无类型 lambda 演算的 ML 实现}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:7.3.1}
+\textbf{练习 7.3.1}
+
+按值调用的大步求值器先把函数位置求值为抽象，再把参数求值为值，执行一次
+顶层替换，最后递归求值替换结果：
+
+\begin{taplocamlcode}
+let rec eval ctx t =
+  match t with
+    TmAbs _ -> t
+  | TmApp(_, t1, t2) ->
+      let v1 = eval ctx t1 in
+      let v2 = eval ctx t2 in
+      (match v1 with
+         TmAbs(_, _, t12) ->
+           eval ctx (termSubstTop v2 t12)
+       | _ -> raise NoRuleApplies)
+  | _ -> raise NoRuleApplies
+\end{taplocamlcode}
+\taplrustcounterpart{sol-translator-07-eval-big}
+
+对闭项而言，这段程序与练习 5.3.8 的规则逐项对应：\texttt{TmAbs} 对应
+\textsc{B-Value}，\texttt{TmApp} 分支对应 \textsc{B-App} 的三个前提。
+若对含自由变量的开项求值，变量没有大步规则，因而抛出
+\texttt{NoRuleApplies}。
+
+\taplsolutionbacklink{ex:7.3.1}{返回练习 7.3.1}
+\end{taplsolutionentrybox}

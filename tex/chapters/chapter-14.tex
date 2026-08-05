@@ -8,7 +8,7 @@
 
 \section*{概述}
 
-第~\ref{chap:13}~章说明了怎样用可变引用扩展纯简单类型 lambda 演算的
+\chapref{13}说明了怎样用可变引用扩展纯简单类型 lambda 演算的
 简单操作语义，并考察这项扩展对类型规则和类型安全性证明的影响。本章处理
 对原计算模型的另一项扩展：抛出和处理异常。
 
@@ -16,30 +16,30 @@
 某项计算涉及除零或算术溢出，字典中缺少查找键，数组索引越界，文件找不到或
 无法打开，系统内存耗尽、用户终止进程一类灾难性事件发生，等等。
 
-\S\ref{sec:11.10} 已经看到，有些异常条件可以通过让函数返回变体
+\taplsecref{11.10}{sec:11.10} 已经看到，有些异常条件可以通过让函数返回变体
 （或 option）来表示。但若这些条件确实属于异常情形，我们也许不愿强迫函数的每个
 调用者都处理它们发生的可能。更合意的做法可能是：异常条件把控制直接转移到
 程序更高层定义的异常处理器；甚至在异常足够罕见、或调用者无论如何也无法
-恢复时，直接终止程序。本章先考察后一情形（\S\ref{sec:14.1}），把异常视为
-整个程序的终止；再加入捕获异常并从中恢复的机制（\S\ref{sec:14.2}）；
+恢复时，直接终止程序。本章先考察后一情形（\taplsecref{14.1}{sec:14.1}），把异常视为
+整个程序的终止；再加入捕获异常并从中恢复的机制（\taplsecref{14.2}{sec:14.2}）；
 最后细化两种机制，让程序员指定的额外数据可以从异常抛出点传给处理器
-（\S\ref{sec:14.3}）。\footnote{本章研究在简单类型 lambda 演算
-（图~\ref{fig:9-1}）上加入多种异常抛出与处理基本构造的系统
-（图~\ref{fig:14-1} 与图~\ref{fig:14-2}）。第一种扩展的 OCaml 实现是
-\texttt{fullerror}；携带值的异常语言（图~\ref{fig:14-3}）没有官方实现。}
+（\taplsecref{14.3}{sec:14.3}）。\footnote{本章研究在简单类型 lambda 演算
+（\cref{fig:9-1}）上加入多种异常抛出与处理基本构造的系统
+（\cref{fig:14-1} 与\cref{fig:14-2}）。第一种扩展的 OCaml 实现是
+\texttt{fullerror}；携带值的异常语言（\cref{fig:14-3}）没有官方实现。}
 
 \translatornote{本译本的 \texttt{code/simple/} Rust 参考实现同时覆盖
 普通 \(\mathsf{error}\)、\(\mathsf{try}\) 处理器和携带值的
 \(\mathsf{raise}\)，并验证传播次序与处理器行为。作者勘误指出，若干官方
 OCaml 检查器的 \texttt{eval1} 漏掉了归约 \(\mathsf{try}\) 的分支；
-Rust 版本采用图~\ref{fig:14-2} 的完整规则，不沿用这一实现缺漏。}
+Rust 版本采用\cref{fig:14-2} 的完整规则，不沿用这一实现缺漏。}
 
 \begin{figure}[!ht]
 \centering
 \begin{minipage}{0.96\linewidth}
 \small
 \taplfigureheader{\(\mathsf{error}\)}
-  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
+  {\(\lambda_{\to}\)（\cref{fig:9-1}）}
 \[
 \begin{gathered}
 \text{\textbf{新增句法形式}}\qquad
@@ -73,7 +73,7 @@ t&::=&\cdots\mid\mathsf{error}&\text{项：运行时错误}
 \begin{minipage}{0.96\linewidth}
 \small
 \taplfigureheader{\(\mathsf{error},\ \mathsf{try}\)}
-  {\(\lambda_{\to}\) 并带错误（图~\ref{fig:14-1}）}
+  {\(\lambda_{\to}\) 并带错误（\cref{fig:14-1}）}
 \textbf{新增句法形式}
 \[
 t::=\cdots\mid\mathsf{try}\ t\ \mathsf{with}\ t
@@ -105,14 +105,12 @@ t::=\cdots\mid\mathsf{try}\ t\ \mathsf{with}\ t
 \end{minipage}
 \caption{错误处理}
 \label{fig:14-2}
-\end{figure}
-
-\begin{figure}[p]
+\par\vspace{1.5\baselineskip}
 \centering
 \begin{minipage}{0.99\linewidth}
 \footnotesize
 \taplfigureheader{\(\mathsf{exceptions}\)}
-  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
+  {\(\lambda_{\to}\)（\cref{fig:9-1}）}
 \textbf{新增句法形式}
 \[
 t::=\cdots\mid\mathsf{raise}\ t
@@ -176,7 +174,7 @@ t::=\cdots\mid\mathsf{raise}\ t
 
 先为简单类型 lambda 演算加入表示异常的最简单机制：项
 \(\mathsf{error}\) 一经求值，就完全终止包含它的项的求值。所需扩展见
-图~\ref{fig:14-1}。
+\cref{fig:14-1}。
 
 为 \(\mathsf{error}\) 编写规则时，主要设计决定是怎样在操作语义中形式化
 “异常终止”。这里采用一个简单办法：让 \(\mathsf{error}\) 本身作为程序
@@ -214,7 +212,7 @@ t::=\cdots\mid\mathsf{raise}\ t
 中，它具有类型 \(\tapltype{Bool}\to\tapltype{Bool}\)。
 
 \(\mathsf{error}\) 的类型如此灵活，会给类型检查算法的实现带来困难，因为
-语言中每个可赋型项具有唯一类型这一性质（定理~\ref{thm:9.3.3}）不再成立。
+语言中每个可赋型项具有唯一类型这一性质（\cref{thm:9.3.3}）不再成立。
 可以用多种办法处理。在带子类型化的语言中，可以为 \(\mathsf{error}\)
 指派最小类型 \(\tapltype{Bot}\)（见
 \taplsecref{15.4}{sec:15.4}），再按需提升为
@@ -251,7 +249,7 @@ t::=\cdots\mid\mathsf{raise}\ t
 直到遇到异常处理器；随后从该处理器继续求值。换言之，异常充当一次非局部
 控制转移，其目标是最近安装的异常处理器，也就是调用栈中离它最近的处理器。
 
-图~\ref{fig:14-2} 汇总的异常处理器形式与 ML、Java 都很相似。表达式
+\cref{fig:14-2} 汇总的异常处理器形式与 ML、Java 都很相似。表达式
 \(\mathsf{try}\ t_1\ \mathsf{with}\ t_2\) 意为：“返回 \(t_1\) 的求值
 结果；除非它异常终止，此时改为求值处理器 \(t_2\)。”
 \textsc{E-TryV} 说明，\(t_1\) 归约为值 \(v_1\) 后，可以丢掉
@@ -269,12 +267,12 @@ try 的类型规则直接来自操作语义。整个 try 的结果可能是主�
 \section{携带值的异常}
 \label{sec:14.3}
 
-\S\ref{sec:14.1} 与 \S\ref{sec:14.2} 的机制让函数可以通知调用者“发生了
+\taplsecref{14.1}{sec:14.1} 与 \taplsecref{14.2}{sec:14.2} 的机制让函数可以通知调用者“发生了
 某种不寻常的事情”。通常还需要传回额外信息，说明具体发生了哪种事情，因为
 处理器应该采取的行动——恢复后重试，或向用户呈现易懂的错误消息——可能
 取决于这些信息。
 
-图~\ref{fig:14-3} 说明怎样扩充基本异常处理构造，让每个异常携带一个值。
+\cref{fig:14-3} 说明怎样扩充基本异常处理构造，让每个异常携带一个值。
 这个值的类型写作 \(T_{\mathit{exn}}\)。暂且不确定它的具体性质，稍后讨论
 几种选择。
 
@@ -286,12 +284,12 @@ try 的类型规则直接来自操作语义。整个 try 的结果可能是主�
 求值规则 \textsc{E-TryRaise} 实现这种行为：取得 \(t_1\) 中
 \(\mathsf{raise}\) 携带的额外信息，再传给处理器 \(t_2\)。
 \textsc{E-AppRaise1} 与 \textsc{E-AppRaise2} 像
-图~\ref{fig:14-1} 的 \textsc{E-AppErr1} 与 \textsc{E-AppErr2} 一样，
+\cref{fig:14-1} 的 \textsc{E-AppErr1} 与 \textsc{E-AppErr2} 一样，
 使异常穿过应用向外传播。不过，这些规则只允许传播额外信息已经是值的异常；
 若试图求值的 \(\mathsf{raise}\) 所携信息本身还需要求值，规则会阻塞，
 迫使我们先用 \textsc{E-Raise} 求值额外信息。\textsc{E-RaiseRaise}
 传播在求值某个异常所要携带的信息时发生的异常。\textsc{E-TryV} 与
-\S\ref{sec:14.2} 一样，说明主表达式归约为值后可以丢弃 try。
+\taplsecref{14.2}{sec:14.2} 一样，说明主表达式归约为值后可以丢弃 try。
 \textsc{E-Try} 则让求值器继续处理 try 体，直到它变为值或
 \(\mathsf{raise}\)。
 
@@ -319,7 +317,7 @@ try 的类型规则直接来自操作语义。整个 try 的结果可能是主�
       \mathit{divideByZero}:\tapltype{Unit},
       \mathit{overflow}:\tapltype{Unit},\\
       &\mathit{fileNotFound}:\tapltype{String},
-      \mathit{fileNotReadable}:\tapltype{String},\ldots\rangle.
+      \mathit{fileNotReadable}:\tapltype{String},\ldots\rangle
     \end{aligned}
     \]
     处理器可以用简单的 case 表达式区分异常种类；不同异常也能携带不同类型的
@@ -342,7 +340,7 @@ try 的类型规则直接来自操作语义。整个 try 的结果可能是主�
     保证 \(l\) 不同于 \(T_{\mathit{exn}}\) 中已经使用的标签。}
     \[
       T_{\mathit{exn}}=
-      \langle l_1:T_1,\ldots,l_n:T_n,l:T\rangle.
+      \langle l_1:T_1,\ldots,l_n:T_n,l:T\rangle
     \]
 
     ML 抛出异常的语法是 \(\mathsf{raise}\ l(t)\)，其中 \(l\) 是当前作用域
@@ -352,7 +350,7 @@ try 的类型规则直接来自操作语义。整个 try 的结果可能是主�
     \mathsf{raise}\ l(t)
     \quad\triangleq\quad
     \mathsf{raise}\,
-      (\langle l=t\rangle\ \mathsf{as}\ T_{\mathit{exn}}).
+      (\langle l=t\rangle\ \mathsf{as}\ T_{\mathit{exn}})
     \]
     类似地，ML 的 try 可以用简单 try 加 case 去糖：
     \[
@@ -363,7 +361,7 @@ try 的类型规则直接来自操作语义。整个 try 的结果可能是主�
     (\lambda e:T_{\mathit{exn}}.\
       \mathsf{case}\ e\ \mathsf{of}\
       \langle l=x\rangle\Rightarrow h
-      \mid\ \_\Rightarrow\mathsf{raise}\ e).
+      \mid\ \_\Rightarrow\mathsf{raise}\ e)
     \end{aligned}
     \]
     case 检查抛出的异常是否带标签 \(l\)。若是，就把异常携带的值绑定到
@@ -400,7 +398,7 @@ try 的类型规则直接来自操作语义。整个 try 的结果可能是主�
 \label{ex:14.3.2}
 上文指出，Java 异常——\texttt{Exception} 的子类——比 ML 异常
 （以及这里定义的异常）受到更严格控制：方法可能抛出的\emph{每个异常}都必须在方法
-类型中声明。扩展练习~\ref{ex:14.3.1} 的解答，让函数类型除了表示参数与
+类型中声明。扩展\cref{ex:14.3.1} 的解答，让函数类型除了表示参数与
 结果类型，也表示它可能抛出的异常集合。证明你的系统类型安全。
 \end{exercise}
 

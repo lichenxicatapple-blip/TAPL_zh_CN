@@ -6,11 +6,12 @@
 \chapter{项的无名表示}
 \label{chap:6}
 
-上一章把项视为“相差一个受约束变量重命名”的等价类，并约定：为了完成替换，
-或只是因为另一个名字更方便，受约束变量可以随时重命名。实际上，受约束变量
-究竟“拼成什么名字”，完全由我们决定。讨论基本概念和清晰地陈述证明时，这项
-约定很好用；但在实现中，每个项必须选定一种表示。特别是，我们必须决定如何
-表示变量的每次出现。可选方案不止一种。
+上一章处理项时，我们允许把一个受约束变量连同它所约束的所有出现一起改名。
+替换过程中，如果原来的名字会造成变量捕获，就先换成一个不会冲突的新名字；
+在其他场合，也可以仅仅为了书写方便而改名。换言之，在这些数学讨论中，重要的
+是变量的每次出现由哪个 lambda 绑定，而不是变量具体叫什么。这项约定很适合
+讨论基本概念和清晰地陈述证明；但是在程序实现中，每个项都必须采用一种确定的
+表示，尤其要明确如何记录变量的每次出现。这里有不止一种选择。
 
 \begin{enumerate}
   \item 仍像前面一样用符号表示变量，但不再默许受约束变量可以重命名；替换
@@ -38,12 +39,12 @@
 
 每种方案都有拥护者，如何取舍在一定程度上属于个人偏好。严肃的编译器实现
 还要考虑性能，不过这不在本章范围内。我们选择第三种方案；根据我们的经验，
-当后面实现更复杂的演算时，它的伸缩性更好。主要原因在于：这种方案若实现
+它更能应对后续实现中不断增长的复杂度。主要原因在于：这种方案若实现
 错误，往往会显著地而不是隐蔽地失败，因此错误能较早暴露并得到修正。相比
 之下，使用具名变量的实现中，有些缺陷会在引入数月甚至数年后才显现出来。
 这里采用 Nicolas de Bruijn（1972）提出的一项著名技术。
 \footnote{本章研究的系统是纯无类型 lambda 演算 \(\lambda\)
-（图~\ref{fig:5-3}）。相应的 OCaml 实现是 \texttt{fulluntyped}。}
+（\cref{fig:5-3}）。相应的 OCaml 实现是 \texttt{fulluntyped}。}
 
 \section{项与上下文}
 \label{sec:6.1}
@@ -52,7 +53,7 @@ de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子�
 名字引用绑定子，就能以更直接——尽管可读性稍差——的方式表示项。具体做法
 是用自然数替代具名变量，其中数字 \(k\) 表示“从这次变量出现的位置由内向
 外数（从 \(0\) 起），第 \(k\) 个包围它的 \(\lambda\) 所约束的变量”。
-例如，普通项
+例如，具名项
 \(\lambda x.\,x\) 对应无名项 \(\lambda.\,0\)，而
 \(\lambda x.\,\lambda y.\,x\,(y\,x)\) 对应
 \(\lambda.\,\lambda.\,1\,(0\,1)\)。无名项也称为
@@ -62,6 +63,7 @@ de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子�
 编译器领域也把同一概念称为\termfirst{静态距离}{static distance}。
 
 \begin{exercise}[\(\star\)]
+\label{ex:6.1.1}
 请写出下列各组合子所对应的无名项：
 \[
 \begin{aligned}
@@ -72,41 +74,47 @@ de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子�
  \mathit{fix}&=\lambda f.\,
    (\lambda x.\,f\,(\lambda y.\,(x\,x)\,y))\,
    (\lambda x.\,f\,(\lambda y.\,(x\,x)\,y));\\
- \mathit{foo}&=(\lambda x.\,(\lambda x.\,x))\,(\lambda x.\,x).
+ \mathit{foo}&=(\lambda x.\,(\lambda x.\,x))\,(\lambda x.\,x)
 \end{aligned}
 \]
 \end{exercise}
+\taplauthorsolutionlink{sol:author:6.1.1}{6.1.1}
 
 \translatornote{原书初版在本练习的 \(\mathit{plus}\) 中印作
-\(m\,s\,(n\,z\,s)\)，这并不是第~\ref{chap:5}~章定义的 Church 数加法。
+\(m\,s\,(n\,z\,s)\)，这并不是%
+\hyperref[chap:5]{\mbox{第\ref*{chap:5}章}定义的 Church 数加法}。
 作者勘误将其视为错误；此处按正确项 \(m\,s\,(n\,s\,z)\) 修正。}
 
-形式上，无名项的语法与普通项的语法（定义 5.3.1）几乎完全相同。唯一的差别
-是：必须仔细记录每个项至多可以含有多少个自由变量。也就是说，我们区分没有
-自由变量的项集（称为 \(0\)-项）、至多有一个自由变量的项集（\(1\)-项），
-依此类推。
+形式上，无名项的语法与具名项的语法（\cref{def:5.3.1}）几乎完全相同。唯一的差别
+是：还必须说明一个无名项可在多长的外部变量上下文中使用，这样才能判断其中的
+索引是否都有所指。为此，我们把不需要外部变量的项称为 \(0\)-项，把至多使用
+一个外部变量位置的项称为 \(1\)-项，依此类推。
 
 \begin{definition}[项]
 \label{def:6.1.2}
 令 \(T\) 为满足下列条件的最小集合族
 \(\{T_0,T_1,T_2,\ldots\}\)：
 \begin{enumerate}
-  \item 若 \(0\leq k<n\)，则 \(k\in T_n\)；
-  \item 若 \(t_1\in T_n\) 且 \(n>0\)，则
-    \(\lambda.\,t_1\in T_{n-1}\)；
-  \item 若 \(t_1\in T_n\) 且 \(t_2\in T_n\)，则
-    \((t_1\,t_2)\in T_n\)。
+  \item 若 \(0\leq k<n\)，则以 \(k\) 为 de Bruijn 索引的变量项属于
+    \(T_n\)（简写为 \(k\in T_n\)）；
+  \item 若 \(t_1\in T_{n+1}\)，则 \(\lambda.\,t_1\in T_n\)。函数体可以
+    使用当前 lambda 绑定的变量，因此比整个抽象多一个可用变量位置；
+  \item 若 \(t_1\in T_n\) 且 \(t_2\in T_n\)，则应用项
+    \((t_1\,t_2)\in T_n\)。应用不引入新的变量绑定，因此两个子项与整个
+    应用项使用同一个上下文。
 \end{enumerate}
 这里仍是标准的归纳定义，只不过定义的是以自然数为索引的一族集合，而非单个
 集合。每个 \(T_n\) 的元素称为 \(n\)-项。
 \end{definition}
 
-\(T_n\) 中的元素至多含有 \(n\) 个自由变量，它们的编号介于 \(0\) 与
-\(n-1\) 之间。一个给定的 \(T_n\) 元素不必包含所有这些编号的自由变量，
-甚至可以没有任何自由变量。例如，闭项属于每一个 \(T_n\)。
+\(T_n\) 中的元素可以在含有 \(n\) 个外部变量位置的上下文中使用；其中自由
+变量的索引只能介于 \(0\) 与 \(n-1\) 之间。一个给定的 \(T_n\) 元素不必
+使用所有这些位置，甚至可以完全不使用自由变量。例如，闭项属于每一个
+\(T_n\)。
 
-注意，每个闭的普通项恰好有一种 de Bruijn 表示；两个普通项在受约束变量
-重命名意义下等价，当且仅当它们具有相同的 de Bruijn 表示。
+对于任意闭的具名项，每个变量出现都有唯一确定的绑定者，因此其 de Bruijn
+表示也唯一确定。两个闭的具名项得到同一个 de Bruijn 表示，当且仅当它们
+只在受约束变量的命名上不同。
 
 为了处理含自由变量的项，需要引入\termfirst{命名上下文}{naming context}。
 例如，设要把 \(\lambda x.\,y\,x\) 表示成无名项。我们知道怎样处理 \(x\)，
@@ -121,6 +129,12 @@ de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子�
 那么 \(x\,(y\,z)\) 表示成 \(4\,(3\,2)\)，
 \(\lambda w.\,y\,w\) 表示成 \(\lambda.\,4\,0\)，而
 \(\lambda w.\,\lambda a.\,x\) 表示成 \(\lambda.\,\lambda.\,6\)。
+\translatornote{最后一个例子中，\(x\) 在 \(\Gamma\) 中的索引原本是
+\(4\)。进入 \(\lambda w\) 的函数体后，新绑定的 \(w\) 占据索引 \(0\)，
+\(x\) 因而变成 \(5\)；再进入 \(\lambda a\) 的函数体，\(x\) 又变成
+\(6\)。一般来说，如果一个外部变量原来的索引为 \(k\)，把它放到不绑定它的
+\(r\) 层新 lambda 之下后，其索引就变为 \(k+r\)。
+\taplsecref{6.2}{sec:6.2} 将把这种调整形式化为“移位”。}
 由于变量在 \(\Gamma\) 中的顺序已经决定其数字索引，可以把上下文简写为
 一个序列。
 
@@ -137,17 +151,20 @@ de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子�
 \end{definition}
 
 \begin{exercise}[\(\star\star\star,\nrightarrow\)]
+\label{ex:6.1.4}
 参照定义 3.2.3 的风格，给出 \(n\)-项集合的另一种构造，并像命题 3.2.6
 那样证明它与上面的定义等价。
 \end{exercise}
+\taplsolutionlink{sol:translator:6.1.4}{6.1.4}
 
 \begin{exercise}[推荐，\(\star\star\star\)]
+\label{ex:6.1.5}
 \begin{enumerate}
   \item 定义函数 \(\mathit{removenames}_{\Gamma}(t)\)：它接受命名上下文
-    \(\Gamma\) 和满足 \(\fv(t)\subseteq\dom(\Gamma)\) 的普通项 \(t\)，
+    \(\Gamma\) 和满足 \(\fv(t)\subseteq\dom(\Gamma)\) 的具名项 \(t\)，
     返回对应的无名项。
   \item 定义函数 \(\mathit{restorenames}_{\Gamma}(t)\)：它接受无名项
-    \(t\) 和命名上下文 \(\Gamma\)，返回一个普通项。为此，需要为 \(t\)
+    \(t\) 和命名上下文 \(\Gamma\)，返回一个具名项。为此，需要为 \(t\)
     中各抽象所约束的变量“造出”名字。可以假定 \(\Gamma\) 中的名字两两
     不同，而且变量名集合 \(V\) 带有序，从而“选择第一个不在
     \(\dom(\Gamma)\) 中的变量名”是有意义的。
@@ -157,17 +174,19 @@ de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子�
  \mathit{removenames}_{\Gamma}
    (\mathit{restorenames}_{\Gamma}(t))=t;
 \]
-对任意普通项 \(t\)，还应在受约束变量重命名的意义下满足
+对任意具名项 \(t\)，把它转换成无名项再恢复名称，所得结果应能通过
+\(\alpha\) 变换还原为 \(t\)：
 \[
  \mathit{restorenames}_{\Gamma}
-   (\mathit{removenames}_{\Gamma}(t))=t.
+   (\mathit{removenames}_{\Gamma}(t))=t
 \]
 \end{exercise}
+\taplauthorsolutionlink{sol:author:6.1.5}{6.1.5}
 
-严格说来，“某个 \(t\in T\)”并没有意义——总要说明 \(t\) 至多可能含有
-多少个自由变量。不过在实际使用中，通常会有一个固定的命名上下文
-\(\Gamma\)；于是稍微滥用记号，用 \(t\in T\) 表示
-\(t\in T_n\)，其中 \(n\) 是 \(\Gamma\) 的长度。
+严格说来，“某个 \(t\in T\)”并没有意义——总要说明 \(t\) 是在哪一种长度的
+外部变量上下文中使用的，也就是它属于哪个 \(T_n\)。不过在实际使用中，通常
+已经固定了命名上下文 \(\Gamma\)。为简化记法，我们仍写 \(t\in T\)，其含义
+是 \(t\in T_n\)，其中 \(n\) 是 \(\Gamma\) 的长度。
 
 \section{移位与替换}
 \label{sec:6.2}
@@ -175,20 +194,23 @@ de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子�
 接下来要在无名项上定义替换操作 \([k\mapsto s]t\)。为此需要一项辅助操作，
 称为\termfirst{移位}{shifting}，它重新编号项中自由变量的索引。
 
-当替换进入一个 \(\lambda\) 抽象时，例如
-\([1\mapsto s](\lambda.\,2)\)（在外层上下文中 \(x\) 的索引为 \(1\)
-时，它对应 \([x\mapsto s](\lambda y.\,x)\)），替换发生处的上下文比原上下文
-多了一个变量。必须把 \(s\) 中自由变量的索引加一，使它们在新上下文中仍然
-指向原来的名字。但这要谨慎进行：不能把 \(s\) 中的每个索引都加一，否则
+待代入项 \(s\) 中的自由变量索引，是按照 lambda 外层的上下文编号的。以
+\([1\mapsto s](\lambda.\,2)\) 为例：若 \(x\) 在外层上下文中的索引为
+\(1\)，该式就对应具名替换 \([x\mapsto s](\lambda y.\,x)\)。替换递归进入
+\(\lambda y\) 的函数体后，当前 lambda 绑定的 \(y\) 会加入上下文并占据
+索引 \(0\)，所以函数体中的上下文比外层多一个变量位置。为了让 \(s\) 中的
+自由变量仍然指向同一个外部变量，必须把它们的索引加一。但这要谨慎进行：
+不能把 \(s\) 中的每个索引都加一，否则
 可能连 \(s\) 内部的受约束变量也被移位。例如，若
 \(s=2\,(\lambda.\,0)\)（即在外层上下文中 \(z\) 的索引为 \(2\) 时，
 \(s=z\,(\lambda w.\,w)\)），应当移动 \(2\)，却不能移动 \(0\)。
 
 下面的移位函数带有一个控制哪些变量应当移动的\termfirst{截点}{cutoff}
-参数 \(c\)。它从 \(0\) 开始（即所有变量都应移动），每经过一个绑定子就加
-一。因此，计算 \(\uparrow^d_c(t)\) 时，已知 \(t\) 位于原参数的 \(c\) 个
-绑定子之内。于是 \(t\) 中所有 \(k<c\) 的标识符都在原参数中受约束，不应
-移动；所有 \(k\geq c\) 的标识符则是自由的，应当移动。
+参数 \(c\)。处理最外层的待移位项时，\(c\) 从 \(0\) 开始；递归每进入一层
+lambda 抽象，\(c\) 就加一。因此，计算 \(\uparrow^d_c(t)\) 时，\(c\) 表示
+从最外层待移位项走到当前子项 \(t\) 的过程中，已经进入了多少层 lambda
+抽象。当前子项中满足 \(k<c\) 的索引由这些 lambda 绑定，不应移动；满足
+\(k\geq c\) 的索引则指向这些 lambda 之外，应当移动。
 
 \begin{definition}[移位]
 \label{def:6.2.1}
@@ -205,35 +227,51 @@ de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子�
  \uparrow^d_c(\lambda.\,t_1)
    &=\lambda.\,\uparrow^d_{c+1}(t_1);\\
  \uparrow^d_c(t_1\,t_2)
-   &=\uparrow^d_c(t_1)\ \uparrow^d_c(t_2).
+   &=\uparrow^d_c(t_1)\ \uparrow^d_c(t_2)
 \end{aligned}
 \]
 用 \(\uparrow^d(t)\) 简写 \(\uparrow^d_0(t)\)。
 \end{definition}
 
+\translatornote{这里的位移量 \(d\) 是整数，可以为负。\(d>0\) 使需要移动的
+索引增大，\(d<0\) 则使其减小；负移位只有在所有移动后的索引仍为非负数时
+才得到合法的无名项。后面的 \(\beta\) 归约会用到负移位：一层 lambda 绑定
+被消去后，指向其外层的变量与目标之间少了一层距离，相关索引也要相应减一。}
+
 \begin{exercise}[\(\star\)]
+\label{ex:6.2.2}
 \begin{enumerate}
   \item \(\uparrow^2(\lambda.\,\lambda.\,1\,(0\,2))\) 是什么？
   \item \(\uparrow^2(\lambda.\,0\,1\,(\lambda.\,0\,1\,2))\) 是什么？
 \end{enumerate}
 \end{exercise}
+\taplauthorsolutionlink{sol:author:6.2.2}{6.2.2}
 
 \begin{exercise}[\(\star\star,\nrightarrow\)]
 \label{ex:6.2.3}
 证明：若 \(t\) 是 \(n\)-项，且当 \(d<0\) 时 \(t\) 中每个自由变量的
-索引均不小于 \(|d|\)，则 \(\uparrow^d_c(t)\) 是
+索引均不小于 \(|d|\)，则顶层移位
+\(\uparrow^d(t)=\uparrow^d_0(t)\) 是
 \(\max(n+d,0)\)-项。
 \end{exercise}
+\taplsolutionlink{sol:translator:6.2.3}{6.2.3}
 
-\translatornote{原书初版把练习~\ref{ex:6.2.3} 无条件写成“若 \(t\) 是
-\(n\)-项，则 \(\uparrow^d_c(t)\) 是 \((n+d)\)-项”。作者勘误指出，
-当 \(d<0\) 时该陈述不成立；此处按勘误补上负位移所需的前提，并把项集下标
-写成不会为负的形式。}
+\translatornote{原书初版把\cref{ex:6.2.3} 无条件写成“若 \(t\) 是
+\(n\)-项，则 \(\uparrow^d_c(t)\) 是 \((n+d)\)-项”。作者勘误补上了
+\(d<0\) 时的自由变量前提，并把结论改为
+\(\max(n+d,0)\)-项，但仍保留任意截点 \(c\)。按字面理解，后一陈述仍有
+反例：取 \(t=1\in T_2\)、\(d=-1\)、\(c=2\)，则
+\(\uparrow^{-1}_2(1)=1\notin T_1\)。本题实际使用的是顶层移位；这里把
+结论明确写成 \(\uparrow^d=\uparrow^d_0\)。任意截点的正确推广需要同时
+记录截点所处的绑定深度。}
 
-现在可以定义替换算子 \([j\mapsto s]t\)。使用替换时，通常只需要替换上下文
-中的最后一个变量，即 \(j=0\)，因为定义 \(\beta\) 归约所需的正是这种情形。
-但若要在一个恰为 \(\lambda\) 抽象的项中替换变量 \(0\)，就必须能在其函数体
-中替换编号为 \(1\) 的变量。因此，替换定义必须适用于任意变量编号。
+现在可以定义替换算子 \([j\mapsto s]t\)。\(\beta\) 归约开始替换时，目标总是
+索引 \(0\)，因为 lambda 抽象的参数在其函数体中编号为 \(0\)。但是，替换需要
+递归遍历项；每进入一层新的 lambda 抽象，该抽象绑定的变量就会占据索引
+\(0\)，原来的目标变量在函数体中的编号因而增加 \(1\)。例如，计算
+\([0\mapsto s](\lambda.\,1)\) 时，递归进入函数体后需要替换的是编号 \(1\)
+的变量。所以，即使替换的最外层调用通常取 \(j=0\)，其递归定义也必须能够
+处理任意编号 \(j\)。
 
 \begin{definition}[替换]
 \label{def:6.2.4}
@@ -250,14 +288,16 @@ de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子�
  [j\mapsto s]\taplobjparens{\lambda.\,t_1}
    &=\lambda.\,[j+1\mapsto \uparrow^1(s)]t_1;\\
  [j\mapsto s]\taplobjparens{t_1\,t_2}
-   &=([j\mapsto s]t_1)\,([j\mapsto s]t_2).
+   &=([j\mapsto s]t_1)\,([j\mapsto s]t_2)
 \end{aligned}
 \]
 \end{definition}
 
 \begin{exercise}[\(\star\)]
+\label{ex:6.2.5}
 假定全局上下文为 \(\Gamma=a,b\)。把下面各次替换转换为无名形式，再按上述
-定义算出结果。这些答案是否与 \S5.3 中对普通项的原始替换定义相符？
+定义算出结果。这些答案是否与 \taplsecref{5.3}{sec:5.3} 中对具名项的
+原始替换定义相符？
 \begin{enumerate}
   \item \([b\mapsto a]\,(b\,(\lambda x.\,\lambda y.\,b))\)
   \item \([b\mapsto a\,(\lambda z.\,a)]\,(b\,(\lambda x.\,b))\)
@@ -265,31 +305,42 @@ de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子�
   \item \([b\mapsto a]\,(\lambda a.\,b\,a)\)
 \end{enumerate}
 \end{exercise}
+\taplauthorsolutionlink{sol:author:6.2.5}{6.2.5}
 
 \begin{exercise}[\(\star\star,\nrightarrow\)]
+\label{ex:6.2.6}
 证明：若 \(s,t\) 都是 \(n\)-项且 \(j\leq n\)，则
 \([j\mapsto s]t\) 是 \(n\)-项。
 \end{exercise}
+\taplsolutionlink{sol:translator:6.2.6}{6.2.6}
 
 \begin{exercise}[\(\star,\nrightarrow\)]
+\label{ex:6.2.7}
 拿出一张纸，不看上面的替换与移位定义，自己重新推导出它们。
 \end{exercise}
+\taplsolutionlink{sol:translator:6.2.7}{6.2.7}
 
 \begin{exercise}[推荐，\(\star\star\star\)]
-无名项上的替换定义应当与普通项上的非形式化替换定义一致。
+\label{ex:6.2.8}
+无名项上的替换定义应当与具名项上的非形式化替换定义一致。
 \begin{enumerate}
   \item 要严格论证这种对应，需要证明什么定理？
   \item 证明这个定理。
 \end{enumerate}
 \end{exercise}
+\taplauthorsolutionlink{sol:author:6.2.8}{6.2.8}
 
 \section{求值}
 \label{sec:6.3}
 
-要在无名项上定义求值关系，唯一需要修改的是 \(\beta\) 归约规则，因为它是
-唯一提到变量名的地方；现在必须改用新的无名替换操作。
+要在无名项上定义求值关系，只需重新表述\cref{fig:5-3}中的三条求值规则。
+其中，\mbox{\textsc{E-App1}} 与 \mbox{\textsc{E-App2}} 只规定应用两个子项的
+求值次序，不涉及变量名，因而可以原样保留。
 
-稍微微妙之处在于，归约一个可归约式会“用掉”受约束变量：把
+\mbox{\textsc{E-AppAbs}} 描述的是 \(\beta\) 归约：它既提到具体的变量名，
+又执行按名称进行的替换，因此需要改写为使用新的无名替换操作。
+
+这里有一个需要特别处理的细节：归约一个可归约式会“用掉”受约束变量。把
 \((\lambda x.\,t_{12})\,v_2\) 归约为
 \([x\mapsto v_2]t_{12}\) 时，受约束变量 \(x\) 随之消失。因此必须重新
 编号替换结果中的变量，以反映 \(x\) 已经不在上下文中。例如：
@@ -309,15 +360,18 @@ de Bruijn 的想法是：让变量的每次出现直接指向自己的绑定子�
   \trans
   \uparrow^{-1}\bigl([0\mapsto \uparrow^1(v_2)]t_{12}\bigr)}
 \]
-其余规则与图~\ref{fig:5-3} 完全相同。
+其余规则与\cref{fig:5-3} 完全相同。
 
 \begin{exercise}[\(\star\)]
+\label{ex:6.3.1}
 这条规则中的负位移会不会产生含负索引的病态项？我们是否需要担心？
 \end{exercise}
+\taplauthorsolutionlink{sol:author:6.3.1}{6.3.1}
 
 \begin{exercise}[\(\star\star\star\)]
+\label{ex:6.3.2}
 de Bruijn 的原始论文其实提出了两种项的无名表示：本章介绍的
-\termfirst{de Bruijn 索引}{de Bruijn index}从内向外给 lambda 绑定子
+de Bruijn 索引从内向外给 lambda 绑定子
 编号；\termfirst{de Bruijn 层级}{de Bruijn level}则从外向内编号。例如，
 项
 \[
@@ -328,3 +382,4 @@ de Bruijn 的原始论文其实提出了两种项的无名表示：本章介绍�
 \(\lambda.\,(\lambda.\,0\,1)\,0\)。请严格定义后一种变体，并证明同一个项
 的索引表示与层级表示同构，也就是说，任一种表示都能唯一地恢复出另一种。
 \end{exercise}
+\taplauthorsolutionlink{sol:author:6.3.2}{6.3.2}

@@ -1,0 +1,27 @@
+\section{第 4 章：算术表达式的 ML 实现}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:4.2.1}
+\textbf{4.2.1 解答}
+
+\texttt{eval} 每次递归调用自身时，都会在调用栈上再压入一个
+\texttt{try} 处理器。每一步求值都会产生一次递归调用，所以调用栈最终会
+溢出。实质上，用 \texttt{try} 包住对 \texttt{eval} 的递归调用后，
+这个调用尽管看起来像尾调用，却不再是尾调用。较好（但可读性稍差）的写法是：
+
+\begin{minipage}{\linewidth}
+\begin{taplocamlcode}
+let rec eval t =
+  let t'opt =
+    try Some (eval1 t) with NoRuleApplies -> None
+  in
+  match t'opt with
+    Some t' -> eval t'
+  | None -> t
+\end{taplocamlcode}
+\taplrustcounterpart{sol-author-04-eval}
+\end{minipage}
+
+\taplsolutionbacklink{ex:4.2.1}{返回练习 4.2.1}
+\end{taplauthorsolutionentrybox}

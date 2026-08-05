@@ -1,0 +1,47 @@
+\section*{第 5 章：无类型 lambda 演算}
+\addcontentsline{toc}{section}{第 5 章：无类型 lambda 演算}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:5.3.7}
+\textbf{练习 5.3.7}
+
+保留练习 3.5.16 为布尔值与自然数给出的全部
+\(\taplwrong\) 规则，并把 lambda 抽象加入两类“错误操作数”：
+\[
+\begin{aligned}
+\mathit{badnat}&::=\taplwrong\mid\tapltrue\mid\taplfalse
+                  \mid\lambda x.\,t,\\
+\mathit{badbool}&::=\taplwrong\mid nv\mid\lambda x.\,t
+\end{aligned}
+\]
+这是必要的，因为在 \(\lambda_{\mathcal{NB}}\) 中，抽象也是值，但它既不能
+作为数值运算的操作数，也不能作为条件式守卫。
+
+对应用再定义非函数值
+\[
+  \mathit{badfun}::=\tapltrue\mid\taplfalse\mid nv
+\]
+并加入三条规则：
+\[
+  \taplwrong\ t_2\trans\taplwrong
+  \quad(\textsc{E-App-Wrong1}),
+\]
+\[
+  v_1\ \taplwrong\trans\taplwrong
+  \quad(\textsc{E-App-Wrong2}),
+\]
+\[
+  \mathit{badfun}\ v_2\trans\taplwrong
+  \quad(\textsc{E-App-Wrong})
+\]
+
+第一条处理函数位置求值失败的情形；第二条处理按值调用在参数位置求值失败的
+情形；第三条处理两边都已成为值、但左边并非抽象的情形。它们与原来的
+\textsc{E-App1}、\textsc{E-App2}、\textsc{E-AppAbs} 配合，保持“先函数、
+后参数、最后应用”的次序。这样，原语义中所有卡住的
+\(\lambda_{\mathcal{NB}}\) 项都会在扩充语义中求值到 \(\taplwrong\)，
+反之亦然；证明可按练习 3.5.16 的结构逐项扩展。
+
+\taplsolutionbacklink{ex:5.3.7}{返回练习 5.3.7}
+\end{taplsolutionentrybox}

@@ -21,8 +21,9 @@
 
 本章将看到，怎样把一种计算效应——可变引用——加入此前的演算。主要扩展是
 显式处理\termfirst{存储}{store}（或堆）。这项扩展很容易定义，最有意思的
-部分，是必须细化类型保持性定理~\ref{thm:13.5.3} 的陈述。第
-\ref{chap:14}~章会考察另一类效应：异常与非局部控制转移。
+部分，是必须细化
+\taplnamedref{thm:13.5.3}{类型保持性定理}的陈述。
+\chapref{14}会考察另一类效应：异常与非局部控制转移。
 
 \translatornote{本译本在 \texttt{code/simple/} 的 Rust 参考实现中，以
 显式存储结构实现本章的分配、解引用和赋值规则，并测试别名、共享状态及存储
@@ -35,7 +36,7 @@
 几乎每种程序语言\footnote{即使 Haskell 一类“纯函数式”语言，也可通过
 \termfirst{单子}{monad}等扩展做到。}都提供某种赋值操作，用来改变先前分配的一块存储的内容。
 \footnote{本章研究带 \(\tapltype{Unit}\) 与引用的简单类型 lambda 演算
-（图~\ref{fig:13-1}），相应的 OCaml 实现为 \texttt{fullref}。}
+（\cref{fig:13-1}），相应的 OCaml 实现为 \texttt{fullref}。}
 在一些语言中，尤其是 ML 及其近亲，名字绑定机制与赋值机制彼此分开。可以有
 一个值为数字 \(5\) 的变量 \(x\)，也可以有一个值为引用（或指针）的变量
 \(y\)，后者指向当前内容为 \(5\) 的可变单元；程序员能看见二者的区别。
@@ -60,27 +61,27 @@ C 或 Java 中多数类型为 \(T\) 的变量，实际应看作指向
 \(\mathsf{ref}\) 运算符，并给出新单元的初值：
 \[
 r=\mathsf{ref}\ 5
-\qquad\blacktriangleright\qquad r:\tapltype{Ref}\ \tapltype{Nat}.
+\qquad\blacktriangleright\qquad r:\tapltype{Ref}\ \tapltype{Nat}
 \]
 类型检查器的响应说明，\(r\) 的值是一个引用，它指向的单元始终存放数字。
 用解引用运算符 \(!\) 读取这个单元的当前值：
 \[
-!r\quad\blacktriangleright\quad5:\tapltype{Nat}.
+!r\quad\blacktriangleright\quad5:\tapltype{Nat}
 \]
 用赋值运算符改变单元内保存的值：
 \[
-r:=7\quad\blacktriangleright\quad\mathsf{unit}:\tapltype{Unit}.
+r:=7\quad\blacktriangleright\quad\mathsf{unit}:\tapltype{Unit}
 \]
-赋值结果是平凡值 \(\mathsf{unit}\)，见 \S\ref{sec:11.2}。再次解引用
+赋值结果是平凡值 \(\mathsf{unit}\)，见 \taplsecref{11.2}{sec:11.2}。再次解引用
 \(r\)，便看到更新后的值：
 \[
-!r\quad\blacktriangleright\quad7:\tapltype{Nat}.
+!r\quad\blacktriangleright\quad7:\tapltype{Nat}
 \]
 
 \subsection*{副作用与顺序执行}
 
 赋值表达式的结果是平凡值 \(\mathsf{unit}\)，这正好与
-\S\ref{sec:11.3} 定义的顺序执行记法配合。为了依次求值两个表达式并返回
+\taplsecref{11.3}{sec:11.3} 定义的顺序执行记法配合。为了依次求值两个表达式并返回
 第二个表达式的值，可以写：
 \[
 (r:=\taplsucc{(!r)};\ !r)
@@ -90,7 +91,7 @@ r:=7\quad\blacktriangleright\quad\mathsf{unit}:\tapltype{Unit}.
 \[
 (\lambda\_:\tapltype{Unit}.\,!r)\,
 (r:=\taplsucc{(!r)})
-\quad\blacktriangleright\quad9:\tapltype{Nat}.
+\quad\blacktriangleright\quad9:\tapltype{Nat}
 \]
 把第一个表达式的类型限制为 \(\tapltype{Unit}\)，使类型检查器能捕获一些
 愚蠢错误：只有当第一个值保证无关紧要时，才允许丢弃它。
@@ -100,7 +101,7 @@ r:=7\quad\blacktriangleright\quad\mathsf{unit}:\tapltype{Unit}.
 \[
 (r:=\taplsucc{(!r)};\ r:=\taplsucc{(!r)};\
  r:=\taplsucc{(!r)};\ r:=\taplsucc{(!r)};\ !r)
-\quad\blacktriangleright\quad13:\tapltype{Nat}.
+\quad\blacktriangleright\quad13:\tapltype{Nat}
 \]
 
 \subsection*{引用与别名}
@@ -135,7 +136,7 @@ s=r\qquad\blacktriangleright\qquad s:\tapltype{Ref}\ \tapltype{Nat},
 \[
 s:=82\blacktriangleright\mathsf{unit},
 \qquad
-!r\blacktriangleright82:\tapltype{Nat}.
+!r\blacktriangleright82:\tapltype{Nat}
 \]
 称引用 \(r\) 与 \(s\) 是同一单元的
 \termfirst{别名}{alias}。
@@ -172,7 +173,7 @@ c&=\mathsf{ref}\ 0:\tapltype{Ref}\ \tapltype{Nat},\\
  \tapltype{Unit}\to\tapltype{Nat},\\
 \mathit{decc}&=\lambda x:\tapltype{Unit}.\
  (c:=\taplpred{(!c)};\ !c):
- \tapltype{Unit}\to\tapltype{Nat}.
+ \tapltype{Unit}\to\tapltype{Nat}
 \end{aligned}
 \]
 调用 \(\mathit{incc}\ \mathsf{unit}\) 得到 \(1\)，它对 \(c\) 的修改可以
@@ -194,21 +195,21 @@ o=\{i=\mathit{incc},d=\mathit{decc}\}
 函数。例如，可以用函数引用低效地实现数字数组。令
 \[
 \texttt{NatArray}=\tapltype{Ref}\,
-(\tapltype{Nat}\to\tapltype{Nat}).
+(\tapltype{Nat}\to\tapltype{Nat})
 \]
 新数组分配一个引用单元，填入一个接受任意索引都返回 \(0\) 的函数：
 \[
 \mathit{newarray}=
 \lambda\_:\tapltype{Unit}.\
 \mathsf{ref}\,(\lambda n:\tapltype{Nat}.\,0)
-:\tapltype{Unit}\to\texttt{NatArray}.
+:\tapltype{Unit}\to\texttt{NatArray}
 \]
 查找数组元素时，把保存的函数应用于所需索引：
 \[
 \mathit{lookup}=
 \lambda a:\texttt{NatArray}.\lambda n:\tapltype{Nat}.\
 (!a)\,n
-:\texttt{NatArray}\to\tapltype{Nat}\to\tapltype{Nat}.
+:\texttt{NatArray}\to\tapltype{Nat}\to\tapltype{Nat}
 \]
 
 编码中有意思的是更新函数。它接受数组、索引和要保存在该索引的新值；先创建
@@ -225,7 +226,7 @@ o=\{i=\mathit{incc},d=\mathit{decc}\}
 \mathsf{then}\ v\ \mathsf{else}\ \mathit{oldf}\ n)
 \\[-2pt]
 &:\texttt{NatArray}\to\tapltype{Nat}\to
-\tapltype{Nat}\to\tapltype{Unit}.
+\tapltype{Nat}\to\tapltype{Unit}
 \end{aligned}
 \]
 
@@ -284,7 +285,7 @@ o=\{i=\mathit{incc},d=\mathit{decc}\}
 \inferrule*[right=\textsc{T-Assign}]
  {\Gamma\vdash t_1:\tapltype{Ref}\ T_{11}\\
   \Gamma\vdash t_2:T_{11}}
- {\Gamma\vdash t_1:=t_2:\tapltype{Unit}}.
+ {\Gamma\vdash t_1:=t_2:\tapltype{Unit}}
 \]
 
 \section{求值}
@@ -338,7 +339,7 @@ t\mid\mu\trans t'\mid\mu',
 \qquad
 \inferrule*[right=\textsc{E-App2}]
  {t_2\mid\mu\trans t_2'\mid\mu'}
- {v_1\,t_2\mid\mu\trans v_1\,t_2'\mid\mu'}.
+ {v_1\,t_2\mid\mu\trans v_1\,t_2'\mid\mu'}
 \]
 第一条规则原样返回存储 \(\mu\)，因为函数应用本身没有副作用；另外两条只是
 把前提中的副作用传播到结论。
@@ -374,14 +375,14 @@ t&::=&x&\text{项：变量}\\
 \[
 \inferrule*[right=\textsc{E-Deref}]
  {t_1\mid\mu\trans t_1'\mid\mu'}
- {!t_1\mid\mu\trans!t_1'\mid\mu'}.
+ {!t_1\mid\mu\trans!t_1'\mid\mu'}
 \]
 完成后应得到 \(!l\)，其中 \(l\) 是某个位置。试图解引用函数或 unit 等其他
-值的项是错误的，求值规则会卡住；\S\ref{sec:13.5} 的类型安全性质保证
+值的项是错误的，求值规则会卡住；\taplsecref{13.5}{sec:13.5} 的类型安全性质保证
 良类型项不会这样出错。
 \[
 \inferrule*[right=\textsc{E-DerefLoc}]
- {\mu(l)=v}{!l\mid\mu\trans v\mid\mu}.
+ {\mu(l)=v}{!l\mid\mu\trans v\mid\mu}
 \]
 
 求值赋值表达式 \(t_1:=t_2\) 时，先求值 \(t_1\) 直到成为位置，再求值
@@ -394,14 +395,14 @@ t&::=&x&\text{项：变量}\\
 \[
 \inferrule*[right=\textsc{E-Assign2}]
  {t_2\mid\mu\trans t_2'\mid\mu'}
- {l:=t_2\mid\mu\trans l:=t_2'\mid\mu'}.
+ {l:=t_2\mid\mu\trans l:=t_2'\mid\mu'}
 \]
 两边都求值完后，表达式形如 \(l:=v_2\)，执行它就是更新存储，使 \(l\)
 包含 \(v_2\)：
 \[
 \inferrule*[right=\textsc{E-Assign}]
  {l\in\dom(\mu)}
- {l:=v_2\mid\mu\trans\mathsf{unit}\mid[l\mapsto v_2]\mu}.
+ {l:=v_2\mid\mu\trans\mathsf{unit}\mid[l\mapsto v_2]\mu}
 \]
 记法 \([l\mapsto v_2]\mu\) 表示“把 \(l\) 映射到 \(v_2\)，其他位置的映射
 与 \(\mu\) 相同的存储”。这一步所得项只是 \(\mathsf{unit}\)；有意思的
@@ -411,14 +412,14 @@ t&::=&x&\text{项：变量}\\
 \[
 \inferrule*[right=\textsc{E-Ref}]
  {t_1\mid\mu\trans t_1'\mid\mu'}
- {\mathsf{ref}\ t_1\mid\mu\trans\mathsf{ref}\ t_1'\mid\mu'}.
+ {\mathsf{ref}\ t_1\mid\mu\trans\mathsf{ref}\ t_1'\mid\mu'}
 \]
 然后选择新鲜位置 \(l\)，即 \(l\notin\dom(\mu)\)，产生以新绑定
 \(l\mapsto v_1\) 扩展 \(\mu\) 的存储：
 \[
 \inferrule*[right=\textsc{E-RefV}]
  {l\notin\dom(\mu)}
- {\mathsf{ref}\ v_1\mid\mu\trans l\mid(\mu,l\mapsto v_1)}.
+ {\mathsf{ref}\ v_1\mid\mu\trans l\mid(\mu,l\mapsto v_1)}
 \]
 这一步所得项就是新分配位置的名字 \(l\)。
 
@@ -450,7 +451,7 @@ l_2\mapsto\lambda x:\tapltype{Unit}.\,x)\) 中求值同一个项，结果是
 \[
 \inferrule
  {\mu(l)=v_1\\\Gamma\mid\mu\vdash v_1:T_1}
- {\Gamma\mid\mu\vdash l:\tapltype{Ref}\ T_1}.
+ {\Gamma\mid\mu\vdash l:\tapltype{Ref}\ T_1}
 \]
 也就是说，要找位置 \(l\) 的类型，就在存储中查找 \(l\) 的当前内容，再
 计算内容的类型 \(T_1\)；位置的类型就是 \(\tapltype{Ref}\ T_1\)。
@@ -508,22 +509,26 @@ l_2\mapsto\tapltype{Unit}\to\tapltype{Unit})\)，便能立即推断
 \[
 \inferrule*[right=\textsc{T-Loc}]
  {\Sigma(l)=T_1}
- {\Gamma\mid\Sigma\vdash l:\tapltype{Ref}\ T_1}.
+ {\Gamma\mid\Sigma\vdash l:\tapltype{Ref}\ T_1}
 \]
 类型仍是四元关系，但现在以存储类型而不是具体存储为参数。其余类型规则也
 类似地加入存储类型。
 
 当然，只有求值实际使用的具体存储确实符合类型检查时假定的存储类型，这些
 规则才能准确预测求值结果。这个条件与此前所有演算中的自由变量完全平行：
-替换引理~\ref{lem:9.3.8} 保证，若 \(\Gamma\vdash t:T\)，就能用
+\taplnamedref{lem:9.3.8}{替换引理}保证，若
+\(\Gamma\vdash t:T\)，就能用
 \(\Gamma\) 中列出的相应类型之值替换 \(t\) 的自由变量，得到类型为 \(T\)
-的闭项；再由类型保持性定理~\ref{thm:9.3.9}，若它产生结果，最终结果仍
-具有类型 \(T\)。\S\ref{sec:13.5} 会形式化存储与存储类型之间类似的直觉。
+的闭项；再由
+\taplnamedref{thm:9.3.9}{类型保持性定理}，若它产生结果，
+最终结果仍
+具有类型 \(T\)。\taplsecref{13.5}{sec:13.5} 会形式化存储与存储类型之间类似的直觉。
 
 最后，检查程序员实际书写的项时，不必费力猜测该用什么存储类型。具体位置
 常量只会出现在求值的中间结果中，不属于程序员书写的语言。因此，只需相对于
 空存储类型检查程序员的项。求值过程中创建新位置时，根据放入新单元的初值
-类型，总能看出怎样扩展存储类型；下面的保持性定理~\ref{thm:13.5.3} 会
+类型，总能看出怎样扩展存储类型；下面的
+\taplnamedref{thm:13.5.3}{保持性定理}会
 形式化这一直觉。
 
 处理完位置后，其他新句法形式的类型规则都很直接。对 \(T_1\) 型值创建的
@@ -531,7 +536,7 @@ l_2\mapsto\tapltype{Unit}\to\tapltype{Unit})\)，便能立即推断
 \[
 \inferrule*[right=\textsc{T-Ref}]
  {\Gamma\mid\Sigma\vdash t_1:T_1}
- {\Gamma\mid\Sigma\vdash\mathsf{ref}\ t_1:\tapltype{Ref}\ T_1}.
+ {\Gamma\mid\Sigma\vdash\mathsf{ref}\ t_1:\tapltype{Ref}\ T_1}
 \]
 这里不需要扩展存储类型，因为新位置的名字到运行时才会确定，而 \(\Sigma\)
 只记录已经分配的存储单元与其类型的联系。
@@ -541,7 +546,7 @@ l_2\mapsto\tapltype{Unit}\to\tapltype{Unit})\)，便能立即推断
 \[
 \inferrule*[right=\textsc{T-Deref}]
  {\Gamma\mid\Sigma\vdash t_1:\tapltype{Ref}\ T_{11}}
- {\Gamma\mid\Sigma\vdash!t_1:T_{11}}.
+ {\Gamma\mid\Sigma\vdash!t_1:T_{11}}
 \]
 最后，若 \(t_1\) 表示 \(T_{11}\) 型单元，只要 \(t_2\) 的类型也是
 \(T_{11}\)，就能把它存入该单元：
@@ -549,7 +554,7 @@ l_2\mapsto\tapltype{Unit}\to\tapltype{Unit})\)，便能立即推断
 \inferrule*[right=\textsc{T-Assign}]
  {\Gamma\mid\Sigma\vdash t_1:\tapltype{Ref}\ T_{11}\\
   \Gamma\mid\Sigma\vdash t_2:T_{11}}
- {\Gamma\mid\Sigma\vdash t_1:=t_2:\tapltype{Unit}}.
+ {\Gamma\mid\Sigma\vdash t_1:=t_2:\tapltype{Unit}}
 \]
 
 \begin{figure}[p]
@@ -557,8 +562,8 @@ l_2\mapsto\tapltype{Unit}\to\tapltype{Unit})\)，便能立即推断
 \begin{minipage}{0.99\linewidth}
 \scriptsize
 \taplfigureheader{\(\taplnewmaterial{\tapltype{Ref}}\)}
-  {\(\lambda_{\to}\)（图~\ref{fig:9-1}），并带
-   \(\tapltype{Unit}\)（图~\ref{fig:11-2}）}
+  {\(\lambda_{\to}\)（\cref{fig:9-1}），并带
+   \(\tapltype{Unit}\)（\cref{fig:11-2}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&x&\text{项：变量}\\
@@ -699,14 +704,14 @@ t\taplnewmaterial{\mid\mu}\trans t'\taplnewmaterial{\mid\mu'}
 \end{figure}
 \FloatBarrier
 
-图~\ref{fig:13-1} 汇总带引用的简单类型 lambda 演算的类型规则，也列出
+\cref{fig:13-1} 汇总带引用的简单类型 lambda 演算的类型规则，也列出
 语法与求值规则，便于查阅。
 
 \section{安全性}
 \label{sec:13.5}
 
 最后要检查，引用演算仍然满足标准类型安全性质。进展性定理——良类型项不会
-卡住——几乎可以照旧陈述和证明，见定理~\ref{thm:13.5.7}；只需在证明中
+卡住——几乎可以照旧陈述和证明，见\cref{thm:13.5.7}；只需在证明中
 为新构造增加几个直接的情形。保持性定理略有意思，所以先考察它。
 
 求值关系已经加入初始、最终存储，类型关系也加入存储类型，因此保持性的陈述
@@ -727,7 +732,7 @@ t\taplnewmaterial{\mid\mu}\trans t'\taplnewmaterial{\mid\mu'}
 \(l\in\dom(\mu)\) 都有
 \(\Gamma\mid\Sigma\vdash\mu(l):\Sigma(l)\)，则称存储 \(\mu\) 相对于
 类型上下文 \(\Gamma\) 与存储类型 \(\Sigma\) 是
-\termfirst{良类型的}{well typed}，记作
+良类型的，记作
 \(\Gamma\mid\Sigma\vdash\mu\)。
 \end{definition}
 
@@ -778,7 +783,7 @@ t\mid\mu\trans t'\mid\mu',
 \[
 \Gamma\mid\Sigma'\vdash t':T
 \qquad\text{且}\qquad
-\Gamma\mid\Sigma'\vdash\mu'.
+\Gamma\mid\Sigma'\vdash\mu'
 \]
 \end{theorem}
 
@@ -793,8 +798,8 @@ t\mid\mu\trans t'\mid\mu',
 假设——因而可以反复“转动曲柄”，推出任意求值步序列都保持良类型性。再与
 进展性质结合，就得到通常的保证：“良类型程序永不出错。”
 
-证明保持性需要几个技术引理。第一个是标准替换引理
-\ref{lem:9.3.8} 的简单扩展。
+证明保持性需要几个技术引理。第一个是
+\taplnamedref{lem:9.3.8}{标准替换引理}的简单扩展。
 
 \begin{lemma}[替换]
 \label{lem:13.5.4}
@@ -804,7 +809,7 @@ t\mid\mu\trans t'\mid\mu',
 \end{lemma}
 
 \begin{proof}
-与引理~\ref{lem:9.3.8} 相同。
+与\cref{lem:9.3.8} 相同。
 \end{proof}
 
 下一个引理说明，以类型适当的新值替换存储中一个单元的内容，不会改变存储
@@ -839,12 +844,13 @@ t\mid\mu\trans t'\mid\mu',
 作简单归纳。
 \end{proof}
 
-\begin{proof}[定理~\ref{thm:13.5.3} 的证明]
+\begin{proof}[\cref{thm:13.5.3} 的证明]
 对求值推导作直接归纳，使用上述引理以及类型规则的反演性质
-（引理~\ref{lem:9.3.1} 的直接扩展）。
+（\cref{lem:9.3.1} 的直接扩展）。
 \end{proof}
 
-进展性定理~\ref{thm:9.3.5} 的陈述也必须扩展，以纳入存储与存储类型。
+\taplnamedref{thm:9.3.5}{进展性定理}的陈述也必须扩展，
+以纳入存储与存储类型。
 
 \begin{theorem}[进展性]
 \label{thm:13.5.7}
@@ -853,13 +859,13 @@ t\mid\mu\trans t'\mid\mu',
 满足 \(\varnothing\mid\Sigma\vdash\mu\) 的存储 \(\mu\)，都存在项 \(t'\)
 和存储 \(\mu'\)，使
 \[
-t\mid\mu\trans t'\mid\mu'.
+t\mid\mu\trans t'\mid\mu'
 \]
 \end{theorem}
 
 \begin{proof}
-沿定理~\ref{thm:9.3.5} 的模式，对类型推导作直接归纳。典范形式引理
-\ref{lem:9.3.4} 需要再增加两种情形：类型
+沿\cref{thm:9.3.5} 的模式，对类型推导作直接归纳。
+\taplnamedref{lem:9.3.4}{典范形式引理}需要再增加两种情形：类型
 \(\tapltype{Ref}\ T\) 的所有值都是位置，
 \(\tapltype{Unit}\) 的所有值都是 \(\mathsf{unit}\)。
 \end{proof}
@@ -884,7 +890,7 @@ Jouvelot（1992）、Leroy 与 Weis（1991）、Wright（1992）、Harper
 （1994、1996）及其中所引资料。
 
 静态预测可能出现的别名，是编译器实现与程序语言理论中由来已久的问题；在
-编译器中称为\termfirst{别名分析}{alias analysis}。Reynolds（1978、
+编译器中称为别名分析。Reynolds（1978、
 1989）早期一项影响深远的尝试创造了
 \termfirst{干扰的句法控制}{syntactic control of interference}一词。
 这些思想近年来再次活跃，参见 O'Hearn 等（1995）与 Smith 等（2000）。

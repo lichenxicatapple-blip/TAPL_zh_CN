@@ -6,7 +6,7 @@
 \chapter{带类型的算术表达式}
 \label{chap:8}
 
-第~\ref{chap:3}~章曾用一种简单的布尔与算术表达式语言，介绍精确描述语法和
+\chapref{3}曾用一种简单的布尔与算术表达式语言，介绍精确描述语法和
 求值的基本工具。现在我们回到这个简单语言，为它增添静态类型。这里的类型
 系统本身仍然简单得近乎平凡，却很适合用来引入全书将反复出现的概念。
 
@@ -26,7 +26,7 @@ t&::=&\tapltrue&\text{项：常量真}\\
 \end{array}
 \]
 
-第~\ref{chap:3}~章已经说明，项的求值可能得到一个值
+\chapref{3}已经说明，项的求值可能得到一个值
 \[
 \begin{array}{@{}rcll@{}}
 v&::=&\tapltrue&\text{值：真值}\\
@@ -38,7 +38,7 @@ nv&::=&\taplzero&\text{数值：零值}\\
 \]
 也可能在某个阶段卡住，例如到达 \(\taplpred{\taplfalse}\)，此时没有任何
 求值规则适用。\footnote{本章研究的是带类型的布尔值与自然数演算
-（见图~\ref{fig:8-2}），相应的 OCaml 实现名为 \texttt{tyarith}。}
+（见\cref{fig:8-2}），相应的 OCaml 实现名为 \texttt{tyarith}。}
 
 卡住的项对应无意义或错误的程序。因此，我们希望不必真正求值，就能判断某个
 项的求值必定不会卡住。为此，需要区分结果为数值的项——只有它们才能作为
@@ -63,9 +63,9 @@ nv&::=&\taplzero&\text{数值：零值}\\
 \label{sec:8.2}
 
 算术表达式的\termfirst{类型关系}{typing relation}写作 \(t:T\)，由一组
-为项指派类型的推导规则定义，汇总于图~\ref{fig:8-1} 和
-图~\ref{fig:8-2}。\footnote{符号 \(\in\) 也经常代替冒号使用。}
-与第~\ref{chap:3}~章一样，我们把布尔值与自然数的规则分列在两幅图中，
+为项指派类型的推导规则定义，汇总于\cref{fig:8-1} 和
+\cref{fig:8-2}。\footnote{符号 \(\in\) 也经常代替冒号使用。}
+与\chapref{3}一样，我们把布尔值与自然数的规则分列在两幅图中，
 因为后文有时需要分别引用它们。
 
 \begin{figure}[!ht]
@@ -73,7 +73,7 @@ nv&::=&\taplzero&\text{数值：零值}\\
 \begin{minipage}{0.94\linewidth}
 \small
 \noindent\textbf{B（带类型）}\hfill
-\textit{扩展 B（图~\ref{fig:3-1}）}
+\textit{扩展 B（\cref{fig:3-1}）}
 \par\smallskip
 \noindent\begin{minipage}[t]{0.38\linewidth}
 \textbf{新增句法形式}
@@ -109,7 +109,7 @@ T&::=&\tapltype{Bool}&\text{布尔值类型}
 \begin{minipage}{0.94\linewidth}
 \small
 \noindent\textbf{N（带类型）}\hfill
-\textit{扩展 NB（图~\ref{fig:3-2}）与 B}
+\textit{扩展 NB（\cref{fig:3-2}）与 B}
 \par\smallskip
 \noindent\begin{minipage}[t]{0.38\linewidth}
 \textbf{新增句法形式}
@@ -143,7 +143,7 @@ T&::=&\cdots&\text{类型}\\
 \label{fig:8-2}
 \end{figure}
 
-图~\ref{fig:8-1} 中的 \textsc{T-True} 和 \textsc{T-False} 把类型
+\cref{fig:8-1} 中的 \textsc{T-True} 和 \textsc{T-False} 把类型
 \(\tapltype{Bool}\) 指派给布尔常量 \(\tapltrue\) 和 \(\taplfalse\)。
 \textsc{T-If} 根据条件表达式各个子表达式的类型，为整个表达式指派类型：
 守卫 \(t_1\) 必须求值为布尔值，\(t_2\) 与 \(t_3\) 则必须求值为同一类型的
@@ -152,7 +152,7 @@ T&::=&\cdots&\text{类型}\\
 \(\tapltype{Nat}\) 或 \(\tapltype{Bool}\)，以后面对类型集合更丰富的演算
 时，也可以是其他类型。
 
-图~\ref{fig:8-2} 中自然数的规则形式相似。\textsc{T-Zero} 为常量
+\cref{fig:8-2} 中自然数的规则形式相似。\textsc{T-Zero} 为常量
 \(\taplzero\) 指派类型 \(\tapltype{Nat}\)。只要 \(t_1\) 具有类型
 \(\tapltype{Nat}\)，\textsc{T-Succ} 就为 \(\taplsucc{t_1}\) 指派类型
 \(\tapltype{Nat}\)。类似地，\textsc{T-Pred} 与 \textsc{T-IsZero} 说明：
@@ -161,10 +161,10 @@ T&::=&\cdots&\text{类型}\\
 
 \begin{definition}
 \label{def:8.2.1}
-形式地说，算术表达式的类型关系是项与类型之间满足图~\ref{fig:8-1} 和
-图~\ref{fig:8-2} 中所有规则实例的最小二元关系。若存在某个 \(T\) 使得
+形式地说，算术表达式的类型关系是项与类型之间满足\cref{fig:8-1} 和
+\cref{fig:8-2} 中所有规则实例的最小二元关系。若存在某个 \(T\) 使得
 \(t:T\)，则称项 \(t\) \termfirst{可赋型}{typable}（或
-\termfirst{良类型}{well typed}）。
+良类型）。
 \end{definition}
 
 对类型关系进行推理时，我们常会说：“如果形如 \(\taplsucc{t_1}\) 的项
@@ -196,7 +196,7 @@ T&::=&\cdots&\text{类型}\\
 反演引理有时也称为类型关系的\termfirst{生成引理}{generation lemma}：
 给定一个有效的类型陈述，它说明该陈述的证明可能怎样生成。反演引理直接导出
 一个递归算法来计算项的类型，因为它针对每一种句法形式，都告诉我们怎样从
-子项的类型计算整个项的类型（如果存在）。第~\ref{chap:9}~章会详细回到
+子项的类型计算整个项的类型（如果存在）。\chapref{9}会详细回到
 这一点。
 
 \begin{exercise}[\(\star,\nrightarrow\)]
@@ -204,7 +204,7 @@ T&::=&\cdots&\text{类型}\\
 证明：良类型项的每个子项都是良类型的。
 \end{exercise}
 
-\S\ref{sec:3.5} 引入了求值推导的概念。类似地，
+\taplsecref{3.5}{sec:3.5} 引入了求值推导的概念。类似地，
 \termfirst{类型推导}{typing derivation} 是由类型规则实例构成的树。类型
 关系中的每一对 \((t,T)\) 都有一棵以 \(t:T\) 为结论的类型推导作为依据。
 例如，陈述
@@ -234,7 +234,7 @@ T&::=&\cdots&\text{类型}\\
 \begin{theorem}[类型的唯一性]
 \label{thm:8.2.4}
 每个项 \(t\) 至多具有一种类型。也就是说，如果 \(t\) 可赋型，它的类型是
-唯一的。此外，用图~\ref{fig:8-1} 和图~\ref{fig:8-2} 中推导规则构造出来
+唯一的。此外，用\cref{fig:8-1} 和\cref{fig:8-2} 中推导规则构造出来
 的这一类型推导也只有一个。
 \end{theorem}
 
@@ -258,7 +258,7 @@ T&::=&\cdots&\text{类型}\\
 \termfirst{安全性}{safety}（也称\termfirst{可靠性}{soundness}）：
 良类型项不会“出错”。我们已经选定了“出错”的形式含义：到达一个不是最终
 值、求值规则却没有说明下一步该怎么做的“卡住状态”
-（定义~\ref{def:3.5.15}）。因此，我们想知道良类型项不会卡住。证明分为
+（\cref{def:3.5.15}）。因此，我们想知道良类型项不会卡住。证明分为
 两个步骤，通常称为\termfirst{进展性}{progress}定理和
 \termfirst{保持性}{preservation}定理。\footnote{“安全性等于进展性加
 保持性”（并使用一个典范形式引理）这一口号由 Harper 明确提出；Wright 和
@@ -285,12 +285,12 @@ Felleisen（1994）提出了一个变体。}
   \item 若 \(v\) 是类型为 \(\tapltype{Bool}\) 的值，则 \(v\) 是
     \(\tapltrue\) 或 \(\taplfalse\)。
   \item 若 \(v\) 是类型为 \(\tapltype{Nat}\) 的值，则 \(v\) 是
-    图~\ref{fig:3-2} 文法所定义的数值。
+    \cref{fig:3-2} 文法所定义的数值。
 \end{enumerate}
 \end{lemma}
 
 \begin{proof}
-对第 1 项，根据图~\ref{fig:3-1} 和图~\ref{fig:3-2} 的文法，这个语言中
+对第 1 项，根据\cref{fig:3-1} 和\cref{fig:3-2} 的文法，这个语言中
 的值可能具有四种形式：\(\tapltrue\)、\(\taplfalse\)、\(\taplzero\) 和
 \(\taplsucc{nv}\)，其中 \(nv\) 为数值。前两种立即给出所需结论。后两种
 不可能出现，因为已经假定 \(v\) 的类型是 \(\tapltype{Bool}\)，而反演
@@ -314,21 +314,21 @@ Felleisen（1994）提出了一个变体。}
 \textbf{情形 \rulename{T-If}：}
 \[
 t=\taplif{t_1}{t_2}{t_3}
-\qquad t_1:\tapltype{Bool}\qquad t_2:T\qquad t_3:T.
+\qquad t_1:\tapltype{Bool}\qquad t_2:T\qquad t_3:T
 \]
 由归纳假设，\(t_1\) 要么是值，要么存在 \(t_1'\) 使
 \(t_1\trans t_1'\)。若 \(t_1\) 是值，典范形式引理
-（引理~\ref{lem:8.3.1}）保证它必为 \(\tapltrue\) 或
+（\cref{lem:8.3.1}）保证它必为 \(\tapltrue\) 或
 \(\taplfalse\)，因而 \textsc{E-IfTrue} 或 \textsc{E-IfFalse} 适用于
 \(t\)。另一方面，若 \(t_1\trans t_1'\)，则由 \textsc{E-If}，
 \[
-\taplif{t_1}{t_2}{t_3}\trans\taplif{t_1'}{t_2}{t_3}.
+\taplif{t_1}{t_2}{t_3}\trans\taplif{t_1'}{t_2}{t_3}
 \]
 
 \medskip\noindent
 \textbf{情形 \rulename{T-Succ}：}
 \[
-t=\taplsucc{t_1}\qquad t_1:\tapltype{Nat}.
+t=\taplsucc{t_1}\qquad t_1:\tapltype{Nat}
 \]
 由归纳假设，\(t_1\) 要么是值，要么存在 \(t_1'\) 使
 \(t_1\trans t_1'\)。若 \(t_1\) 是值，典范形式引理说明它必为数值，
@@ -338,7 +338,7 @@ t=\taplsucc{t_1}\qquad t_1:\tapltype{Nat}.
 \medskip\noindent
 \textbf{情形 \rulename{T-Pred}：}
 \[
-t=\taplpred{t_1}\qquad t_1:\tapltype{Nat}.
+t=\taplpred{t_1}\qquad t_1:\tapltype{Nat}
 \]
 由归纳假设，\(t_1\) 要么是值，要么存在 \(t_1'\) 使
 \(t_1\trans t_1'\)。若 \(t_1\) 是值，典范形式引理说明它必为数值，
@@ -368,7 +368,7 @@ t=\taplpred{t_1}\qquad t_1:\tapltype{Nat}.
 \medskip\noindent
 \textbf{情形 \rulename{T-True}：}
 \[
-t=\tapltrue\qquad T=\tapltype{Bool}.
+t=\tapltrue\qquad T=\tapltype{Bool}
 \]
 若最后一条规则是 \textsc{T-True}，由规则形状可知 \(t\) 必为常量
 \(\tapltrue\)，\(T\) 必为 \(\tapltype{Bool}\)。但 \(t\) 是值，所以对
@@ -378,9 +378,9 @@ t=\tapltrue\qquad T=\tapltype{Bool}.
 \textbf{情形 \rulename{T-If}：}
 \[
 t=\taplif{t_1}{t_2}{t_3}
-\qquad t_1:\tapltype{Bool}\qquad t_2:T\qquad t_3:T.
+\qquad t_1:\tapltype{Bool}\qquad t_2:T\qquad t_3:T
 \]
-查看左端为条件表达式的求值规则（图~\ref{fig:3-1}），发现
+查看左端为条件表达式的求值规则（\cref{fig:3-1}），发现
 \(t\trans t'\) 可能由三条规则导出：\textsc{E-IfTrue}、
 \textsc{E-IfFalse} 与 \textsc{E-If}。分别讨论如下；省略与
 \textsc{E-IfTrue} 类似的 \textsc{E-IfFalse} 情形。
@@ -402,7 +402,7 @@ t=\taplif{t_1}{t_2}{t_3}
 \medskip\noindent
 \textbf{情形 \rulename{T-Zero}：}
 \[
-t=\taplzero\qquad T=\tapltype{Nat}.
+t=\taplzero\qquad T=\tapltype{Nat}
 \]
 不可能发生，理由与上面的 \textsc{T-True} 情形相同。
 
@@ -410,9 +410,9 @@ t=\taplzero\qquad T=\tapltype{Nat}.
 \textbf{情形 \rulename{T-Succ}：}
 \[
 t=\taplsucc{t_1}\qquad T=\tapltype{Nat}\qquad
-t_1:\tapltype{Nat}.
+t_1:\tapltype{Nat}
 \]
-检查图~\ref{fig:3-2} 的求值规则可知，只有 \textsc{E-Succ} 能导出
+检查\cref{fig:3-2} 的求值规则可知，只有 \textsc{E-Succ} 能导出
 \(t\trans t'\)。由其形状，对某个 \(t_1'\) 有
 \(t_1\trans t_1'\) 且 \(t'=\taplsucc{t_1'}\)。又因
 \(t_1:\tapltype{Nat}\)，由归纳假设得
@@ -440,7 +440,7 @@ Wadler，1999），这里给出的保持性形式会失效（详见\chapref{19}�
 
 \begin{exercise}[\(\star\)]
 \label{ex:8.3.5}
-求值规则 \textsc{E-PredZero}（图~\ref{fig:3-2}）有些违反直觉：我们可能
+求值规则 \textsc{E-PredZero}（\cref{fig:3-2}）有些违反直觉：我们可能
 觉得零的前驱应当没有定义，而不是定义为零。只需从单步求值的定义中删去这条
 规则，就能达到这个目的吗？
 \end{exercise}
@@ -455,13 +455,13 @@ Wadler，1999），这里给出的保持性形式会失效（详见\chapref{19}�
 
 \begin{exercise}[推荐，\(\star\star\)]
 \label{ex:8.3.7}
-假设求值关系采用练习~\ref{ex:3.5.17} 那样的大步风格定义。类型安全性的
+假设求值关系采用\cref{ex:3.5.17} 那样的大步风格定义。类型安全性的
 直觉性质应如何形式化？
 \end{exercise}
 
 \begin{exercise}[推荐，\(\star\star\)]
 \label{ex:8.3.8}
-假设按照练习~\ref{ex:3.5.16}，在求值关系中加入把无意义项归约到显式
+假设按照\cref{ex:3.5.16}，在求值关系中加入把无意义项归约到显式
 \(\taplwrong\) 状态的规则。此时类型安全性又应如何形式化？
 \end{exercise}
 

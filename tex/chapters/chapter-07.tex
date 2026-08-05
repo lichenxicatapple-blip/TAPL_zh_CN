@@ -6,33 +6,33 @@
 \chapter{lambda 演算的 ML 实现}
 \label{chap:7}
 
-本章以第~\ref{chap:4}~章的算术表达式解释器，以及第~\ref{chap:6}~章对变量
+本章以\chapref{4}的算术表达式解释器，以及\chapref{6}对变量
 绑定和替换的处理为基础，为无类型 lambda 演算构造一个解释器。
 
 只要把前面的定义直接翻译成 OCaml，就能得到一个可执行的无类型 lambda 项
-求值器。与第~\ref{chap:4}~章一样，这里只展示核心算法，暂且忽略词法分析、
+求值器。与\chapref{4}一样，这里只展示核心算法，暂且忽略词法分析、
 解析、打印等问题。
 \footnote{本章大部分内容研究纯无类型 lambda 演算
-（图~\ref{fig:5-3}），相应实现为 \texttt{untyped}。
+（\cref{fig:5-3}），相应实现为 \texttt{untyped}。
 \texttt{fulluntyped} 实现还包含数字和布尔值等扩展。}
 
-\translatornote{原书的 OCaml 程序完整保留在正文中。本译本另在
-\texttt{code/untyped/} 提供与第 5--7 章形式语义相对应的 Rust 参考实现，
-其中包括 de Bruijn
-索引、上下文长度一致性检查、移位、替换、按值调用求值、解析与打印；该工程
-的语义覆盖和与作者工具的具体语法差异见该目录的 README。}
+\translatornote{原书的 OCaml 程序完整保留在正文中，每段代码之后直接给出
+相应的 Rust 对照实现。可运行的完整工程位于 \texttt{code/untyped/}，
+覆盖 de Bruijn 索引、上下文长度一致性检查、移位、替换、按值调用求值、
+解析与打印；其语义覆盖和与作者工具的具体语法差异见该目录的 README。}
 
 \section{项与上下文}
 \label{sec:7.1}
 
-把定义~\ref{def:6.1.2} 直接转写为数据类型，就得到表示项的抽象语法树：
+把\cref{def:6.1.2} 直接转写为数据类型，就得到表示项的抽象语法树：
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 type term =
     TmVar of int
   | TmAbs of term
   | TmApp of term * term
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch07-term-basic}
 
 变量表示为一个数字，即它的 de Bruijn 索引。抽象只携带表示函数体的子项；
 应用则携带被应用的两个子项。
@@ -42,23 +42,26 @@ type term =
 从而让错误报告过程能把用户（甚至用户的文本编辑器）自动引导到发生错误的
 确切位置。
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 type term =
     TmVar of info * int
   | TmAbs of info * term
   | TmApp of info * term * term
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch07-term-info}
 
 其次，为了调试，最好在每个变量结点上再携带一个数字，作为一致性检查。约定
-这个数字始终等于该变量出现处的上下文总长度。
+这个数字始终等于该变量出现处的上下文总长度（即该位置的当前上下文中共有
+多少个变量绑定）。
 
 \noindent\begin{minipage}{\linewidth}
-\begin{lstlisting}
+\begin{taplocamlcode}
 type term =
     TmVar of info * int * int
   | TmAbs of info * term
   | TmApp of info * term * term
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch07-term-context-length}
 \end{minipage}
 
 每次打印变量时，都要验证这个数字是否等于当前上下文的实际大小；若不相等，
@@ -66,16 +69,20 @@ type term =
 
 最后一项改进也与打印有关。尽管内部用 de Bruijn 索引表示项，显然不应把这种
 形式直接呈现给用户：解析时，应当从普通表示转换成无名项；打印时，则应转换
-回普通形式。这本身并不困难，但也不能完全幼稚地处理——例如，若给变量生成
-全然新鲜的符号，打印出的项中，受约束变量名就会与原程序里的名字毫无关系。
+回普通形式。这本身并不困难，但也不能简单地把所有变量重新命名。例如，如果
+打印时一律为变量生成与原程序无关的新名字，那么输出项中的受约束变量名就会
+与原程序里的名字毫无关系。
 解决办法是在每个抽象上标注一个字符串，作为受约束变量名的提示：
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 type term =
     TmVar of info * int * int
   | TmAbs of info * string * term
   | TmApp of info * term * term
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch07-term-name-hint}
+
+\taplrustsupport{ch07-eval-error}
 
 项上的基本操作，特别是替换，不会对这些字符串做任何复杂处理：它们只会原样
 随项传递，不检查名字冲突、变量捕获等问题。打印过程需要为受约束变量生成新鲜
@@ -85,7 +92,7 @@ type term =
 
 打印过程本身如下：
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 let rec printtm ctx t = match t with
     TmAbs(fi,x,t1) ->
       let (ctx',x') = pickfreshname ctx x in
@@ -97,19 +104,22 @@ let rec printtm ctx t = match t with
         pr (index2name fi ctx x)
       else
         pr "[bad index]"
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch07-print-term}
 
 它使用数据类型 \texttt{context}：
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 type context = (string * binding) list
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch07-context}
 
 上下文就是由字符串及其关联绑定组成的列表。眼下绑定本身极为简单：
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 type binding = NameBind
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch07-binding}
 
 其中没有携带任何有意义的信息。稍后在\chapref{10}，我们会为
 \texttt{binding} 类型加入其他分支，用于记录变量对应的类型假设以及类似
@@ -123,6 +133,8 @@ type binding = NameBind
 \texttt{ctx} 形成新上下文 \texttt{ctx'}，再把 \texttt{ctx'} 与
 \texttt{x'} 成对返回。
 
+\taplrustsupport{ch07-print-helpers}
+
 本书网站上 \texttt{untyped} 实现中的实际打印函数还要复杂一些，它额外处理
 两个问题。第一，它遵循应用左结合、抽象函数体尽量向右延伸的约定，尽可能省略
 括号。第二，它为一个底层的美观打印模块（OCaml 的 \texttt{Format} 库）生成
@@ -131,9 +143,9 @@ type binding = NameBind
 \section{移位与替换}
 \label{sec:7.2}
 
-移位的定义~\ref{def:6.2.1} 几乎可以逐符号翻译成 OCaml：
+移位的\cref{def:6.2.1} 几乎可以逐符号翻译成 OCaml：
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 let termShift d t =
   let rec walk c t = match t with
       TmVar(fi,x,n) ->
@@ -144,7 +156,8 @@ let termShift d t =
     | TmApp(fi,t1,t2) ->
         TmApp(fi,walk c t1,walk c t2)
   in walk 0 t
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch07-shift}
 
 内部移位 \(\uparrow^d_c(t)\) 在这里表示成对内部函数
 \texttt{walk c t} 的一次调用。由于 \(d\) 始终不变，不必在每次调用
@@ -153,9 +166,9 @@ let termShift d t =
 \texttt{termShift} 本身没有标成递归函数，因为它只调用一次
 \texttt{walk}。
 
-同样，替换函数也几乎直接来自定义~\ref{def:6.2.4}：
+同样，替换函数也几乎直接来自\cref{def:6.2.4}：
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 let termSubst j s t =
   let rec walk c t = match t with
       TmVar(fi,x,n) ->
@@ -166,7 +179,8 @@ let termSubst j s t =
     | TmApp(fi,t1,t2) ->
         TmApp(fi,walk c t1,walk c t2)
   in walk 0 t
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch07-substitute}
 
 用项 \(s\) 替换项 \(t\) 中编号为 \(j\) 的变量，即
 \([j\mapsto s]t\)，这里写成 \texttt{termSubst j s t}。与原始替换定义
@@ -177,37 +191,40 @@ let termSubst j s t =
 读者可能已经注意到，\texttt{termShift} 与 \texttt{termSubst} 的定义
 非常相似，只有到达变量时采取的动作不同。本书网站提供的
 \texttt{untyped} 实现利用了这一点，把移位和替换都表述成一个更一般函数
-\texttt{tmmap} 的特例。给定项 \(t\) 和一个函数 \texttt{onvar}，
-\texttt{tmmap onvar t} 的结果与 \(t\) 具有相同形状，但其中每个变量都被
-调用 \texttt{onvar} 得到的结果替换。在更大型的演算中，这种记法技巧能省去
-大量乏味的重复；\taplsecref{25.2}{sec:25.2} 会进一步说明。
+\texttt{tmmap} 的特例。给定项 \(t\) 和函数 \texttt{onvar}，
+\texttt{tmmap onvar t} 会遍历 \(t\)，并保持它的整体结构不变；每遇到一个
+变量结点，就把该结点的信息传给 \texttt{onvar}，再用 \texttt{onvar} 返回的
+项取代原变量结点。在更大型的演算中，这种记法技巧能省去大量乏味的重复；
+\taplsecref{25.2}{sec:25.2} 会进一步说明。
 
 在 lambda 演算的操作语义中，唯一使用替换的地方是 \(\beta\) 归约规则。
-如前所述，这条规则实际完成了几项操作：先把要替换受约束变量的项向上移动
-一位，再进行替换，最后把整个结果向下移动一位，以反映受约束变量已经被用掉。
-下面的定义封装了这一系列步骤：
+如前所述，这条规则包含三个步骤：先把将要代入函数体的项 \(s\) 上移一位，
+再用它替换受约束变量；替换完成后，将整个结果下移一位，删除该变量原先占用
+的上下文位置。下面的定义封装了这一系列步骤：
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 let termSubstTop s t =
   termShift (-1) (termSubst 0 (termShift 1 s) t)
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch07-substitute-top}
 
 \section{求值}
 \label{sec:7.3}
 
-与第~\ref{chap:4}~章一样，求值函数依赖一个辅助谓词
+与\chapref{4}一样，求值函数依赖一个辅助谓词
 \texttt{isval}：
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 let rec isval ctx t = match t with
     TmAbs(_,_,_) -> true
   | _ -> false
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch07-is-value}
 
 单步求值函数直接转写求值规则，只是把上下文 \texttt{ctx} 与项一同传入。
 当前的 \texttt{eval1} 并不使用这个参数，但后面一些更复杂的求值器需要它。
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 let rec eval1 ctx t = match t with
     TmApp(fi,TmAbs(_,x,t12),v2) when isval ctx v2 ->
       termSubstTop v2 t12
@@ -219,38 +236,45 @@ let rec eval1 ctx t = match t with
       TmApp(fi,t1',t2)
   | _ ->
       raise NoRuleApplies
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch07-eval1}
 
 多步求值函数仍与以前一样，只是多了 \texttt{ctx} 参数：
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 let rec eval ctx t =
   try
     let t' = eval1 ctx t in
     eval ctx t'
   with NoRuleApplies -> t
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch07-eval}
 
 \begin{exercise}[推荐，\(\star\star\star,\nrightarrow\)]
+\label{ex:7.3.1}
 把这个实现改为使用\cref{ex:5.3.8}引入的“大步”求值风格。
 \end{exercise}
+\taplsolutionlink{sol:translator:7.3.1}{7.3.1}
 
 \section{注记}
 \label{sec:7.4}
 
 本章给出的替换处理足以满足全书需要，但绝不是关于这个问题的最终结论。尤其
-是，我们的求值器在 \(\beta\) 归约规则中会“急切地”用参数值替换函数体里的
-受约束变量。注重速度而非简洁性的函数式语言解释器（和编译器）会采用另一种
-策略：不实际执行替换，只在一个名为\termfirst{环境}{environment}的辅助
-数据结构中记录受约束变量名与参数值之间的关联，并在求值时让环境随项一起
-传递。到达一个变量时，再从当前环境查找它的值。
+是，我们的求值器采用“急切”替换：执行 \(\beta\) 归约时，它会立即遍历
+函数体，把其中由当前抽象绑定的参数变量的每一处出现都替换为参数值。注重
+速度而非简洁性的函数式语言解释器（和编译器）会采用另一种策略：不预先改写
+函数体，而是在一个名为\termfirst{环境}{environment}的辅助数据结构中记录
+受约束变量名与参数值之间的关联，并在求值时让环境随项一起传递；当实际需要
+计算函数体中的某个变量引用时，才从当前环境中取出与它关联的值。
 
-可以把环境看作一种显式替换，从而为这种策略建立模型。也就是说，把替换机制
-从元语言移进对象语言，让它成为求值器所操作项之语法的一部分，而不再是作用
-于项的外部操作。Abadi、Cardelli、Curien 和 Lévy（1991a）最早研究了显式
-替换；此后，它已经成为一个活跃的研究领域。
+这种基于环境的策略也可以形式化为显式替换。具体做法是扩展对象语言（这里指
+正在研究的 lambda 演算）的项语法，使“一个项连同尚未执行的替换”本身也成为
+一种项。这样，替换就不再只是元语言（这里指用来描述或实现该演算的数学记法
+与实现语言）施加于项的外部操作，而改由对象语言自身的求值规则逐步处理。
+Abadi、Cardelli、Curien 和 Lévy（1991a）最早研究了显式替换；此后，它已经
+成为一个活跃的研究领域。
 
 \bilingualepigraph
-  {仅仅因为你实现了某个东西，并不意味着你已经理解它。}
+  {能把一样东西实现出来，并不代表你真正理解了它。}
   {Just because you've implemented something doesn't mean you understand it.}
   {——Brian Cantwell Smith}

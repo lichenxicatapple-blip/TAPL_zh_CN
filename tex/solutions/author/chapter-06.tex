@@ -1,0 +1,210 @@
+\newpage
+\section{第 6 章：项的无名表示}
+
+\begin{taplauthorsolutionentrybox}
+\textbf{6.1.1 解答}
+\phantomsection
+\label{sol:author:6.1.1}
+\[
+\begin{aligned}
+c_0
+  &=\lambda.\,\lambda.\,0,\\
+c_2
+  &=\lambda.\,\lambda.\,1\,(1\,0),\\
+\mathit{plus}
+  &=\lambda.\,\lambda.\,\lambda.\,\lambda.\,
+    3\,1\,(2\,1\,0),\\
+\mathit{fix}
+  &=\lambda.\,
+    (\lambda.\,1\,(\lambda.\,(1\,1)\,0))\,
+    (\lambda.\,1\,(\lambda.\,(1\,1)\,0)),\\
+\mathit{foo}
+  &=(\lambda.\,\lambda.\,0)\,(\lambda.\,0)
+\end{aligned}
+\]
+
+\taplsolutionbacklink{ex:6.1.1}{返回练习 6.1.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:6.1.5}
+\textbf{6.1.5 解答}
+
+两个函数可以定义如下：
+\[
+\begin{aligned}
+\mathit{removenames}_{\Gamma}(x)
+  &={}\text{\(x\) 在 \(\Gamma\) 中最右一次出现的索引},\\
+\mathit{removenames}_{\Gamma}(\lambda x.\,t_1)
+  &=\lambda.\,\mathit{removenames}_{\Gamma,x}(t_1),\\
+\mathit{removenames}_{\Gamma}(t_1\,t_2)
+  &=\mathit{removenames}_{\Gamma}(t_1)\,
+    \mathit{removenames}_{\Gamma}(t_2),\\[3pt]
+\mathit{restorenames}_{\Gamma}(k)
+  &={}\text{\(\Gamma\) 中索引为 \(k\) 的名字},\\
+\mathit{restorenames}_{\Gamma}(\lambda.\,t_1)
+  &=\lambda x.\,\mathit{restorenames}_{\Gamma,x}(t_1),\\
+&\hspace{2em}\text{其中 \(x\) 是第一个不属于
+  \(\dom(\Gamma)\) 的名字},\\
+\mathit{restorenames}_{\Gamma}(t_1\,t_2)
+  &=\mathit{restorenames}_{\Gamma}(t_1)\,
+    \mathit{restorenames}_{\Gamma}(t_2)
+\end{aligned}
+\]
+对项作直接的结构归纳，即可证明
+\(\mathit{removenames}\) 与 \(\mathit{restorenames}\) 所要求的两个性质。
+
+\translatornote{原书初版解答在两个应用分支中误把下标写成
+\(\Gamma,x\)；此处已按作者官方勘误改为 \(\Gamma\)。}
+
+\taplsolutionbacklink{ex:6.1.5}{返回练习 6.1.5}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:6.2.2}
+\textbf{6.2.2 解答}
+\begin{enumerate}
+  \item \(\lambda.\,\lambda.\,1\,(0\,4)\)
+  \item \(\lambda.\,0\,3\,(\lambda.\,0\,1\,4)\)
+\end{enumerate}
+\taplsolutionbacklink{ex:6.2.2}{返回练习 6.2.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:6.2.5}
+\textbf{6.2.5 解答}
+
+\[
+\begin{aligned}
+[0\mapsto1]\,(0\,(\lambda.\,\lambda.\,2))
+  &=1\,(\lambda.\,\lambda.\,3)\\
+  &\text{即 }a\,(\lambda x.\,\lambda y.\,a),\\[4pt]
+[0\mapsto1\,(\lambda.\,2)]\,(0\,(\lambda.\,1))
+  &=(1\,(\lambda.\,2))\,
+    (\lambda.\,(2\,(\lambda.\,3)))\\
+  &\text{即 }(a\,(\lambda z.\,a))\,
+    (\lambda x.\,a\,(\lambda z.\,a)),\\[4pt]
+[0\mapsto1]\,(\lambda.\,0\,2)
+  &=\lambda.\,0\,2\\
+  &\text{即 }\lambda b.\,b\,a,\\[4pt]
+[0\mapsto1]\,(\lambda.\,1\,0)
+  &=\lambda.\,2\,0\\
+  &\text{即 }\lambda a'.\,a\,a'
+\end{aligned}
+\]
+
+\translatornote{这四项计算的关键是始终在同一个命名上下文中解释索引。
+对 \(\Gamma=a,b\)，从右向左编号得到 \(b\mapsto0\)、\(a\mapsto1\)；
+每进入一层 lambda，外部变量的索引都增加 \(1\)。下面补出作者解答省略的
+中间步骤。
+
+\begin{enumerate}
+  \item 具名项 \(b\,(\lambda x.\,\lambda y.\,b)\) 转换为
+    \(0\,(\lambda.\,\lambda.\,2)\)，而替换 \([b\mapsto a]\) 转换为
+    \([0\mapsto1]\)。替换依次进入两层 lambda 时，目标编号与待代入项的
+    索引分别从 \(0,1\) 变为 \(1,2\)，再变为 \(2,3\)：
+    \[
+    \begin{aligned}
+    [0\mapsto1]\,(0\,(\lambda.\,\lambda.\,2))
+      &=1\,(\lambda.\,[1\mapsto2](\lambda.\,2))\\
+      &=1\,(\lambda.\,\lambda.\,[2\mapsto3]2)\\
+      &=1\,(\lambda.\,\lambda.\,3)
+    \end{aligned}
+    \]
+    外层的 \(1\) 与两层 lambda 内的 \(3\) 都指向同一个外部变量 \(a\)，
+    因而恢复成具名形式后得到
+    \(a\,(\lambda x.\,\lambda y.\,a)\)。
+
+  \item 待代入项与被替换项分别转换为
+    \[
+      a\,(\lambda z.\,a)\longmapsto1\,(\lambda.\,2),
+      \qquad
+      b\,(\lambda x.\,b)\longmapsto0\,(\lambda.\,1)
+    \]
+    记 \(s=1\,(\lambda.\,2)\)。替换进入 \(\lambda x\) 后，必须先把
+    \(s\) 中自由出现的 \(a\) 上移一位：
+    \[
+      \uparrow^1(s)=2\,(\lambda.\,3)
+    \]
+    因此
+    \[
+    \begin{aligned}
+    [0\mapsto s]\,(0\,(\lambda.\,1))
+      &=s\,(\lambda.\,[1\mapsto\uparrow^1(s)]1)\\
+      &=(1\,(\lambda.\,2))\,
+        (\lambda.\,(2\,(\lambda.\,3)))
+    \end{aligned}
+    \]
+    索引的增加并未改变变量：\(2\) 和更内层的 \(3\) 仍指向外部的
+    \(a\)。恢复名称后得到
+    \((a\,(\lambda z.\,a))\,
+      (\lambda x.\,a\,(\lambda z.\,a))\)。
+
+  \item 在 \(\lambda b.\,b\,a\) 中，函数体里的 \(b\) 由当前 lambda
+    绑定。它在无名形式 \(\lambda.\,0\,2\) 中表现为索引 \(0\)，而进入
+    lambda 后要寻找的外部 \(b\) 已变成索引 \(1\)。函数体中没有索引
+    \(1\)，所以替换不改变该项。
+
+  \item 在 \(\lambda a.\,b\,a\) 中，\(b\) 是自由的，而 \(a\) 由当前
+    lambda 绑定。无名形式为 \(\lambda.\,1\,0\)。把外部的 \(b\) 替换为
+    外部的 \(a\) 时，待代入的 \(a\) 必须从索引 \(1\) 上移为 \(2\)，
+    以免被当前 lambda 捕获，故结果为 \(\lambda.\,2\,0\)。恢复名称时为
+    避免与外部的 \(a\) 冲突，可把绑定变量改名为 \(a'\)，得到
+    \(\lambda a'.\,a\,a'\)。
+\end{enumerate}}
+
+\taplsolutionbacklink{ex:6.2.5}{返回练习 6.2.5}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:6.2.8}
+\textbf{6.2.8 解答}
+
+若 \(\Gamma\) 是命名上下文，记 \(\Gamma(x)\) 为从右向左数时 \(x\)
+在 \(\Gamma\) 中的索引。所需证明的性质是
+\[
+\mathit{removenames}_{\Gamma}([x\mapsto s]t)
+=
+\bigl[\Gamma(x)\mapsto\mathit{removenames}_{\Gamma}(s)\bigr]
+\bigl(\mathit{removenames}_{\Gamma}(t)\bigr)
+\]
+证明对 \(t\) 作归纳，使用定义 5.3.5 与 6.2.4、若干简单计算，以及关于
+\(\mathit{removenames}\) 和项上其他基本操作的几个简单引理。抽象情形中，
+约定 5.3.4 起关键作用。
+
+\taplsolutionbacklink{ex:6.2.8}{返回练习 6.2.8}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:6.3.1}
+\textbf{6.3.1 解答}
+
+索引变成负数，唯一可能是最后的负移位作用于一个需要移动的索引 \(0\)。
+但中间结果中不会留下这样的变量：替换操作已经消除了函数体中原来指向形参的
+变量；而代入项在替换前已经向上移动了一位，所以其中的自由变量索引都至少为
+\(1\)。因此，最后的负移位不会产生负索引。
+
+\translatornote{这里所说的索引 \(0\)，特指相对于整个中间结果是自由的、因而
+会被顶层移位处理的变量。代入项内部仍可能出现由其自身 lambda 抽象绑定的
+索引 \(0\)，例如 \(\lambda.\,0\)；移位操作进入该 lambda 后会提高截点，
+所以不会移动这个受约束变量，更不会把它变成 \(-1\)。}
+
+\taplsolutionbacklink{ex:6.3.1}{返回练习 6.3.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:6.3.2}
+\textbf{6.3.2 解答}
+
+使用索引与使用层级的两种表示等价，其证明可见 Lescanne 与
+Rouyer-Degli（1995）。de Bruijn 层级还见 de Bruijn（1972）以及
+Filinski（1999，\S5.2）的讨论。
+
+\taplsolutionbacklink{ex:6.3.2}{返回练习 6.3.2}
+\end{taplauthorsolutionentrybox}

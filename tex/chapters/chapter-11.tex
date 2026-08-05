@@ -9,7 +9,7 @@
 简单类型 lambda 演算已经具备足够的结构，其理论性质颇有研究价值，但还称
 不上真正的程序语言。本章加入若干熟悉的语言特性；它们在类型层面都能直接
 处理，从而开始缩小这一演算与常见语言之间的距离。贯穿全章的一个重要主题是
-\termfirst{派生形式}{derived form}。
+派生形式。
 
 \section{基本类型}
 \label{sec:11.1}
@@ -26,12 +26,12 @@
 为研究理论性质，把特定基本类型及其运算的细节抽象掉往往很有用。我们可以
 只假定语言配有某个集合 \(\mathcal A\)，其中包含若干没有解释或含义未知的
 基本类型，并且根本没有作用于它们的基本操作。只需把 \(\mathcal A\) 的元素
-（用元变量 \(A\) 表示）纳入类型集合，即可做到这一点，如图~\ref{fig:11-1}
+（用元变量 \(A\) 表示）纳入类型集合，即可做到这一点，如\cref{fig:11-1}
 所示。这里用 \(A\) 而不用 \(B\) 表示基本类型，是为了避免与原书表示系统
 含有布尔值的特性标记 B 混淆。\(A\) 也可以理解为
 \termfirst{原子类型}{atomic type}的缩写；从类型系统的角度看，这些类型
 没有内部结构，所以基本类型也常用这个名字。\footnote{本章研究纯简单类型
-lambda 演算（图~\ref{fig:9-1}）的多种扩展。相应的 OCaml 实现
+lambda 演算（\cref{fig:9-1}）的多种扩展。相应的 OCaml 实现
 \texttt{fullsimple} 包含所有这些扩展。}
 
 \begin{figure}[!ht]
@@ -39,7 +39,7 @@ lambda 演算（图~\ref{fig:9-1}）的多种扩展。相应的 OCaml 实现
 \begin{minipage}{0.94\linewidth}
 \small
 \taplfigureheader{\(\mathrm{A}\)}
-  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
+  {\(\lambda_{\to}\)（\cref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 T&::=&\cdots&\text{类型}\\
@@ -82,7 +82,7 @@ T&::=&\cdots&\text{类型}\\
 \label{sec:11.2}
 
 另一种有用的基本类型是单元素类型 \(\tapltype{Unit}\)，尤常见于 ML 家族
-的语言，见图~\ref{fig:11-2}。与上一节没有解释的基本类型相反，它用最简单
+的语言，见\cref{fig:11-2}。与上一节没有解释的基本类型相反，它用最简单
 的方式得到解释：显式引入唯一元素——项常量 \(\mathsf{unit}\)（小写
 \(u\)）——并用一条类型规则规定 \(\mathsf{unit}\) 属于
 \(\tapltype{Unit}\)。我们还把 \(\mathsf{unit}\) 加入可能的计算结果值；
@@ -93,7 +93,7 @@ T&::=&\cdots&\text{类型}\\
 \begin{minipage}{0.94\linewidth}
 \small
 \taplfigureheader{\(\tapltype{Unit}\)}
-  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
+  {\(\lambda_{\to}\)（\cref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots&\text{项}\\
@@ -115,7 +115,7 @@ T&::=&\cdots&\text{类型}\\
 即使在纯函数式语言中，\(\tapltype{Unit}\) 也并非毫无意思，\footnote{读者
 也许会喜欢这个小谜题：在只有基本类型 \(\tapltype{Unit}\) 的简单类型
 lambda 演算中，能构造多少个不同的闭范式？}但它主要用于带副作用的语言，
-例如可以给引用单元赋值的语言；第~\ref{chap:13}~章会回到这个话题。在这类
+例如可以给引用单元赋值的语言；\chapref{13}会回到这个话题。在这类
 语言中，我们关心的往往是表达式的副作用而非结果；
 \(\tapltype{Unit}\) 正适合作为这类表达式的结果类型。
 
@@ -149,7 +149,7 @@ lambda 演算中，能构造多少个不同的闭范式？}但它主要用于带
 \[
 \inferrule*[right=\textsc{T-Seq}]
  {\Gamma\vdash t_1:\tapltype{Unit}\\\Gamma\vdash t_2:T_2}
- {\Gamma\vdash t_1;t_2:T_2}.
+ {\Gamma\vdash t_1;t_2:T_2}
 \]
 
 \translatornote{原书初版把 \textsc{E-SeqNext} 的左端写成
@@ -186,7 +186,7 @@ t\trans_E t'
 \\
 \Gamma\vdash_E t:T
 &\quad\Longleftrightarrow\quad
-\Gamma\vdash_I e(t):T.
+\Gamma\vdash_I e(t):T
 \end{aligned}
 \]
 下标 \(E\) 与 \(I\) 分别标明使用哪一种语言的求值关系和类型关系。
@@ -196,7 +196,7 @@ t\trans_E t'
 每个方向都对 \(t\) 的结构作直接归纳。
 \end{proof}
 
-定理~\ref{thm:11.3.1} 说明顺序执行构造的类型和求值行为可以从更基本的
+\cref{thm:11.3.1} 说明顺序执行构造的类型和求值行为可以从更基本的
 抽象与应用操作导出，因此“派生形式”这个名字名副其实。把顺序执行一类特性
 作为派生形式，而不作为完全独立的语言构造，其好处是：可以扩充表层语法
 （程序员实际编写程序所使用的语言），却不增加内部语言的复杂性；类型安全性
@@ -226,7 +226,7 @@ Standard ML 定义（Milner、Tofte 与 Harper，1990；Milner、Tofte、Harper
 以后还会经常用到另一项简单特性：为给定项显式标注某一类型，即在程序文本中
 记下一项断言，声明该项具有该类型。我们用 \(t\ \mathsf{as}\ T\) 表示
 “项 \(t\)，并为它标注类型 \(T\)”。这个构造的类型规则
-\textsc{T-Ascribe}（见图~\ref{fig:11-3}）只验证所标注的 \(T\) 确实是
+\textsc{T-Ascribe}（见\cref{fig:11-3}）只验证所标注的 \(T\) 确实是
 \(t\) 的类型。求值规则同样直接：丢掉标注，让 \(t\) 照常求值。
 
 \begin{figure}[!ht]
@@ -234,7 +234,7 @@ Standard ML 定义（Milner、Tofte 与 Harper，1990；Milner、Tofte、Harper
 \begin{minipage}{0.94\linewidth}
 \small
 \taplfigureheader{\(\mathsf{as}\)}
-  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
+  {\(\lambda_{\to}\)（\cref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots&\text{项}\\
@@ -275,7 +275,7 @@ t&::=&\cdots&\text{项}\\
 地方，都理解成后一个类型。因此可以写：
 \[
 (\lambda f:\texttt{UU}.\,f\ \mathsf{unit})
-(\lambda x:\tapltype{Unit}.\,x).
+(\lambda x:\tapltype{Unit}.\,x)
 \]
 
 类型检查时会按需自动展开缩写；反过来，类型检查器也会尽可能把类型折叠成
@@ -304,7 +304,7 @@ t&::=&\cdots&\text{项}\\
 (\lambda f:\tapltype{Unit}\to\tapltype{Unit}.\,f)
 \ \mathsf{as}\ \texttt{UU}\to\texttt{UU}
 \qquad\blacktriangleright\qquad
-\langle\mathsf{fun}\rangle:\texttt{UU}\to\texttt{UU}.
+\langle\mathsf{fun}\rangle:\texttt{UU}\to\texttt{UU}
 \]
 
 处理 \(t\ \mathsf{as}\ T\) 时，类型检查器会展开 \(T\) 中的缩写，检查
@@ -329,7 +329,7 @@ t&::=&\cdots&\text{项}\\
   \item 假设不用 \textsc{E-Ascribe} 与 \textsc{E-Ascribe1} 这一对规则，
     而使用一到达指称就立即丢弃它的“急切”规则
     \[
-      t\ \mathsf{as}\ T\trans t.
+      t\ \mathsf{as}\ T\trans t
     \]
     此时类型标注还能视为派生形式吗？
 \end{enumerate}
@@ -343,7 +343,7 @@ t&::=&\cdots&\text{项}\\
 \(\mathsf{let}\ x=t_1\ \mathsf{in}\ t_2\)，意指“求值 \(t_1\)，把名字
 \(x\) 绑定到所得的值，再求值 \(t_2\)”。
 
-图~\ref{fig:11-4} 汇总的 let 绑定与 ML 一样采用按值调用的求值次序：
+\cref{fig:11-4} 汇总的 let 绑定与 ML 一样采用按值调用的求值次序：
 必须先把被 let 绑定的项完全求值，才能开始求值 let 体。类型规则
 \textsc{T-Let} 告诉我们：先计算被绑定项的类型，以该类型的绑定扩展上下文，
 再在扩展后的上下文中计算体的类型；体的类型就是整个 let 表达式的类型。
@@ -353,7 +353,7 @@ t&::=&\cdots&\text{项}\\
 \begin{minipage}{0.94\linewidth}
 \small
 \taplfigureheader{\(\mathsf{let}\)}
-  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
+  {\(\lambda_{\to}\)（\cref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots&\text{项}\\
@@ -394,7 +394,7 @@ let 也能定义成派生形式吗？Landin 说明可以，但细节比顺序执
 \[
 \mathsf{let}\ x=t_1\ \mathsf{in}\ t_2
 \quad\triangleq\quad
-(\lambda x:T_1.\,t_2)\,t_1.
+(\lambda x:T_1.\,t_2)\,t_1
 \]
 但注意，缩写右侧含有类型注解 \(T_1\)，左侧却没有。若把派生形式设想为
 编译器解析阶段执行的去糖变换，就必须问：解析器怎样知道去糖后的内部语言项
@@ -417,7 +417,7 @@ let 也能定义成派生形式吗？Landin 说明可以，但细节比顺序执
    {\Gamma\vdash\lambda x:T_1.\,t_2:T_1\to T_2}
  \\
  \Gamma\vdash t_1:T_1}
- {\Gamma\vdash(\lambda x:T_1.\,t_2)\,t_1:T_2}.
+ {\Gamma\vdash(\lambda x:T_1.\,t_2)\,t_1:T_2}
 \]
 
 因此，let 比此前看到的派生形式“少派生一点”：它的求值行为可以通过去糖
@@ -440,11 +440,11 @@ Hindley--Milner 多态（即基于合一的多态）的语言中，类型检查�
 
 大多数程序语言都提供多种构造复合数据结构的方法。最简单的是值的
 \termfirst{对}{pair}，更一般则是元组。本节处理二元对，
-\S\ref{sec:11.7} 和 \S\ref{sec:11.8} 再讨论一般元组和带标签的记录。
+\taplsecref{11.7}{sec:11.7} 和 \taplsecref{11.8}{sec:11.8} 再讨论一般元组和带标签的记录。
 \footnote{\texttt{fullsimple} 实现实际上没有提供这里描述的二元对语法，
 因为元组已经是更一般的形式。}
 
-对的形式化简单得几乎不值得讨论。读到这里，直接读图~\ref{fig:11-5} 中的
+对的形式化简单得几乎不值得讨论。读到这里，直接读\cref{fig:11-5} 中的
 规则，应当已经和费力阅读同样内容的文字说明一样容易。不过，为强调共同模式，
 还是简要看看定义的各个部分。
 
@@ -453,7 +453,7 @@ Hindley--Milner 多态（即基于合一的多态）的语言中，类型检查�
 \begin{minipage}{0.98\linewidth}
 \small
 \taplfigureheader{\(\times\)}
-  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
+  {\(\lambda_{\to}\)（\cref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots&\text{项}\\
@@ -512,7 +512,7 @@ T&::=&\cdots&\text{类型}\\
 \(\{t_1,t_2\}\)，以及投影 \(t.\mathtt{1}\) 与 \(t.\mathtt{2}\)——和
 一个新的类型构造子 \(T_1\times T_2\)，称为 \(T_1\) 与 \(T_2\) 的
 \termfirst{积}{product}（有时也称\termfirst{笛卡儿积}{cartesian
-product}）。这里用花括号书写对，是为了强调它与 \S\ref{sec:11.8} 记录的
+product}）。这里用花括号书写对，是为了强调它与 \taplsecref{11.8}{sec:11.8} 记录的
 联系。\footnote{花括号容易让人联想到标准的集合记法，因此用于对和元组并不
 十分理想。无论在 ML 等流行语言还是研究文献中，用圆括号包围对和元组都更为
 常见；方括号、尖括号等其他记法也有人使用。}
@@ -530,7 +530,7 @@ product}）。这里用花括号书写对，是为了强调它与 \S\ref{sec:11.
 \{\taplpred 4,\taplif{\tapltrue}{\taplfalse}{\taplfalse}\}.\mathtt{1}
 &\trans\{3,\taplif{\tapltrue}{\taplfalse}{\taplfalse}\}.\mathtt{1}\\
 &\trans\{3,\taplfalse\}.\mathtt{1}\\
-&\trans3.
+&\trans3
 \end{aligned}
 \]
 
@@ -545,7 +545,7 @@ product}）。这里用花括号书写对，是为了强调它与 \S\ref{sec:11.
 &\trans(\lambda x:\tapltype{Nat}\times\tapltype{Nat}.\,x.\mathtt{2})
  \{3,4\}\\
 &\trans\{3,4\}.\mathtt{2}\\
-&\trans4.
+&\trans4
 \end{aligned}
 \]
 
@@ -576,7 +576,7 @@ product}）。这里用花括号书写对，是为了强调它与 \S\ref{sec:11.
 \begin{minipage}{0.98\linewidth}
 \small
 \taplfigureheader{\(\{\}\)}
-  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
+  {\(\lambda_{\to}\)（\cref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots&\text{项}\\
@@ -610,11 +610,11 @@ T&::=&\cdots\mid\{T_i\}^{i\in1..n}&\text{元组类型}
 \label{fig:11-6}
 \end{figure}
 
-图~\ref{fig:11-6} 形式化了元组。定义与积的定义
-（图~\ref{fig:11-5}）相似，只是每条构对规则都推广到 \(n\) 元情形，第一、
+\cref{fig:11-6} 形式化了元组。定义与积的定义
+（\cref{fig:11-5}）相似，只是每条构对规则都推广到 \(n\) 元情形，第一、
 第二投影的每一对规则也合并成从元组任意位置投影的一条规则。只有
 \textsc{E-Tuple} 值得特别说明：它合并并推广了
-图~\ref{fig:11-5} 的 \textsc{E-Pair1} 与 \textsc{E-Pair2}。用文字说，
+\cref{fig:11-5} 的 \textsc{E-Pair1} 与 \textsc{E-Pair2}。用文字说，
 若元组中字段 \(j\) 左边的所有字段都已归约为值，那么字段 \(j\) 可以从
 \(t_j\) 求值一步到 \(t_j'\)。元变量的使用仍然强制从左到右求值。
 
@@ -634,7 +634,7 @@ T&::=&\cdots\mid\{T_i\}^{i\in1..n}&\text{元组类型}
 \begin{minipage}{0.98\linewidth}
 \small
 \taplfigureheader{\(\{\}\)}
-  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
+  {\(\lambda_{\to}\)（\cref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots\mid\{l_i=t_i\}^{i\in1..n}&\text{记录}\\
@@ -670,7 +670,7 @@ T&::=&\cdots\mid\{l_i:T_i\}^{i\in1..n}&\text{记录类型}
 \label{fig:11-7}
 \end{figure}
 
-记录的规则见图~\ref{fig:11-7}。唯一值得注意的是
+记录的规则见\cref{fig:11-7}。唯一值得注意的是
 \textsc{E-ProjRcd}，这里采用一项稍不正式的约定：若
 \(\{l_i=v_i\}^{i\in1..n}\) 是记录，且 \(l_j\) 是其第 \(j\) 个字段的
 标签，则 \(\{l_i=v_i\}^{i\in1..n}.l_j\) 一步求值为第 \(j\) 个值
@@ -715,7 +715,7 @@ T&::=&\cdots\mid\{l_i:T_i\}^{i\in1..n}&\text{记录类型}
 从而容易地从复杂嵌套数据结构中提取部分内容。
 
 可以为带记录的无类型 lambda 演算加入一种简单模式匹配：添加模式这一新的
-句法范畴，并在项语法中增加模式匹配构造，见图~\ref{fig:11-8}。请为该系统
+句法范畴，并在项语法中增加模式匹配构造，见\cref{fig:11-8}。请为该系统
 添加类型：
 \begin{enumerate}
   \item 给出新构造的类型规则；过程中可按需要修改语法。
@@ -729,7 +729,7 @@ T&::=&\cdots\mid\{l_i:T_i\}^{i\in1..n}&\text{记录类型}
 \begin{minipage}{0.98\linewidth}
 \small
 \taplfigureheader{\(\{\}\), \(\mathsf{let}\ p\)（无类型）}
-  {图~\ref{fig:11-7} 与图~\ref{fig:11-4}}
+  {\cref{fig:11-7} 与\cref{fig:11-4}}
 \[
 \begin{array}{@{}rcll@{}}
 p&::=&x&\text{模式：变量模式}\\
@@ -763,7 +763,7 @@ t&::=&\cdots&\text{项}\\
 \label{fig:11-8}
 \end{figure}
 
-模式匹配的计算规则推广了图~\ref{fig:11-4} 的 let 绑定规则。它依赖辅助
+模式匹配的计算规则推广了\cref{fig:11-4} 的 let 绑定规则。它依赖辅助
 匹配函数：给定模式 \(p\) 与值 \(v\)，该函数要么失败，表示 \(v\) 不匹配
 \(p\)；要么产生一个替换，把 \(p\) 中的变量映射到 \(v\) 中相应的部分。
 例如，
@@ -795,7 +795,7 @@ t&::=&\cdots&\text{项}\\
 等等。\chapref{20}会回到递归类型。}支持这种编程方式的类型论机制是
 变体类型。
 
-在 \S\ref{sec:11.10} 完整引入变体之前，先考察较简单的二元
+在 \taplsecref{11.10}{sec:11.10} 完整引入变体之前，先考察较简单的二元
 \termfirst{和类型}{sum type}。和类型描述的值集合恰好取自两个给定类型。
 例如，设不同种类的地址簿记录由以下类型表示：
 \[
@@ -805,12 +805,12 @@ t&::=&\cdots&\text{项}\\
       \mathit{addr}:\tapltype{String}\},\\
 \texttt{VirtualAddr}
  &=\{\mathit{name}:\tapltype{String},
-      \mathit{email}:\tapltype{String}\}.
+      \mathit{email}:\tapltype{String}\}
 \end{aligned}
 \]
 若想统一处理两种记录，例如构造同时包含两类记录的列表，可以引入和类型：
 \[
-\texttt{Addr}=\texttt{PhysicalAddr}+\texttt{VirtualAddr}.
+\texttt{Addr}=\texttt{PhysicalAddr}+\texttt{VirtualAddr}
 \]
 它的每个元素要么是 \texttt{PhysicalAddr}，要么是
 \texttt{VirtualAddr}。\footnote{\texttt{fullsimple} 没有实际支持这里
@@ -841,7 +841,7 @@ t&::=&\cdots&\text{项}\\
 \texttt{getName}={}&\lambda a:\texttt{Addr}.\\
 &\mathsf{case}\ a\ \mathsf{of}\\
 &\quad\mathsf{inl}\ x\Rightarrow x.\mathit{firstlast}\\
-&\quad\mid\mathsf{inr}\ y\Rightarrow y.\mathit{name}.
+&\quad\mid\mathsf{inr}\ y\Rightarrow y.\mathit{name}
 \end{aligned}
 \]
 参数 \(a\) 是以 \(\mathsf{inl}\) 标注的 \texttt{PhysicalAddr} 时，
@@ -856,7 +856,7 @@ case 取第一分支，把 \(x\) 绑定到该地址值；第一分支的体再�
 \begin{minipage}{0.99\linewidth}
 \small
 \taplfigureheader{\(+\)}
-  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
+  {\(\lambda_{\to}\)（\cref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots\mid\mathsf{inl}\ t\mid\mathsf{inr}\ t&\text{注入}\\
@@ -915,7 +915,7 @@ T&::=&\cdots\mid T+T&\text{和类型}
 \label{fig:11-9}
 \end{figure}
 
-图~\ref{fig:11-9} 形式化了上述直觉。项语法加入左右注入与 case 构造，
+\cref{fig:11-9} 形式化了上述直觉。项语法加入左右注入与 case 构造，
 类型语法加入和构造子。求值加入 case 的两条“beta 归约”规则：若第一个
 子项归约为以 \(\mathsf{inl}\) 标注的值 \(v_0\)，选择第一分支并以
 \(v_0\) 替换受约束变量；若是以 \(\mathsf{inr}\) 标注的值，则选择第二
@@ -932,7 +932,7 @@ T&::=&\cdots\mid T+T&\text{和类型}
 
 \begin{exercise}[\(\star\star\)]
 \label{ex:11.9.1}
-注意 case 的类型规则与图~\ref{fig:8-1} 中 if 的规则十分相似：可以把 if
+注意 case 的类型规则与\cref{fig:8-1} 中 if 的规则十分相似：可以把 if
 看作一种退化的 case，不向分支传递任何信息。请用和类型与
 \(\tapltype{Unit}\) 把 \(\tapltrue\)、\(\taplfalse\) 和 if 定义为
 派生形式，从而形式化这一直觉。
@@ -940,9 +940,10 @@ T&::=&\cdots\mid T+T&\text{和类型}
 
 \subsection*{和类型与类型唯一性}
 
-纯 \(\lambda_{\to}\) 类型关系的大部分性质（见 \S\ref{sec:9.3}）都能扩展
-到带和类型的系统，但有一项重要性质失效：类型唯一性定理
-\ref{thm:9.3.3}。困难来自 \(\mathsf{inl}\) 与 \(\mathsf{inr}\) 两个
+纯 \(\lambda_{\to}\) 类型关系的大部分性质（见 \taplsecref{9.3}{sec:9.3}）都能扩展
+到带和类型的系统，但有一项重要性质失效：
+\taplnamedref{thm:9.3.3}{类型唯一性定理}。困难来自
+\(\mathsf{inl}\) 与 \(\mathsf{inr}\) 两个
 加标签构造。例如 \textsc{T-Inl} 说明：一旦证明 \(t_1\) 是 \(T_1\) 的
 元素，就能对任意类型 \(T_2\) 推导
 \(\mathsf{inl}\ t_1:T_1+T_2\)。因此既能推导
@@ -963,7 +964,7 @@ T&::=&\cdots\mid T+T&\text{和类型}
     构造上，几乎完全隐藏；下一节还会回到这一点。眼下采用这个方案。
 \end{enumerate}
 
-图~\ref{fig:11-10} 给出相对于图~\ref{fig:11-9} 所需的扩展。不再只写
+\cref{fig:11-10} 给出相对于\cref{fig:11-9} 所需的扩展。不再只写
 \(\mathsf{inl}\ t\) 或 \(\mathsf{inr}\ t\)，而写
 \(\mathsf{inl}\ t\ \mathsf{as}\ T\) 或
 \(\mathsf{inr}\ t\ \mathsf{as}\ T\)，其中 \(T\) 指定注入元素要属于的
@@ -971,7 +972,7 @@ T&::=&\cdots\mid T+T&\text{和类型}
 相应分支，再以声明的和类型作为注入的类型。为了不在规则中反复书写
 \(T_1+T_2\)，语法允许任意类型 \(T\) 作为注入标注；若注入是良类型的，
 类型规则会保证注解总是和类型。这种类型注解语法意在让人联想到
-\S\ref{sec:11.4} 的类型标注；实际上，可以把它看作语法上强制要求的类型
+\taplsecref{11.4}{sec:11.4} 的类型标注；实际上，可以把它看作语法上强制要求的类型
 标注。
 
 \begin{figure}[!ht]
@@ -979,7 +980,7 @@ T&::=&\cdots\mid T+T&\text{和类型}
 \begin{minipage}{0.98\linewidth}
 \small
 \taplfigureheader{\(+\)}
-  {\(\lambda_{\to}\)（图~\ref{fig:11-9}）}
+  {\(\lambda_{\to}\)（\cref{fig:11-9}）}
 \[
 t::=\cdots\mid\mathsf{inl}\ t\ \mathsf{as}\ T
 \mid\mathsf{inr}\ t\ \mathsf{as}\ T
@@ -1020,7 +1021,7 @@ a&=\langle\mathit{physical}=pa\rangle\ \mathsf{as}\ \texttt{Addr}
  \mathsf{case}\ a\ \mathsf{of}\\
 &\quad\langle\mathit{physical}=x\rangle\Rightarrow x.\mathit{firstlast}\\
 &\quad\mid\langle\mathit{virtual}=y\rangle\Rightarrow y.\mathit{name}
- :\texttt{Addr}\to\tapltype{String}.
+ :\texttt{Addr}\to\tapltype{String}
 \end{aligned}
 \]
 
@@ -1029,7 +1030,7 @@ a&=\langle\mathit{physical}=pa\rangle\ \mathsf{as}\ \texttt{Addr}
 \begin{minipage}{0.99\linewidth}
 \small
 \taplfigureheader{\(\langle\rangle\)}
-  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
+  {\(\lambda_{\to}\)（\cref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots\mid\langle l=t\rangle\ \mathsf{as}\ T&\text{变体}\\
@@ -1078,7 +1079,7 @@ T&::=&\cdots\mid\langle l_i:T_i\rangle^{i\in1..n}&\text{变体类型}
 \label{fig:11-11}
 \end{figure}
 
-变体的形式定义见图~\ref{fig:11-11}。注意，与 \S\ref{sec:11.8} 的记录
+变体的形式定义见\cref{fig:11-11}。注意，与 \taplsecref{11.8}{sec:11.8} 的记录
 一样，这里变体类型中的标签次序具有意义。
 
 \translatornote{原书图的值语法漏列了
@@ -1125,7 +1126,7 @@ T&::=&\cdots\mid\langle l_i:T_i\rangle^{i\in1..n}&\text{变体类型}
 \(\texttt{Table}\to\tapltype{Nat}\to\tapltype{Nat}\to\texttt{Table}\)，
 它为表增加（或覆盖）一项，把输入 \(m\) 映射到
 \(\langle\mathit{some}=v\rangle\)。函数 \(\mathit{equal}\) 在
-练习~\ref{ex:11.11.1} 的解答中定义。
+\cref{ex:11.11.1} 的解答中定义。
 
 要使用表查找的结果，可以在外面包一层 case。例如，若 \(t\) 是表，要查找
 输入 \(5\)，可以写：
@@ -1147,7 +1148,7 @@ Java 等语言的 \texttt{null} 值实际上也是伪装起来的 option。这�
 \(\tapltype{Ref}(\operatorname{Option}(T))\)，其中
 \(\operatorname{Option}(T)=
 \langle\mathit{none}:\tapltype{Unit},\mathit{some}:T\rangle\)。
-第~\ref{chap:13}~章会详细讨论 \(\tapltype{Ref}\) 构造子。
+\chapref{13}会详细讨论 \(\tapltype{Ref}\) 构造子。
 
 \subsection*{枚举}
 
@@ -1163,7 +1164,7 @@ Java 等语言的 \texttt{null} 值实际上也是伪装起来的 option。这�
 \mathit{tuesday}:\tapltype{Unit},
 \mathit{wednesday}:\tapltype{Unit},\\
 &\mathit{thursday}:\tapltype{Unit},
-\mathit{friday}:\tapltype{Unit}\rangle.
+\mathit{friday}:\tapltype{Unit}\rangle
 \end{aligned}
 \]
 它的元素形如
@@ -1184,7 +1185,7 @@ Java 等语言的 \texttt{null} 值实际上也是伪装起来的 option。这�
 \mid{}&\langle\mathit{thursday}=x\rangle\Rightarrow
  \langle\mathit{friday}=\mathsf{unit}\rangle\ \mathsf{as}\ \texttt{Weekday}\\
 \mid{}&\langle\mathit{friday}=x\rangle\Rightarrow
- \langle\mathit{monday}=\mathsf{unit}\rangle\ \mathsf{as}\ \texttt{Weekday}.
+ \langle\mathit{monday}=\mathsf{unit}\rangle\ \mathsf{as}\ \texttt{Weekday}
 \end{aligned}
 \]
 显然，这里的具体语法并不适合让此类程序易写易读。一些语言从 Pascal 开始，
@@ -1194,7 +1195,7 @@ Java 等语言的 \texttt{null} 值实际上也是伪装起来的 option。这�
 
 另一个有意思的特例，是只含单个标签 \(l\) 的变体类型：
 \[
-V=\langle l:T\rangle.
+V=\langle l:T\rangle
 \]
 它乍看之下似乎没有多大用处：\(V\) 的元素与字段类型 \(T\) 的元素一一
 对应，因为 \(V\) 的每个成员都恰好形如 \(\langle l=t\rangle\)，其中
@@ -1212,7 +1213,7 @@ V=\langle l:T\rangle.
 \texttt{euros2dollars}
  &=\lambda e:\tapltype{Float}.\
    \mathit{timesfloat}\ e\ 0.883
-   :\tapltype{Float}\to\tapltype{Float}.
+   :\tapltype{Float}\to\tapltype{Float}
 \end{aligned}
 \]
 这里 \(\mathit{timesfloat}:
@@ -1221,14 +1222,14 @@ V=\langle l:T\rangle.
 \[
 \texttt{euros2dollars}\,
 (\texttt{dollars2euros}\ \texttt{mybankbalance})
-\blacktriangleright39.49990125:\tapltype{Float}.
+\blacktriangleright39.49990125:\tapltype{Float}
 \]
 这完全合理。但也很容易作毫无意义的操作，例如把银行余额连续两次从美元
 “换算”为欧元：
 \[
 \texttt{dollars2euros}\,
 (\texttt{dollars2euros}\ \texttt{mybankbalance})
-\blacktriangleright50.660971875:\tapltype{Float}.
+\blacktriangleright50.660971875:\tapltype{Float}
 \]
 所有金额都只是浮点数，类型系统无从阻止这种荒谬操作。
 
@@ -1256,7 +1257,7 @@ V=\langle l:T\rangle.
 \mathsf{as}\ \texttt{DollarAmount},\\[-1pt]
 &\blacktriangleright
 \langle\mathsf{fun}\rangle:
-\texttt{EuroAmount}\to\texttt{DollarAmount}.
+\texttt{EuroAmount}\to\texttt{DollarAmount}
 \end{aligned}
 \]
 类型检查器现在能追踪计算使用的货币，并提醒我们怎样解释最终结果：
@@ -1270,7 +1271,7 @@ V=\langle l:T\rangle.
 &\blacktriangleright
 \langle\mathit{dollars}=39.49990125\rangle\
 \mathsf{as}\ \texttt{DollarAmount}\\
-&:\texttt{DollarAmount}.
+&:\texttt{DollarAmount}
 \end{aligned}
 \]
 若写下毫无意义的二次换算，类型无法匹配，程序会被正确拒绝：
@@ -1279,7 +1280,7 @@ V=\langle l:T\rangle.
 &\texttt{dollars2euros}\,
   (\texttt{dollars2euros}\ \texttt{mybankbalance})\\
 &\qquad\blacktriangleright\quad
-  \texttt{Error: parameter type mismatch}.
+  \texttt{Error: parameter type mismatch}
 \end{aligned}
 \]
 
@@ -1290,20 +1291,22 @@ V=\langle l:T\rangle.
 数据类型具体语法；这类数据类型源自早期 ML 方言，Standard ML 与 Haskell
 等 ML 近亲中也有本质相同的形式。数据类型和模式匹配可以说是这些语言对日常
 编程最有用的优势之一。}
-\begin{lstlisting}
+\begin{taplocamlcode}
 type T = l1 of T1
        | l2 of T2
        | ...
        | ln of Tn
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch11-variant-schematic}
 但有几项区别值得注意：
 \begin{enumerate}
   \item 一项细小却可能令人困惑的区别，是这里假定的标识符大小写约定不同于
     OCaml。OCaml 中类型必须以小写字母开头，数据类型构造子——按我们的术语
     就是标签——则以大写字母开头。因此严格地说，上面的声明应写成：
-    \begin{lstlisting}
+    \begin{taplocamlcode}
 type t = L1 of t1 | ... | Ln of tn
-    \end{lstlisting}
+    \end{taplocamlcode}
+    \taplrustcounterpart{ch11-variant-concrete}
     为避免项 \(t\) 与类型 \(T\) 混淆，余下讨论忽略 OCaml 的约定，继续
     使用本书的约定。
 
@@ -1320,9 +1323,10 @@ type t = L1 of t1 | ... | Ln of tn
 
   \item OCaml 的另一个便捷技巧是：数据类型定义中若某标签关联的类型只是
     \(\tapltype{Unit}\)，就可以把类型完全省略。例如枚举可以写成：
-    \begin{lstlisting}
+    \begin{taplocamlcode}
 type Weekday = monday | tuesday | wednesday | thursday | friday
-    \end{lstlisting}
+    \end{taplocamlcode}
+    \taplrustcounterpart{ch11-weekday}
     而不必写成每个构造子都带 \texttt{of Unit} 的形式。类似地，单独的标签
     \texttt{monday}（而不是把 \texttt{monday} 应用于平凡值
     \texttt{unit}）就被视为 \texttt{Weekday} 型的值。
@@ -1333,16 +1337,18 @@ type Weekday = monday | tuesday | wednesday | thursday | friday
     数据类型定义可以递归，也就是说，被定义的类型可以出现在定义体内。
     例如，标准的自然数列表定义中，标签 \texttt{cons} 所携带的对，其第二
     个元素仍然是 \texttt{NatList}：
-    \begin{lstlisting}
+    \begin{taplocamlcode}
 type NatList = nil
              | cons of Nat * NatList
-    \end{lstlisting}
+    \end{taplocamlcode}
+    \taplrustcounterpart{ch11-nat-list}
 
     OCaml 数据类型还可以用类型变量参数化，例如一般的列表定义：
-    \begin{lstlisting}
+    \begin{taplocamlcode}
 type 'a List = nil
              | cons of 'a * 'a List
-    \end{lstlisting}
+    \end{taplocamlcode}
+    \taplrustcounterpart{ch11-generic-list}
     从类型论角度看，\texttt{List} 可以视为一种函数，称为
     \termfirst{类型算子}{type operator}：它把每一种 \texttt{'a} 的选择
     映射为具体数据类型，例如把 \(\tapltype{Nat}\) 映射为
@@ -1377,7 +1383,7 @@ Abadi、Cardelli、Pierce 与 Rémy（1995），以及 Henglein（1994）。
 \label{sec:11.11}
 
 大多数程序语言的另一项机制是定义递归函数，即
-\termfirst{一般递归}{general recursion}。第~\ref{chap:5}~章已经看到，
+\termfirst{一般递归}{general recursion}。\chapref{5}已经看到，
 在无类型 lambda 演算中，可以借助 \(\mathsf{fix}\) 组合子定义这类函数。
 
 有类型系统中也能以相似方式定义递归函数。例如，下面的
@@ -1397,7 +1403,7 @@ Abadi、Cardelli、Pierce 与 Rémy（1995），以及 Henglein（1994）。
 \mathit{iseven}&=\mathsf{fix}\ \mathit{ff}
  :\tapltype{Nat}\to\tapltype{Bool},\\
 \mathit{iseven}\ 7&\blacktriangleright
-\taplfalse:\tapltype{Bool}.
+\taplfalse:\tapltype{Bool}
 \end{aligned}
 \]
 
@@ -1409,8 +1415,8 @@ Abadi、Cardelli、Pierce 与 Rémy（1995），以及 Henglein（1994）。
 就得到它的不动点，即对所有输入 \(n\) 都具有所需行为的函数。
 
 不过，与无类型系统有一项重要区别：\(\mathsf{fix}\) 本身无法在简单类型
-lambda 演算中定义。第~\ref{chap:12}~章会看到，只用简单类型，任何可能导致
-非终止计算的表达式都无法赋型。\footnote{后面的第~\ref{chap:13}~章与第
+lambda 演算中定义。\chapref{12}会看到，只用简单类型，任何可能导致
+非终止计算的表达式都无法赋型。\footnote{后面的\chapref{13}与
 \chapref{20}会看到，简单类型的一些扩展重新获得了在系统内部定义
 \(\mathsf{fix}\) 的能力。}因此，我们不把 \(\mathsf{fix}\) 定义成语言中的
 项，而直接把它作为新的基本构造；其求值规则模拟无类型 \(\mathsf{fix}\)
@@ -1421,7 +1427,7 @@ lambda 演算中定义。第~\ref{chap:12}~章会看到，只用简单类型，�
 \begin{minipage}{0.94\linewidth}
 \small
 \taplfigureheader{\(\mathsf{Fix}\)}
-  {\(\lambda_{\to}\)（图~\ref{fig:9-1}）}
+  {\(\lambda_{\to}\)（\cref{fig:9-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots\mid\mathsf{fix}\ t&\text{不动点}\\
@@ -1445,7 +1451,7 @@ t&::=&\cdots\mid\mathsf{fix}\ t&\text{不动点}\\
 \mathsf{letrec}\ x:T_1=t_1\ \mathsf{in}\ t_2
 \quad\triangleq\quad
 \mathsf{let}\ x=\mathsf{fix}\,
-  (\lambda x:T_1.\,t_1)\ \mathsf{in}\ t_2.
+  (\lambda x:T_1.\,t_1)\ \mathsf{in}\ t_2
 \]
 \end{minipage}
 \caption{一般递归}
@@ -1484,7 +1490,7 @@ t&::=&\cdots\mid\mathsf{fix}\ t&\text{不动点}\\
 &\phantom{\{}
   \mathit{isodd}=\lambda x:\tapltype{Nat}.\
   \mathsf{if}\ \tapliszero{x}\ \mathsf{then}\ \taplfalse\
-  \mathsf{else}\ ieio.\mathit{iseven}\,(\taplpred{x})\}.
+  \mathsf{else}\ ieio.\mathit{iseven}\,(\taplpred{x})\}
 \end{aligned}
 \]
 \[
@@ -1494,21 +1500,21 @@ t&::=&\cdots\mid\mathsf{fix}\ t&\text{不动点}\\
   \mathit{isodd}:\tapltype{Nat}\to\tapltype{Bool}\}\\
 &{}\to
 \{\mathit{iseven}:\tapltype{Nat}\to\tapltype{Bool},
-  \mathit{isodd}:\tapltype{Nat}\to\tapltype{Bool}\}.
+  \mathit{isodd}:\tapltype{Nat}\to\tapltype{Bool}\}
 \end{aligned}
 \]
 对 \(\mathit{ff}\) 取不动点，得到由两个函数组成的记录：
 \[
 r=\mathsf{fix}\ \mathit{ff}:
 \{\mathit{iseven}:\tapltype{Nat}\to\tapltype{Bool},
-  \mathit{isodd}:\tapltype{Nat}\to\tapltype{Bool}\}.
+  \mathit{isodd}:\tapltype{Nat}\to\tapltype{Bool}\}
 \]
 投影第一个函数即得：
 \[
 \mathit{iseven}=r.\mathit{iseven}:
 \tapltype{Nat}\to\tapltype{Bool},
 \qquad
-\mathit{iseven}\ 7\blacktriangleright\taplfalse.
+\mathit{iseven}\ 7\blacktriangleright\taplfalse
 \]
 
 能对任意 \(T\) 的 \(T\to T\) 型函数取不动点，会带来一些令人惊讶的结果。
@@ -1517,7 +1523,7 @@ r=\mathsf{fix}\ \mathit{ff}:
 \mathit{diverge}_T=
 \lambda\_:\tapltype{Unit}.\
 \mathsf{fix}\ (\lambda x:T.\,x)
-:\tapltype{Unit}\to T.
+:\tapltype{Unit}\to T
 \]
 每次把 \(\mathit{diverge}_T\) 应用于 unit 参数，都会得到一个不终止的
 求值序列，其中 \textsc{E-FixBeta} 反复应用，每次仍得到同一个项。因此，
@@ -1540,12 +1546,12 @@ r=\mathsf{fix}\ \mathit{ff}:
 \end{aligned}
 \]
 结果为 \(\taplfalse:\tapltype{Bool}\)。递归绑定构造
-\(\mathsf{letrec}\) 很容易按图~\ref{fig:11-12} 定义为派生形式。
+\(\mathsf{letrec}\) 很容易按\cref{fig:11-12} 定义为派生形式。
 
 \begin{exercise}[\(\star\)]
 \label{ex:11.11.2}
 不用 \(\mathsf{fix}\)，改用 \(\mathsf{letrec}\) 重写
-练习~\ref{ex:11.11.1} 中 \(\mathit{plus}\)、\(\mathit{times}\) 与
+\cref{ex:11.11.1} 中 \(\mathit{plus}\)、\(\mathit{times}\) 与
 \(\mathit{factorial}\) 的定义。
 \end{exercise}
 
@@ -1565,8 +1571,8 @@ r=\mathsf{fix}\ \mathit{ff}:
 \begin{minipage}{0.99\linewidth}
 \scriptsize
 \taplfigureheader{\(\mathrm{B},\ \tapltype{List}\)}
-  {\(\lambda_{\to}\)（图~\ref{fig:9-1}），并带布尔值
-   （图~\ref{fig:8-1}）}
+  {\(\lambda_{\to}\)（\cref{fig:9-1}），并带布尔值
+   （\cref{fig:8-1}）}
 \[
 \begin{array}{@{}rcll@{}}
 t&::=&\cdots\mid\mathsf{nil}[T]&\text{空表}\\
@@ -1643,10 +1649,10 @@ T&::=&\cdots\mid\tapltype{List}\ T&\text{列表类型}
 \label{fig:11-13}
 \end{figure}
 
-图~\ref{fig:11-13} 汇总列表的语法、语义和类型规则。除句法差异
+\cref{fig:11-13} 汇总列表的语法、语义和类型规则。除句法差异
 （\(\tapltype{List}\ T\) 而非 \(T\ \mathsf{list}\) 等）和所有句法形式
 都带显式类型注解之外，\footnote{多数显式注解实际上可以省略
-（见练习~\ref{ex:11.12.2}：哪一个不能省？）；这里保留它们，是为了便于
+（见\cref{ex:11.12.2}：哪一个不能省？）；这里保留它们，是为了便于
 与 \taplsecref{23.4}{sec:23.4} 中列表的编码比较。}这些列表与 ML 等函数式
 语言中的列表本质相同。
 

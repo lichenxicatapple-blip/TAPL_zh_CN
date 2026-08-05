@@ -35,7 +35,7 @@
 \termfirst{\(n\) 元关系}{\(n\)-place relation}是由 \(S_1\) 到 \(S_n\)
 中的元素构成的元组集合
 \[
-  R\subseteq S_1\times S_2\times\cdots\times S_n.
+  R\subseteq S_1\times S_2\times\cdots\times S_n
 \]
 若 \((s_1,\ldots,s_n)\in R\)，其中 \(s_i\in S_i\)，就说
 \(s_1,\ldots,s_n\) 由 \(R\) 相关联。
@@ -71,13 +71,14 @@
 设 \(R\) 是集合 \(S\) 与 \(T\) 上的关系。\(R\) 的
 \termfirst{定义域}{domain}记作 \(\dom(R)\)，它由所有满足如下条件的
 \(s\in S\) 构成：存在某个 \(t\)，使 \((s,t)\in R\)。\(R\) 的
-\termfirst{陪域或值域}{codomain or range}记作 \(\range(R)\)，它由所有
+\termfirst{值域}{range}记作 \(\range(R)\)，它由所有
 满足如下条件的 \(t\in T\) 构成：存在某个 \(s\)，使 \((s,t)\in R\)。
 \end{definition}
 
-\translatornote{原书在此把上述集合同时称作 codomain 和 range。通常的现代
-术语会把 \(T\) 本身称为陪域（codomain），把这里实际定义出的子集称为值域
-（range）。本译文保留原书措辞，同时说明这一差别。}
+\translatornote{原书此处写作“陪域或值域”（\textit{codomain or range}）；
+作者勘误指出，其中 \textit{codomain} 一词使用不当。通常把 \(T\) 称为
+\termfirst{陪域}{codomain}，而把这里定义的子集称为值域。译文据此采用
+“值域”。}
 
 \begin{definition}
 \label{def:2.1.8}
@@ -134,13 +135,14 @@
 集合 \(S\) 上自反且传递的关系 \(R\) 称为 \(S\) 上的
 \termfirst{预序}{preorder}。（当我们说“预序集 \(S\)”时，总是默认心中有
 \(S\) 上的某个特定预序 \(R\)。）预序通常用 \(\leq\) 或 \(\sqsubseteq\)
-之类的符号表示。我们写 \(s<t\)（“\(s\) 严格小于 \(t\)”），表示
-\(s\leq t\land s\neq t\)。
+之类的符号表示；偏序和全序是预序的特殊情形，因此也沿用这类记号。我们写
+\(s<t\)（“\(s\) 严格小于 \(t\)”），表示 \(s\leq t\land s\neq t\)。
 
 集合 \(S\) 上同时还是反对称的预序称为 \(S\) 上的
-\termfirst{偏序}{partial order}。若偏序 \(\leq\) 还满足：对 \(S\) 中任意
-\(s,t\)，或者 \(s\leq t\)，或者 \(t\leq s\)，则称其为
-\termfirst{全序}{total order}。
+\termfirst{偏序}{partial order}。若偏序 \(\leq\) 还满足：\(S\) 中任意
+两个元素都可以比较，即对任意 \(s,t\in S\)，必有 \(s\leq t\) 或
+\(t\leq s\)，则称其为\termfirst{全序}{total order}。换言之，全序是
+任意两个元素都可比较的偏序；每个全序都是偏序，反之则不一定。
 \end{definition}
 
 \begin{definition}
@@ -188,38 +190,42 @@
 \label{ex:2.2.6}
 设 \(R\) 是集合 \(S\) 上的关系。定义关系
 \[
-  R'=R\cup\{(s,s)\mid s\in S\}.
+  R'=R\cup\{(s,s)\mid s\in S\}
 \]
 也就是说，\(R'\) 包含 \(R\) 中的所有有序对，外加所有形如 \((s,s)\)
 的有序对。证明 \(R'\) 是 \(R\) 的自反闭包。
 \end{exercise}
+\taplsolutionlink
+  {sol:translator:2.2.6}
+  {2.2.6}
 
 \begin{exercise}[\(\star\star,\nrightarrow\)]
 \label{ex:2.2.7}
-下面给出关系 \(R\) 的传递闭包的一种更具构造性的定义。首先定义如下有序对
-集合序列：
+下面给出关系 \(R\) 的传递闭包的一种更具构造性的定义。先定义以下关系序列：
 \[
   \begin{aligned}
     R_0     &= R,\\
     R_{i+1} &= R_i\cup
-      \{(s,u)\mid \text{存在 }t,\ (s,t)\in R_i\text{ 且 }(t,u)\in R_i\}.
+      \{(s,u)\mid \text{存在 }t,\ (s,t)\in R_i\text{ 且 }(t,u)\in R_i\}
   \end{aligned}
 \]
 也就是说，构造 \(R_{i+1}\) 时，把由 \(R_i\) 中已有有序对经过“一步传递性”
 得到的全部有序对加入 \(R_i\)。最后，把关系 \(R^+\) 定义为所有 \(R_i\)
 的并：
 \[
-  R^+=\bigcup_i R_i.
+  R^+=\bigcup_i R_i
 \]
 证明这个 \(R^+\) 确实是 \(R\) 的传递闭包，即它满足
 \cref{def:2.2.5} 给出的条件。
 \end{exercise}
+\taplsolutionlink{sol:translator:2.2.7}{2.2.7}
 
 \begin{exercise}[\(\star\star,\nrightarrow\)]
 \label{ex:2.2.8}
 设 \(R\) 是集合 \(S\) 上的二元关系，\(P\) 是 \(S\) 上被 \(R\) 保持的
 谓词。证明 \(P\) 也被 \(R^*\) 保持。
 \end{exercise}
+\taplsolutionlink{sol:translator:2.2.8}{2.2.8}
 
 \begin{definition}
 \label{def:2.2.9}
@@ -233,11 +239,11 @@
 \begin{definition}
 \label{def:2.2.10}
 设集合 \(S\) 上有预序 \(\leq\)。若 \(\leq\) 中不存在无限下降链，则称
-\(\leq\) 是\termfirst{良基的}{well founded}。例如，自然数上的通常次序
+\(\leq\) 是\termfirst{良基的}{well founded}。例如，自然数上按数值大小比较的标准次序
 \[
   0<1<2<3<\cdots
 \]
-是良基的；而整数上的同一次序
+是良基的；而整数上按数值大小比较的标准次序
 \[
   \cdots<-3<-2<-1<0<1<2<3<\cdots
 \]

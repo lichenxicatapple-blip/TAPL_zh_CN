@@ -29,19 +29,20 @@ Gosling，1996）和纯 Scheme，对于我们要写的程序略显笨重；既�
 \authornote{本章代码可以在作者网站的 \texttt{arith} 实现中找到，其中也
 附有下载和构建说明。}
 
-\translatornote{本译本的配套 Rust 工程在 \texttt{code/arith/} 中提供与
-本章抽象语法、值判断、单步求值及完整求值相对应的实现。Rust 代码没有替换
-下文的 OCaml 原文实现；具体工具链、语义覆盖范围、已知差异与验证命令见
-该目录的 README。为便于复制和运行，本译本中的 OCaml 代码块采用 ASCII
-源码形式。}
+\translatornote{下文完整保留原书的 OCaml 程序，并在每段代码之后直接给出
+相应的 Rust 对照实现。书中片段来自参与编译和测试的实际 Rust 源码；可运行
+的完整算术语言工程位于 \texttt{code/arith/}，具体工具链、语义覆盖范围、
+已知差异与验证命令见该目录的 README。为便于复制和运行，两种语言的代码块
+都保留 ASCII 源码字符。}
 
 \section{语法}
 \label{sec:4.1}
 
 第一项工作，是定义一种表示项的 OCaml 值类型。OCaml 的数据类型定义机制
-使这件事很直接：下面的声明几乎逐字转写了第 24 页的文法。
+使这件事很直接：下面的声明几乎逐字转写了
+\hyperref[grammar:3.1-terms]{第 3 章开头的项文法}。
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 type term =
     TmTrue of info
   | TmFalse of info
@@ -50,7 +51,8 @@ type term =
   | TmSucc of info * term
   | TmPred of info * term
   | TmIsZero of info * term
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch04-term}
 
 从 \texttt{TmTrue} 到 \texttt{TmIsZero} 的构造子，分别命名
 \texttt{term} 类型抽象语法树中的不同节点；每个 \texttt{of} 后面的类型
@@ -64,12 +66,13 @@ type term =
 
 定义求值关系时，需要判断一个项是否为数值：
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 let rec isnumericval t = match t with
     TmZero(_) -> true
   | TmSucc(_,t1) -> isnumericval t1
   | _ -> false
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch04-is-numeric-value}
 
 这是 OCaml 中由模式匹配定义递归函数的典型例子。\texttt{isnumericval}
 应用于 \texttt{TmZero} 时返回 \texttt{true}；应用于带有子树
@@ -86,13 +89,14 @@ let rec isnumericval t = match t with
 
 判断项是否为值的函数与此类似：
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 let rec isval t = match t with
     TmTrue(_) -> true
   | TmFalse(_) -> true
   | t when isnumericval t -> true
   | _ -> false
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch04-is-value}
 
 第三条分支是一个\termfirst{条件模式}{conditional pattern}：它可以匹配
 任意项 \(t\)，但仅当布尔表达式 \texttt{isnumericval t} 得到
@@ -101,7 +105,7 @@ let rec isval t = match t with
 \section{求值}
 \label{sec:4.2}
 
-求值关系的实现紧密跟随图~\ref{fig:3-1} 和图~\ref{fig:3-2} 中的单步求值规则。前面
+求值关系的实现紧密跟随\cref{fig:3-1} 和\cref{fig:3-2} 中的单步求值规则。前面
 已经看到，这些规则定义了一个偏函数：应用于尚未成为值的项时，它给出该项
 的下一步求值结果；应用于值时，求值函数没有结果。把求值规则翻译为 OCaml
 时，需要决定如何处理后一种情况。一种直接办法，是让单步求值函数
@@ -110,13 +114,14 @@ let rec isval t = match t with
 若成功还携带结果项；不过这会增加一点簿记工作。）先定义无规则可用时抛出的
 异常：
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 exception NoRuleApplies
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch04-no-rule-applies}
 
 现在可以写出单步求值器：
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 let rec eval1 t = match t with
     TmIf(_,TmTrue(_),t2,t3) ->
       t2
@@ -144,7 +149,8 @@ let rec eval1 t = match t with
       TmIsZero(fi, t1')
   | _ ->
       raise NoRuleApplies
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch04-eval1}
 
 其中有几处从零开始构造新项，而不是重新组织已有项。由于这些新项并不存在于
 用户原始源文件中，它们的 \texttt{info} 标注没有用处；常量
@@ -152,7 +158,7 @@ let rec eval1 t = match t with
 “file information”）则一贯用来匹配模式中的 \texttt{info} 标注。
 
 \texttt{eval1} 定义中还有一点值得注意：模式里显式使用 \texttt{when}
-子句，以刻画图~\ref{fig:3-1} 和图~\ref{fig:3-2} 的求值关系中 \(v\)、\(nv\) 之类
+子句，以刻画\cref{fig:3-1} 和\cref{fig:3-2} 的求值关系中 \(v\)、\(nv\) 之类
 元变量名所隐含的限制。例如，在对
 \texttt{TmPred(\_,TmSucc(\_,nv1))} 求值的分支中，OCaml 模式语义本来
 允许 \texttt{nv1} 匹配任意项，这不是我们想要的；加上
@@ -176,17 +182,19 @@ let rec eval1 t = match t with
 写成这样；不过，在递归循环里设置 \texttt{try} 处理器并不是良好的 ML
 风格。}
 
-\begin{lstlisting}
+\begin{taplocamlcode}
 let rec eval t =
   try let t' = eval1 t
       in eval t'
   with NoRuleApplies -> t
-\end{lstlisting}
+\end{taplocamlcode}
+\taplrustcounterpart{ch04-eval}
 
 \begin{exercise}[\(\star\star\)]
 \label{ex:4.2.1}
 为什么这不是良好的风格？怎样重写 \texttt{eval} 更好？
 \end{exercise}
+\taplauthorsolutionlink{sol:author:4.2.1}{4.2.1}
 
 显然，这个简单求值器的目标是便于与数学上的求值定义逐项比较，而不是尽快
 找出范式。从\cref{ex:3.5.17}的大步求值规则出发，可以得到效率稍高的算法。
@@ -196,6 +204,7 @@ let rec eval t =
 把 \texttt{arith} 实现中的 \texttt{eval} 函数改写为
 \cref{ex:3.5.17}所介绍的大步风格。
 \end{exercise}
+\taplsolutionlink{sol:translator:4.2.2}{4.2.2}
 
 \section{其余部分}
 \label{sec:4.3}
@@ -207,20 +216,20 @@ let rec eval t =
 
 \begin{center}
 \begin{tikzpicture}[
-  node distance=12mm,
   every node/.style={font=\small,align=center},
   process/.style={draw,rounded corners=1pt,inner xsep=7pt,inner ysep=4pt},
+  flowlabel/.style={font=\footnotesize,fill=white,inner sep=1pt},
   >=stealth
 ]
   \node[process] (io) {文件 I/O};
-  \node[process,right=of io] (lex) {词法分析};
-  \node[process,right=of lex] (parse) {语法分析};
-  \node[process,right=of parse] (eval) {求值};
-  \node[process,right=of eval] (print) {输出};
-  \draw[->] (io) -- node[above]{字符} (lex);
-  \draw[->] (lex) -- node[above]{词法单元} (parse);
-  \draw[->] (parse) -- node[above]{项} (eval);
-  \draw[->] (eval) -- node[above]{值} (print);
+  \node[process,right=10mm of io] (lex) {词法分析};
+  \node[process,right=18mm of lex] (parse) {语法分析};
+  \node[process,right=9mm of parse] (eval) {求值};
+  \node[process,right=9mm of eval] (print) {输出};
+  \draw[->] (io) -- node[flowlabel,above]{字符} (lex);
+  \draw[->] (lex) -- node[flowlabel,above]{词法单元} (parse);
+  \draw[->] (parse) -- node[flowlabel,above]{项} (eval);
+  \draw[->] (eval) -- node[flowlabel,above]{值} (print);
 \end{tikzpicture}
 \end{center}
 

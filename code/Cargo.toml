@@ -1,5 +1,5 @@
 [workspace]
-members = ["arith", "untyped", "simple"]
+members = ["arith", "untyped", "simple", "book-snippets"]
 resolver = "2"
 
 [workspace.package]

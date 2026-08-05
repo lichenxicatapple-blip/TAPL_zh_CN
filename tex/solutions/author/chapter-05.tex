@@ -1,0 +1,450 @@
+\section{第 5 章：无类型 lambda 演算}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:5.2.1}
+\textbf{5.2.1 解答}
+\[
+\begin{aligned}
+\mathit{or}  &=\lambda b.\,\lambda c.\,b\ \mathit{tru}\ c,\\
+\mathit{not} &=\lambda b.\,b\ \mathit{fls}\ \mathit{tru}
+\end{aligned}
+\]
+\taplsolutionbacklink{ex:5.2.1}{返回练习 5.2.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:5.2.2}
+\textbf{5.2.2 解答}
+\[
+  \mathit{scc2}
+  =\lambda n.\,\lambda s.\,\lambda z.\,n\ s\ (s\ z)
+\]
+\taplsolutionbacklink{ex:5.2.2}{返回练习 5.2.2}
+\end{taplauthorsolutionentrybox}
+
+\Needspace{20\baselineskip}
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:5.2.3}
+\textbf{5.2.3 解答}
+
+\[
+  \mathit{times2}
+  =\lambda m.\,\lambda n.\,\lambda s.\,\lambda z.\,m\ (n\ s)\ z
+\]
+也可以写得更紧凑：
+\[
+  \mathit{times3}
+  =\lambda m.\,\lambda n.\,\lambda s.\,m\ (n\ s)
+\]
+\translatornote{从 \(\mathit{times2}\) 到 \(\mathit{times3}\) 用到了
+\termfirst{\(\eta\) 归约}{eta-reduction}：若变量 \(z\) 不在 \(F\) 中
+自由出现，则 \(\lambda z.\,F\,z\) 可以简写为 \(F\)。这里取
+\(F=m\,(n\,s)\)，便可把
+\(\lambda z.\,m\,(n\,s)\,z\) 简写为 \(m\,(n\,s)\)。后者本身已经是
+一个等待初始值 \(z\) 的函数，因此 \(z\) 并未从计算中消失，只是不再显式
+写出。}
+\taplsolutionbacklink{ex:5.2.3}{返回练习 5.2.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:5.2.4}
+\textbf{5.2.4 解答}
+
+做法不止一种：
+\[
+\begin{aligned}
+\mathit{power1}
+  &=\lambda m.\,\lambda n.\,n\ (\mathit{times}\ m)\ c_1,\\
+\mathit{power2}
+  &=\lambda m.\,\lambda n.\,n\ m
+\end{aligned}
+\]
+这里第一个参数 \(m\) 是底数，第二个参数 \(n\) 是指数。
+
+\translatornote{原书初版解答把 \(m,n\) 的作用写反；这里已按作者官方勘误
+交换二者的作用。}
+
+\taplsolutionbacklink{ex:5.2.4}{返回练习 5.2.4}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:5.2.5}
+\textbf{5.2.5 解答}
+\[
+  \mathit{subtract1}
+  =\lambda m.\,\lambda n.\,n\ \mathit{prd}\ m
+\]
+\taplsolutionbacklink{ex:5.2.5}{返回练习 5.2.5}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:5.2.6}
+\textbf{5.2.6 解答}
+
+对 \(\mathit{prd}\ c_n\) 求值需要 \(O(n)\) 步，因为
+\(\mathit{prd}\) 用 \(n\) 构造出一个含 \(n\) 对数字的序列，然后取该
+序列最后一对的第一分量。
+
+\taplsolutionbacklink{ex:5.2.6}{返回练习 5.2.6}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:5.2.7}
+\textbf{5.2.7 解答}
+
+下面是一种简单写法：
+\[
+\begin{aligned}
+\mathit{equal}
+  =\lambda m.\,\lambda n.\,
+  \mathit{and}\,
+  &(\mathit{iszro}\,(m\ \mathit{prd}\ n))\\
+  &(\mathit{iszro}\,(n\ \mathit{prd}\ m))
+\end{aligned}
+\]
+
+\taplsolutionbacklink{ex:5.2.7}{返回练习 5.2.7}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:5.2.8}
+\textbf{5.2.8 解答}
+
+作者原先设想的解答如下：
+\[
+\begin{aligned}
+\mathit{nil}
+  &=\lambda c.\,\lambda n.\,n,\\
+\mathit{cons}
+  &=\lambda h.\,\lambda t.\,\lambda c.\,\lambda n.\,
+    c\ h\ (t\ c\ n),\\
+\mathit{head}
+  &=\lambda l.\,l\ (\lambda h.\,\lambda t.\,h)\ \mathit{fls},\\
+\mathit{tail}
+  &=\lambda l.\,
+    \mathit{fst}\bigl(
+      l\,
+      (\lambda x.\,\lambda p.\,
+        \mathit{pair}\,(\mathit{snd}\ p)\,
+          (\mathit{cons}\ x\ (\mathit{snd}\ p)))\,
+      (\mathit{pair}\ \mathit{nil}\ \mathit{nil})
+    \bigr),\\
+\mathit{isnil}
+  &=\lambda l.\,l\ (\lambda h.\,\lambda t.\,\mathit{fls})\ \mathit{tru}
+\end{aligned}
+\]
+
+还有一种颇为不同的做法：
+\[
+\begin{aligned}
+\mathit{nil}
+  &=\mathit{pair}\ \mathit{tru}\ \mathit{tru},\\
+\mathit{cons}
+  &=\lambda h.\,\lambda t.\,
+    \mathit{pair}\ \mathit{fls}\ (\mathit{pair}\ h\ t),\\
+\mathit{head}
+  &=\lambda z.\,\mathit{fst}\,(\mathit{snd}\ z),\\
+\mathit{tail}
+  &=\lambda z.\,\mathit{snd}\,(\mathit{snd}\ z),\\
+\mathit{isnil}
+  &=\mathit{fst}
+\end{aligned}
+\]
+
+\translatornote{第一组解答沿用题目规定的右折叠编码。可以把
+\(l\,c\,n\) 读作：“用二元函数 \(c\) 和空表对应值 \(n\) 对列表 \(l\)
+做右折叠。”空表没有元素，所以 \(\mathit{nil}\,c\,n=n\)；在尾表 \(t\)
+前添加元素 \(h\) 后，应先得到尾表的折叠结果 \(t\,c\,n\)，再计算
+\(c\,h\,(t\,c\,n)\)，这就解释了 \(\mathit{nil}\) 与 \(\mathit{cons}\)
+的定义。
+
+要取得表头，解答把 \(c\) 选为 \(\lambda h.\,\lambda t.\,h\)：它保留
+当前元素 \(h\)，丢弃右侧已经折叠出的结果 \(t\)，所以对非空列表最终留下
+第一个元素；\(\mathit{fls}\) 只是空表情况下的默认结果。要判断列表是否
+为空，则把空表对应值选为 \(\mathit{tru}\)，并让 \(c\) 每遇到一个元素
+都返回 \(\mathit{fls}\)：空表不会调用 \(c\)，因而得到真；非空表至少
+调用一次 \(c\)，因而得到假。
+
+\(\mathit{tail}\) 使用了与数值前驱函数相同的“落后一步”技巧。暂用普通
+列表记法表示每个编码对应的内容；对 \([x,y,z]\) 从右向左折叠时，数对状态
+依次变化为
+\[
+ ([],[])
+ \longmapsto ([],[z])
+ \longmapsto ([z],[y,z])
+ \longmapsto ([y,z],[x,y,z])
+\]
+更新函数
+\(\lambda x.\,\lambda p.\,
+\mathit{pair}\,(\mathit{snd}\,p)\,
+(\mathit{cons}\,x\,(\mathit{snd}\,p))\)
+把状态“\((\text{上一步结果},\text{当前结果})\)”更新为
+“\((\text{当前结果},x::\text{当前结果})\)”。全部元素处理完后，第二分量
+是原列表，第一分量恰好少了最前面的元素；因此取 \(\mathit{fst}\) 就得到
+尾表。对空表，初始状态 \(([],[])\) 不变，所以结果仍为空表。
+
+第二组解答没有使用右折叠编码，而是采用“标签加数据”的表示：第一分量用
+\(\mathit{tru}\) 或 \(\mathit{fls}\) 区分空表与非空表；非空表的第二
+分量再保存数对 \((h,t)\)，即表头和表尾。因此 \(\mathit{isnil}\) 只需
+取第一分量，\(\mathit{head}\) 与 \(\mathit{tail}\) 则分别从内部数对中
+取第一、第二分量。}
+
+\taplsolutionbacklink{ex:5.2.8}{返回练习 5.2.8}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:5.2.9}
+\textbf{5.2.9 解答}
+
+原定义使用原始 \(\mathsf{if}\) 而不是 \(\mathit{test}\)，是为了避免条件式
+两个分支总被求值；若两边都求值，阶乘就会发散。改用 \(\mathit{test}\)
+时，可以把两个分支包在无实际作用的 lambda 抽象中，以阻止这种发散。
+抽象是值，所以按值调用策略不会进入其内部，而是把它们原封不动地传给
+\(\mathit{test}\)；\(\mathit{test}\) 选择一个分支并把它返回。随后把整个
+\(\mathit{test}\) 表达式应用于一个哑参数（例如 \(c_0\)），即可迫使被选中
+的分支求值：
+\[
+\begin{aligned}
+\mathit{ff}
+  =\lambda f.\,\lambda n.\,
+  \mathit{test}\,
+    (\mathit{iszro}\ n)\,
+    (\lambda x.\,c_1)\,
+    (\lambda x.\,\mathit{times}\ n\ (f\ (\mathit{prd}\ n)))\,
+    c_0,\\
+\mathit{factorial}
+  =\mathit{fix}\ \mathit{ff}
+\end{aligned}
+\]
+例如，
+\[
+  \mathit{equal}\ c_6\ (\mathit{factorial}\ c_3)
+  \transmulti \lambda x.\,\lambda y.\,x
+\]
+
+\taplsolutionbacklink{ex:5.2.9}{返回练习 5.2.9}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:5.2.10}
+\textbf{5.2.10 解答}
+
+下面这个递归函数可以完成转换：
+\[
+\begin{aligned}
+\mathit{cn}
+  &=\lambda f.\,\lambda m.\,
+    \mathsf{if}\ \mathsf{iszero}\ m\ \mathsf{then}\ c_0\
+    \mathsf{else}\ \mathit{scc}\,(f\,(\mathsf{pred}\ m)),\\
+\mathit{churchnat}
+  &=\mathit{fix}\ \mathit{cn}
+\end{aligned}
+\]
+快速测试如下：
+\[
+  \mathit{equal}\,(\mathit{churchnat}\ \mathsf{4})\ c_4
+  \transmulti \lambda x.\,\lambda y.\,x
+\]
+
+\taplsolutionbacklink{ex:5.2.10}{返回练习 5.2.10}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:5.2.11}
+\textbf{5.2.11 解答}
+
+\[
+\begin{aligned}
+\mathit{ff}
+  &=\lambda f.\,\lambda l.\,
+    \mathit{test}\,(\mathit{isnil}\ l)\,
+      (\lambda x.\,c_0)\,
+      (\lambda x.\,\mathit{plus}\,(\mathit{head}\ l)\,
+        (f\,(\mathit{tail}\ l)))\,
+      c_0,\\
+\mathit{sumlist}
+  &=\mathit{fix}\ \mathit{ff},\\
+l&=\mathit{cons}\ c_2\,
+   (\mathit{cons}\ c_3\,(\mathit{cons}\ c_4\ \mathit{nil}))
+\end{aligned}
+\]
+于是
+\[
+  \mathit{equal}\,(\mathit{sumlist}\ l)\ c_9
+  \transmulti \lambda x.\,\lambda y.\,x
+\]
+
+当然，也可以不用 \(\mathit{fix}\)：
+\[
+  \mathit{sumlist'}=\lambda l.\,l\ \mathit{plus}\ c_0,
+\]
+并且
+\[
+  \mathit{equal}\,(\mathit{sumlist'}\ l)\ c_9
+  \transmulti \lambda x.\,\lambda y.\,x
+\]
+
+\taplsolutionbacklink{ex:5.2.11}{返回练习 5.2.11}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:5.3.3}
+\textbf{5.3.3 解答}
+
+对 \(t\) 的大小作归纳。假设所需性质对比 \(t\) 小的项成立；只要能证明它
+对 \(t\) 本身成立，就能得出该性质对所有项成立。分三种情形。
+
+\medskip\noindent
+\textbf{情形：\(t=x\)。}
+\[
+  \lvert\fv(t)\rvert=\lvert\{x\}\rvert=1=\termsize(t)
+\]
+
+\medskip\noindent
+\textbf{情形：\(t=\lambda x.\,t_1\)。}
+由归纳假设 \(\lvert\fv(t_1)\rvert\leq\termsize(t_1)\)，所以
+\[
+\begin{aligned}
+\lvert\fv(t)\rvert
+  &=\lvert\fv(t_1)\setminus\{x\}\rvert\\
+  &\leq\lvert\fv(t_1)\rvert
+  \leq\termsize(t_1)
+  <\termsize(t)
+\end{aligned}
+\]
+
+\medskip\noindent
+\textbf{情形：\(t=t_1\,t_2\)。}
+由归纳假设，
+\(\lvert\fv(t_1)\rvert\leq\termsize(t_1)\) 且
+\(\lvert\fv(t_2)\rvert\leq\termsize(t_2)\)。于是
+\[
+\begin{aligned}
+\lvert\fv(t)\rvert
+  &=\lvert\fv(t_1)\cup\fv(t_2)\rvert\\
+  &\leq\lvert\fv(t_1)\rvert+\lvert\fv(t_2)\rvert\\
+  &\leq\termsize(t_1)+\termsize(t_2)
+  <\termsize(t)
+\end{aligned}
+\]
+
+\taplsolutionbacklink{ex:5.3.3}{返回练习 5.3.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:5.3.6}
+\textbf{5.3.6 解答}
+
+\paragraph{完全 \(\beta\) 归约。}
+规则如下：
+\[
+\inferrule*[right=\textsc{E-App1}]
+  {t_1\trans t_1'}
+  {t_1\,t_2\trans t_1'\,t_2}
+\qquad
+\inferrule*[right=\textsc{E-App2}]
+  {t_2\trans t_2'}
+  {t_1\,t_2\trans t_1\,t_2'}
+\]
+\[
+\inferrule*[right=\textsc{E-Abs}]
+  {t_1\trans t_1'}
+  {\lambda x.\,t_1\trans\lambda x.\,t_1'}
+\qquad
+\inferrule*[right=\textsc{E-AppAbs}]
+  { }
+  {(\lambda x.\,t_{12})\,t_2
+   \trans\taplsubst{x}{t_2}{t_{12}}}
+\]
+注意，这里没有使用值的句法范畴。
+
+\paragraph{正规序。}
+一种写法是
+\[
+\inferrule*[right=\textsc{E-App1}]
+  {\mathit{na}_1\trans t_1'}
+  {\mathit{na}_1\,t_2\trans t_1'\,t_2}
+\qquad
+\inferrule*[right=\textsc{E-App2}]
+  {t_2\trans t_2'}
+  {\mathit{nanf}_1\,t_2\trans \mathit{nanf}_1\,t_2'}
+\]
+\[
+\inferrule*[right=\textsc{E-Abs}]
+  {t_1\trans t_1'}
+  {\lambda x.\,t_1\trans\lambda x.\,t_1'}
+\qquad
+\inferrule*[right=\textsc{E-AppAbs}]
+  { }
+  {(\lambda x.\,t_{12})\,t_2
+   \trans\taplsubst{x}{t_2}{t_{12}}},
+\]
+其中范式、非抽象范式与非抽象项的句法范畴定义为
+\[
+\begin{array}{@{}rcll@{}}
+\mathit{nf}&::=&\lambda x.\,\mathit{nf}
+               \mid \mathit{nanf}
+  &\text{范式},\\
+\mathit{nanf}&::=&x
+               \mid \mathit{nanf}\ \mathit{nf}
+  &\text{非抽象范式},\\
+\mathit{na}&::=&x
+               \mid t_1\,t_2
+  &\text{非抽象项}
+\end{array}
+\]
+与其他策略相比，这个定义略显笨拙。通常只说：正规序归约与完全
+\(\beta\) 归约相同，但总是优先选择最左、最外层的可归约式。
+
+\paragraph{惰性求值。}
+值仍定义为任意抽象，与按值调用相同；规则为
+\[
+\inferrule*[right=\textsc{E-App1}]
+  {t_1\trans t_1'}
+  {t_1\,t_2\trans t_1'\,t_2}
+\qquad
+\inferrule*[right=\textsc{E-AppAbs}]
+  { }
+  {(\lambda x.\,t_{12})\,t_2
+   \trans\taplsubst{x}{t_2}{t_{12}}}
+\]
+
+\translatornote{完全 \(\beta\) 归约中的 \textsc{E-Abs} 在原书初版解答
+中漏印，已经按作者官方勘误补回。}
+
+\taplsolutionbacklink{ex:5.3.6}{返回练习 5.3.6}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:5.3.8}
+\textbf{5.3.8 解答}
+
+\[
+\inferrule*[right=\textsc{B-Value}]
+  { }
+  {\lambda x.\,t\bigstep\lambda x.\,t}
+\]
+\[
+\inferrule*[right=\textsc{B-App}]
+  {t_1\bigstep\lambda x.\,t_{12}\\
+   t_2\bigstep v_2\\
+   \taplsubst{x}{v_2}{t_{12}}\bigstep v}
+  {t_1\,t_2\bigstep v}
+\]
+
+\taplsolutionbacklink{ex:5.3.8}{返回练习 5.3.8}
+\end{taplauthorsolutionentrybox}
