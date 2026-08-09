@@ -1,0 +1,77 @@
+\section*{第 8 章：带类型的算术表达式}
+\addcontentsline{toc}{section}{第 8 章：带类型的算术表达式}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:8.2.3}
+\textbf{练习 8.2.3}
+
+证明目标是：若 \(t:T\)，则 \(t\) 的每个子项都具有某个类型。对
+\(t:T\) 的类型推导作归纳。归纳命题取为：对推导中的每个结论
+\(s:S\)，项 \(s\) 以及它的所有子项都是良类型的。
+
+\textbf{基础情形。} 若最后一条规则是 \rulename{T-True}、
+\rulename{T-False} 或 \rulename{T-Zero}，则 \(t\) 没有真子项；而
+\(t\) 本身已由该规则获得类型，所以结论成立。
+
+\textbf{归纳情形。} 其余每条类型规则都先给直接子项建立类型，再为整个项
+建立类型。例如：
+
+\begin{itemize}
+  \item 若最后使用 \rulename{T-If}，三个前提分别说明 \(t_1,t_2,t_3\)
+    良类型。由归纳假设，它们各自的所有子项也良类型；条件项的子项恰好是这
+    三个直接子项及其子项，所以结论成立。
+  \item 若最后使用 \rulename{T-Succ}、\rulename{T-Pred} 或
+    \rulename{T-IsZero}，唯一的直接子项 \(t_1\) 由规则前提获得类型；由
+    归纳假设，\(t_1\) 的所有子项也良类型。
+\end{itemize}
+
+所有类型规则均已覆盖，故每个良类型项的每个子项都是良类型的。
+
+\taplsolutionbacklink{ex:8.2.3}{返回练习 8.2.3}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:8.3.4}
+\textbf{练习 8.3.4}
+
+要证：若 \(t:T\) 且 \(t\trans t'\)，则 \(t':T\)。这次对
+\(t\trans t'\) 的求值推导作归纳。归纳假设是：对当前求值推导的每个直接
+子推导 \(s\trans s'\)，只要 \(s:S\)，就有 \(s':S\)。按最后使用的求值
+规则分类。
+
+\begin{itemize}
+  \item \rulename{E-IfTrue}：此时
+    \(t=\taplif{\tapltrue}{t_2}{t_3}\) 且 \(t'=t_2\)。由 \(t:T\) 的
+    反演引理，\(t_2:T\)，故结论成立。\rulename{E-IfFalse} 相同。
+
+  \item \rulename{E-If}：此时
+    \(t=\taplif{t_1}{t_2}{t_3}\)、\(t_1\trans t_1'\)，且
+    \(t'=\taplif{t_1'}{t_2}{t_3}\)。由反演引理，
+    \(t_1:\tapltype{Bool}\) 且 \(t_2:T\)、\(t_3:T\)。对子推导
+    \(t_1\trans t_1'\) 使用归纳假设，得到
+    \(t_1':\tapltype{Bool}\)；再用 \rulename{T-If} 即得 \(t':T\)。
+
+  \item \rulename{E-Succ}、\rulename{E-Pred}、
+    \rulename{E-IsZero}：都先由反演引理得到被求值子项的类型，再对子推导
+    使用归纳假设，最后用相应类型规则重建 \(t':T\)。
+
+  \item \rulename{E-PredZero}：\(t=\taplpred{\taplzero}\)、
+    \(t'=\taplzero\)。由 \(t:T\) 的反演引理得到
+    \(T=\tapltype{Nat}\)，而 \rulename{T-Zero} 给出
+    \(t':\tapltype{Nat}\)。
+
+  \item \rulename{E-PredSucc}：\(t=\taplpred{(\taplsucc{nv_1})}\)、
+    \(t'=nv_1\)。由反演引理得到 \(T=\tapltype{Nat}\) 且
+    \(nv_1:\tapltype{Nat}\)，所以 \(t':T\)。
+
+  \item \rulename{E-IsZeroZero}：结果为 \(\tapltrue\)；
+    \rulename{E-IsZeroSucc}：结果为 \(\taplfalse\)。两种情形都由反演引理
+    得到 \(T=\tapltype{Bool}\)，再由常量的类型规则得到结论。
+\end{itemize}
+
+这些正是算术语言的全部求值规则，故保持性成立。
+
+\taplsolutionbacklink{ex:8.3.4}{返回练习 8.3.4}
+\end{taplsolutionentrybox}

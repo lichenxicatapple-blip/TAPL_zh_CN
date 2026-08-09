@@ -1,0 +1,224 @@
+\section{第 9 章：简单类型 lambda 演算}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:9.2.1}
+\textbf{9.2.1 解答}
+
+因为类型表达式的集合是空的：类型的抽象语法没有基础情形。
+
+\translatornote{这里的类型文法只有 \(T ::= T\to T\)。这条规则可以把两个
+已经存在的类型组合成函数类型，却不能凭空产生第一个类型。由于文法中没有
+\(\tapltype{Bool}\)、\(\tapltype{Nat}\) 或类型变量之类的基础情形，按归纳定义
+生成的类型集合只能是空集。也不能令 \(T=T\to T\) 来得到一个类型，因为这里的
+类型必须是由文法有限步构造出的有限表达式；这种自我引用需要借助后文介绍的
+递归类型。既然不存在类型 \(T\)，就不可能形成任何类型判断
+\(\Gamma\vdash t:T\)，因而也不存在良类型项。}
+
+\taplsolutionbacklink{ex:9.2.1}{返回练习 9.2.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:9.2.3}
+\textbf{9.2.3 解答}
+
+一个满足要求的上下文是
+\[
+  \Gamma=
+  f:\tapltype{Bool}\to\tapltype{Bool}\to\tapltype{Bool},
+  x:\tapltype{Bool},
+  y:\tapltype{Bool}
+\]
+一般地，对任意类型 \(S,T\)，以下形式的上下文都满足要求：
+\[
+  \Gamma=
+  f:S\to T\to\tapltype{Bool},
+  x:S,
+  y:T
+\]
+这种推理正是\chapref{22}所介绍的类型重构算法的核心。
+
+\taplsolutionbacklink{ex:9.2.3}{返回练习 9.2.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:9.3.2}
+\textbf{9.3.2 解答}
+
+反设项 \(x\,x\) 具有类型 \(T\)。由反演引理，左侧子项 \(x\) 必须具有
+某个类型 \(T_1\to T_2\)，右侧子项（同样是 \(x\)）必须具有类型 \(T_1\)。
+再使用反演引理的变量情形可知，\(x:T_1\to T_2\) 与 \(x:T_1\) 都必须来自
+\(\Gamma\) 中的假设。由于 \(\Gamma\) 中至多有一个关于 \(x\) 的绑定，必有
+\[
+  T_1\to T_2=T_1
+\]
+若把类型的大小定义为其树形表示中的节点数，则上述等式要求两侧大小相等；
+但
+\[
+  \lvert T_1\to T_2\rvert
+  =1+\lvert T_1\rvert+\lvert T_2\rvert
+  >\lvert T_1\rvert
+\]
+矛盾。
+
+\translatornote{这里的 \(\lvert T\rvert\) 不是绝对值或集合的基数，而是类型
+\(T\) 的语法树所包含的节点数。类型 \(T_1\to T_2\) 的语法树以箭头构造子
+为根节点，左右子树分别是 \(T_1\) 和 \(T_2\)，所以其节点总数为
+\(1+\lvert T_1\rvert+\lvert T_2\rvert\)。其中额外的 \(1\) 来自根部的
+箭头节点。由于每个有限类型都至少包含一个节点，这个总数必然大于
+\(\lvert T_1\rvert\)。}
+
+若允许类型无限大，就能为方程 \(T_1\to T_2=T_1\) 构造解。
+\chapref{20}会详细回到这一点。
+
+\taplsolutionbacklink{ex:9.3.2}{返回练习 9.3.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:9.3.3}
+\textbf{9.3.3 解答}
+
+假设 \(\Gamma\vdash t:S\) 且 \(\Gamma\vdash t:T\)。对
+\(\Gamma\vdash t:T\) 的推导作归纳，证明 \(S=T\)。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-Var}：}
+
+此时 \(t=x\)，且 \(x:T\in\Gamma\)。由反演引理第 1 项，任何
+\(\Gamma\vdash t:S\) 的推导也只能以 \rulename{T-Var} 结束，故
+\(S=T\)。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-Abs}：}
+
+此时
+\[
+  t=\lambda y:T_2.\,t_1,
+  \qquad
+  T=T_2\to T_1,
+  \qquad
+  \Gamma,y:T_2\vdash t_1:T_1
+\]
+由反演引理第 2 项，任何 \(\Gamma\vdash t:S\) 的推导也必须以
+\rulename{T-Abs} 结束，并且含有结论 \(\Gamma,y:T_2\vdash t_1:S_1\)
+的子推导，其中 \(S=T_2\to S_1\)。对子推导
+\(\Gamma,y:T_2\vdash t_1:T_1\) 使用归纳假设，得到 \(S_1=T_1\)，
+于是立即有 \(S=T\)。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-App}、\rulename{T-True}、
+\rulename{T-False}、\rulename{T-If}：}
+
+类似。
+
+\taplsolutionbacklink{thm:9.3.3}{返回定理 9.3.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:9.3.9}
+\textbf{9.3.9 解答}
+
+对 \(\Gamma\vdash t:T\) 的推导作归纳。归纳的每一步都假设所需性质对
+所有子推导成立：若某个子推导证明 \(\Gamma\vdash s:S\)，且
+\(s\trans s'\)，则 \(\Gamma\vdash s':S\)。然后按推导最后使用的规则
+分类。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-Var}：}
+
+此时 \(t=x\)，且 \(x:T\in\Gamma\)。这种情形不可能发生，因为没有任何
+求值规则以变量为左端。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-Abs}：}
+
+此时 \(t=\lambda x:T_1.\,t_2\)。这种情形也不可能发生。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-App}：}
+
+此时
+\[
+  t=t_1\,t_2,
+  \qquad
+  \Gamma\vdash t_1:T_{11}\to T_{12},
+  \qquad
+  \Gamma\vdash t_2:T_{11},
+  \qquad
+  T=T_{12}
+\]
+检查\cref{fig:9-1}中左端为应用的求值规则，\(t\trans t'\) 只能由
+\rulename{E-App1}、\rulename{E-App2} 或 \rulename{E-AppAbs} 导出。
+分别讨论。
+
+\smallskip\noindent
+\textbf{子情形 \rulename{E-App1}：}
+
+有 \(t_1\trans t_1'\) 且 \(t'=t_1'\,t_2\)。原类型推导含有结论
+\(\Gamma\vdash t_1:T_{11}\to T_{12}\) 的子推导；对子推导应用归纳假设，
+得到 \(\Gamma\vdash t_1':T_{11}\to T_{12}\)。再结合
+\(\Gamma\vdash t_2:T_{11}\)，使用 \rulename{T-App} 即得
+\(\Gamma\vdash t':T\)。
+
+\smallskip\noindent
+\textbf{子情形 \rulename{E-App2}：}
+
+此时 \(t_1=v_1\)、\(t_2\trans t_2'\)，且 \(t'=v_1\,t_2'\)。证明类似。
+
+\smallskip\noindent
+\textbf{子情形 \rulename{E-AppAbs}：}
+
+此时
+\[
+  t_1=\lambda x:T_{11}.\,t_{12},
+  \qquad
+  t_2=v_2,
+  \qquad
+  t'=[x\mapsto v_2]t_{12}
+\]
+用反演引理解构 \(\lambda x:T_{11}.\,t_{12}\) 的类型推导，得到
+\(\Gamma,x:T_{11}\vdash t_{12}:T_{12}\)。结合替换引理
+（\cref{lem:9.3.8}），可得 \(\Gamma\vdash t':T_{12}\)。
+
+布尔常量与条件表达式的情形与定理 8.3.3 相同。
+
+\taplsolutionbacklink{thm:9.3.9}{返回定理 9.3.9}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:9.3.10}
+\textbf{9.3.10 解答}
+
+项
+\[
+  (\lambda x:\tapltype{Bool}\to\tapltype{Bool}.\,
+     \lambda y:\tapltype{Bool}.\,y)
+  (\lambda z:\tapltype{Bool}.\,\tapltrue\ \tapltrue)
+\]
+不是良类型的，但按值调用可以把它归约为良类型项
+\(\lambda y:\tapltype{Bool}.\,y\)。
+
+\taplsolutionbacklink{ex:9.3.10}{返回练习 9.3.10}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:9.4.1}
+\textbf{9.4.1 解答}
+
+\rulename{T-True} 与 \rulename{T-False} 是引入规则，\rulename{T-If}
+是消去规则。\rulename{T-Zero} 与 \rulename{T-Succ} 是引入规则，
+\rulename{T-Pred} 与 \rulename{T-IsZero} 是消去规则。
+
+判断 \(\mathsf{succ}\) 与 \(\mathsf{pred}\) 究竟是引入形式还是消去形式，
+需要稍作思考，因为二者既可以看作构造数字，也可以看作使用数字。关键观察是：
+当 \(\mathsf{pred}\) 与 \(\mathsf{succ}\) 相遇时，它们构成一个可归约式；
+\(\mathsf{iszero}\) 也类似。
+
+\taplsolutionbacklink{ex:9.4.1}{返回练习 9.4.1}
+\end{taplauthorsolutionentrybox}

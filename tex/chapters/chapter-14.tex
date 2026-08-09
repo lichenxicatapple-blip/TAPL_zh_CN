@@ -1,7 +1,7 @@
 % Chapter 14 — Exceptions
 % Source: ../source/split/chapters/ch14-exceptions_p166-p173.pdf
 % Original print pages: 171--178
-% Status: 初审通过
+% Status: 已确认
 
 \chapter{异常}
 \label{chap:14}
@@ -27,12 +27,6 @@
 （\cref{fig:9-1}）上加入多种异常抛出与处理基本构造的系统
 （\cref{fig:14-1} 与\cref{fig:14-2}）。第一种扩展的 OCaml 实现是
 \texttt{fullerror}；携带值的异常语言（\cref{fig:14-3}）没有官方实现。}
-
-\translatornote{本译本的 \texttt{code/simple/} Rust 参考实现同时覆盖
-普通 \(\mathsf{error}\)、\(\mathsf{try}\) 处理器和携带值的
-\(\mathsf{raise}\)，并验证传播次序与处理器行为。作者勘误指出，若干官方
-OCaml 检查器的 \texttt{eval1} 漏掉了归约 \(\mathsf{try}\) 的分支；
-Rust 版本采用\cref{fig:14-2} 的完整规则，不沿用这一实现缺漏。}
 
 \begin{figure}[!ht]
 \centering
@@ -105,7 +99,15 @@ t::=\cdots\mid\mathsf{try}\ t\ \mathsf{with}\ t
 \end{minipage}
 \caption{错误处理}
 \label{fig:14-2}
-\par\vspace{1.5\baselineskip}
+\end{figure}
+\FloatBarrier
+
+\translatornote{\cref{fig:14-1} 中的 \(\mathsf{error}\) 表示一种不携带额外信息的
+运行时错误，也是异常机制的最简模型。\cref{fig:14-2} 概括了
+\taplsecref{14.2}{sec:14.2} 为它加入的处理机制；\cref{fig:14-3} 概括了
+\taplsecref{14.3}{sec:14.3} 用 \(\mathsf{raise}\ t\) 对它所作的推广，使异常可以携带数据。}
+
+\begin{figure}[!ht]
 \centering
 \begin{minipage}{0.99\linewidth}
 \footnotesize
@@ -191,13 +193,18 @@ t::=\cdots\mid\mathsf{raise}\ t
 (\lambda x:\tapltype{Nat}.\,0)\ \mathsf{error}
 \]
 不会产生“究竟执行应用得到 \(0\)，还是终止”的歧义；只有终止这一种可能。
-类似地，\textsc{E-AppErr2} 使用元变量 \(v_1\) 而不是遍历任意项的 \(t_1\)，
-迫使求值器先把应用左端归约为值，再因为右端是 \(\mathsf{error}\) 而终止。
-因此：
+类似地，规则 \textsc{E-AppErr2} 的左端写作
+\(v_1\ \mathsf{error}\)，而不是 \(t_1\ \mathsf{error}\)。这表示只有当应用
+左端已经求值为值时，右端的 \(\mathsf{error}\) 才会向外传播。因此，在
 \[
 (\mathsf{fix}\,(\lambda x:\tapltype{Nat}.\,x))\ \mathsf{error}
 \]
-会发散而不是终止。这些条件保证求值关系仍然确定。
+中，求值器必须先处理应用左端。左端会不断回到自身，始终不能成为值，所以
+整个项将一直求值下去，不会传播右端的 \(\mathsf{error}\)。
+
+这项限制与前面“不把 \(\mathsf{error}\) 视为值”的规定共同消除了求值规则
+之间的重叠：对于任意项，每一步至多只有一条规则能够决定其下一步结果。因此，
+加入 \(\mathsf{error}\) 后，求值关系仍然是确定的。
 
 类型规则 \textsc{T-Error} 也很有意思。我们可能要在任何上下文抛出异常，
 所以允许项 \(\mathsf{error}\) 具有任意类型。在
@@ -210,6 +217,14 @@ t::=\cdots\mid\mathsf{raise}\ t
 (\mathsf{error}\ \tapltrue)
 \]
 中，它具有类型 \(\tapltype{Bool}\to\tapltype{Bool}\)。
+
+\translatornote{本章只在类型中记录计算正常完成时的结果。一个正常结果为 \(T\)
+的计算，即使可能发生 \(\mathsf{error}\)，类型仍然写作 \(T\)，不会改成 Rust 中的
+\texttt{Result<T, E>}、\texttt{Option<T>} 或和类型 \(T+\mathit{Error}\)。在这种
+设计下，错误向外传播并取代一个类型为 \(T\) 的表达式后，传播得到的
+\(\mathsf{error}\) 也必须能够具有类型 \(T\)，这样良类型项经过求值后才能继续保持
+良类型。规则 \textsc{T-Error} 因而允许 \(\mathsf{error}\) 具有任意类型。发生错误时，
+计算会异常终止，不会产生正常结果；这一点与 Rust 中表示永不返回的 \texttt{!} 类型相近。}
 
 \(\mathsf{error}\) 的类型如此灵活，会给类型检查算法的实现带来困难，因为
 语言中每个可赋型项具有唯一类型这一性质（\cref{thm:9.3.3}）不再成立。
@@ -224,9 +239,10 @@ t::=\cdots\mid\mathsf{raise}\ t
 \label{ex:14.1.1}
 要求程序员在每处使用 \(\mathsf{error}\) 时标注预期类型，不是更简单吗？
 \end{exercise}
+\taplauthorsolutionlink{sol:author:14.1.1}{14.1.1}
 
-带异常语言的类型保持性质仍和以往一样：若项具有类型 \(T\)，让它求值一步，
-结果仍具有类型 \(T\)。进展性质则要稍加细化。它原本说明良类型程序必须求值
+带异常语言的类型保持性质仍和以往一样：若项具有类型 \(T\)，则它经过一次
+单步求值后仍具有类型 \(T\)。进展性质则要稍加细化。它原本说明良类型程序必须求值
 为值（或发散）；现在新增了非值范式 \(\mathsf{error}\)，它完全可能成为
 良类型程序的求值结果，所以必须在进展性陈述中允许它。
 
@@ -381,7 +397,8 @@ try 的类型规则直接来自操作语义。整个 try 的结果可能是主�
 
     Java 异常在几个方面比 ML 更进一步。一是异常标签上存在由子类次序生成的
     自然偏序；异常 \(l\) 的处理器实际会捕获携带 \(l\) 类或其任意子类对象
-    的所有异常。二是 Java 区分\emph{异常}与\emph{错误}：前者是内建类
+    的所有异常。二是 Java 区分\tapltranslateditalic{异常}与
+    \tapltranslateditalic{错误}：前者是内建类
     \texttt{Exception} 的子类，而 \texttt{Exception} 又是
     \texttt{Throwable} 的子类，应用程序可能希望捕获并尝试从中恢复；后者
     是同样继承自 \texttt{Throwable} 的 \texttt{Error} 子类，表示通常应
@@ -391,23 +408,28 @@ try 的类型规则直接来自操作语义。整个 try 的结果可能是主�
 
 \begin{exercise}[\(\star\star\star\)]
 \label{ex:14.3.1}
-上面第 4 种方案对可扩展变体类型的解释相当非正式。说明怎样把它精确化。
+上面对第 4 种方案的说明还只是一个非正式草图。请补全其语法、类型规则和
+求值规则，给出一套完整、严格的形式定义。
 \end{exercise}
+\taplauthorsolutionlink{sol:author:14.3.1}{14.3.1}
 
 \begin{exercise}[\(\star\star\star\star\)]
 \label{ex:14.3.2}
-上文指出，Java 异常——\texttt{Exception} 的子类——比 ML 异常
-（以及这里定义的异常）受到更严格控制：方法可能抛出的\emph{每个异常}都必须在方法
+上文指出，Java 异常——即 \texttt{Exception} 的子类——比 ML 中的异常以及
+\cref{fig:14-3} 所定义的异常系统中的异常受到更严格控制：方法可能抛出的
+\tapltranslateditalic{每个异常}都必须在方法
 类型中声明。扩展\cref{ex:14.3.1} 的解答，让函数类型除了表示参数与
 结果类型，也表示它可能抛出的异常集合。证明你的系统类型安全。
 \end{exercise}
+\taplauthorsolutionlink{sol:author:14.3.2}{14.3.2}
 
 \begin{exercise}[\(\star\star\star\)]
 \label{ex:14.3.3}
 许多其他控制构造也能用类似本章的技术形式化。熟悉 Scheme 的
-“以当前续延调用”运算符 \texttt{call/cc} 的读者
+\texttt{call-with-current-continuation}（通常缩写为 \texttt{call/cc}）运算符的读者
 （参见 Clinger、Friedman 与 Wand，1985；Kelsey、Clinger 与 Rees，
 1998；Dybvig，1996；Friedman、Wand 与 Haynes，2001），可以尝试以类型
 \(\tapltype{Cont}\ T\) 为基础构造类型规则；该类型表示期待 \(T\) 型参数的
 \(T\)-续延。
 \end{exercise}
+\taplauthorsolutionlink{sol:author:14.3.3}{14.3.3}

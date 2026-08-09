@@ -1,0 +1,62 @@
+\section*{第 11 章：简单扩展}
+\addcontentsline{toc}{section}{第 11 章：简单扩展}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:11.2-unit-puzzle}
+\textbf{第 11.2 节未编号练习}
+
+答案是可数无限多个。事实上，即使把类型固定为
+\[
+(\tapltype{Unit}\to\tapltype{Unit})
+\to\tapltype{Unit}\to\tapltype{Unit}
+\]
+也能构造无限多个不同的闭范式。对每个 \(n\in\Nat\)，定义
+\[
+c_n
+=\lambda f:\tapltype{Unit}\to\tapltype{Unit}.\,
+ \lambda x:\tapltype{Unit}.\,f^n x
+\]
+其中 \(f^0x=x\)，而 \(f^{n+1}x=f(f^n x)\)。省略上面已经给出的类型标注后，
+开头几项是
+\[
+\begin{aligned}
+c_0&=\lambda f.\,\lambda x.\,x,\\
+c_1&=\lambda f.\,\lambda x.\,f\,x,\\
+c_2&=\lambda f.\,\lambda x.\,f(f\,x),\\
+c_3&=\lambda f.\,\lambda x.\,f(f(f\,x))
+\end{aligned}
+\]
+这些项只有变量 \(f\) 和 \(x\)，且二者都已被 lambda 抽象绑定，所以它们
+都是闭项。每个应用的函数位置都是变量 \(f\)，而不是 lambda 抽象，因此没有
+\(\beta\) 可归约式，所有 \(c_n\) 都是范式。不同的 \(n\) 对应不同层数的
+\(f\) 应用，所以这些范式在语法上两两不同。这说明闭范式至少有可数无限多个；
+另一方面，每个 lambda 项都是有限字符串，所有项的集合至多可数，因此闭范式
+恰好有可数无限多个。
+
+这组项正是以 \(\tapltype{Unit}\) 为底层类型写出的 Church 数。尽管它们在
+语法上不同，但在没有副作用的 \(\tapltype{Unit}\) 语言中，给定函数和参数后，
+最终可观察到的结果仍只能是 \(\mathsf{unit}\)。因此，这个例子也展示了
+“语法不同”与“可观察行为不同”并不是一回事。
+
+\taplsolutionbacklink{ex:11.2-unit-puzzle}{返回第 11.2 节脚注谜题}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:11.8.1}
+\textbf{练习 11.8.1}
+
+可把记录投影规则显式写成
+\[
+\inferrule*[right=\rulename{E-ProjRcd}]
+  {j\in1..n \\
+   l=l_j}
+  {\{l_i=v_i\}^{i\in1..n}.l\trans v_j}
+\]
+这里还隐含记录标签两两不同这一良构条件。与正文中的简写相比，这一版本把
+“所投影标签 \(l\) 恰好是第 \(j\) 个字段的标签”写进了前提，因此无需再靠
+文字约定解释下标 \(j\) 从何而来。
+
+\taplsolutionbacklink{ex:11.8.1}{返回练习 11.8.1}
+\end{taplsolutionentrybox}

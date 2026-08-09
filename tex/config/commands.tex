@@ -173,6 +173,12 @@
     \textbf{译者注：}#1
   \end{tapltranslatornotebox}
 }
+\newcommand{\taplrustexplanation}[1]{%
+  \translatornote{#1}%
+}
+% Source-only marker: the preceding OCaml block illustrates OCaml-specific
+% syntax, naming, or tooling and intentionally has no Rust counterpart.
+\newcommand{\taplocamlsyntaxonly}{}
 \newcommand{\authornote}[1]{%
   \begin{taplauthornotebox}
     #1
@@ -248,9 +254,9 @@
 }
 \newcommand{\chapref}[1]{%
   \ifcsname r@chap:#1\endcsname
-    \hyperref[chap:#1]{\mbox{第\ref*{chap:#1}章}}%
+    \hyperref[chap:#1]{\mbox{第\zhnumber{#1}章}}%
   \else
-    \mbox{第#1章}%
+    \mbox{第\zhnumber{#1}章}%
   \fi
 }
 \newcommand{\taplsecref}[2]{%

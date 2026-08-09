@@ -1,0 +1,64 @@
+\section*{第 9 章：简单类型 lambda 演算}
+\addcontentsline{toc}{section}{第 9 章：简单类型 lambda 演算}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:9.2.2}
+\textbf{练习 9.2.2}
+
+令 \(\Gamma=f:\tapltype{Bool}\to\tapltype{Bool}\)。第一棵推导树为
+\[
+\inferrule*[right=\rulename{T-App}]
+  {\inferrule*[right=\rulename{T-Var}]
+     {f:\tapltype{Bool}\to\tapltype{Bool}\in\Gamma}
+     {\Gamma\vdash f:\tapltype{Bool}\to\tapltype{Bool}}
+   \\
+   \inferrule*[right=\rulename{T-If}]
+     {\inferrule*[right=\rulename{T-False}]{ }
+        {\Gamma\vdash\taplfalse:\tapltype{Bool}}
+      \\
+      \inferrule*[right=\rulename{T-True}]{ }
+        {\Gamma\vdash\tapltrue:\tapltype{Bool}}
+      \\
+      \inferrule*[right=\rulename{T-False}]{ }
+        {\Gamma\vdash\taplfalse:\tapltype{Bool}}}
+     {\Gamma\vdash\taplif{\taplfalse}{\tapltrue}{\taplfalse}:
+        \tapltype{Bool}}}
+  {\Gamma\vdash
+     f\,(\taplif{\taplfalse}{\tapltrue}{\taplfalse}):
+     \tapltype{Bool}}
+\]
+
+第二棵树的最外层是 \rulename{T-Abs}。令
+\(\Gamma'=\Gamma,x:\tapltype{Bool}\)，则其函数体的推导为
+\[
+\inferrule*[right=\rulename{T-App}]
+  {\inferrule*[right=\rulename{T-Var}]
+     {f:\tapltype{Bool}\to\tapltype{Bool}\in\Gamma'}
+     {\Gamma'\vdash f:\tapltype{Bool}\to\tapltype{Bool}}
+   \\
+   \inferrule*[right=\rulename{T-If}]
+     {\inferrule*[right=\rulename{T-Var}]
+        {x:\tapltype{Bool}\in\Gamma'}
+        {\Gamma'\vdash x:\tapltype{Bool}}
+      \\
+      \inferrule*[right=\rulename{T-False}]{ }
+        {\Gamma'\vdash\taplfalse:\tapltype{Bool}}
+      \\
+      \inferrule*[right=\rulename{T-Var}]
+        {x:\tapltype{Bool}\in\Gamma'}
+        {\Gamma'\vdash x:\tapltype{Bool}}}
+     {\Gamma'\vdash\taplif{x}{\taplfalse}{x}:\tapltype{Bool}}}
+  {\Gamma'\vdash f\,(\taplif{x}{\taplfalse}{x}):\tapltype{Bool}}
+\]
+因此
+\[
+\inferrule*[right=\rulename{T-Abs}]
+  {\Gamma'\vdash f\,(\taplif{x}{\taplfalse}{x}):\tapltype{Bool}}
+  {\Gamma\vdash
+    \lambda x:\tapltype{Bool}.\,f\,(\taplif{x}{\taplfalse}{x}):
+    \tapltype{Bool}\to\tapltype{Bool}}
+\]
+
+\taplsolutionbacklink{ex:9.2.2}{返回练习 9.2.2}
+\end{taplsolutionentrybox}

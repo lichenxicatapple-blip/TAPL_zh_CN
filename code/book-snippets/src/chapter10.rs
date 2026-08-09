@@ -28,6 +28,7 @@ pub enum Type {
 // TAPL-SNIPPET-END: ch10-type
 
 // TAPL-SNIPPET-BEGIN: ch10-binding-var
+// `Type` 的完整定义见第 10.2 节。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Binding {
     Name,
@@ -139,18 +140,6 @@ pub fn type_of(context: &Context, term: &Term) -> Result<Type, TypeError> {
 }
 // TAPL-SNIPPET-END: ch10-type-of
 
-// TAPL-SNIPPET-BEGIN: ch10-structural-equality
-pub fn structurally_equal(function: Term, argument: Term) -> bool {
-    let first = Term::App(
-        Info::default(),
-        Box::new(function.clone()),
-        Box::new(argument.clone()),
-    );
-    let second = Term::App(Info::default(), Box::new(function), Box::new(argument));
-    first == second
-}
-// TAPL-SNIPPET-END: ch10-structural-equality
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -171,9 +160,14 @@ mod tests {
 
     #[test]
     fn derived_equality_is_structural() {
-        assert!(structurally_equal(
-            Term::True(Info::default()),
-            Term::False(Info::default())
-        ));
+        let function = Term::True(Info::default());
+        let argument = Term::False(Info::default());
+        let first = Term::App(
+            Info::default(),
+            Box::new(function.clone()),
+            Box::new(argument.clone()),
+        );
+        let second = Term::App(Info::default(), Box::new(function), Box::new(argument));
+        assert_eq!(first, second);
     }
 }

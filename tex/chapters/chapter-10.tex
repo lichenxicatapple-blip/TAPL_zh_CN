@@ -1,7 +1,7 @@
 % Chapter 10 — An ML Implementation of Simple Types
 % Source: ../source/split/chapters/ch10-ml-simple-types_p113-p116.pdf
 % Original print pages: 113--116
-% Status: 初审通过
+% Status: 已确认
 
 \chapter{简单类型的 ML 实现}
 \label{chap:10}
@@ -12,29 +12,31 @@
 机制。
 
 \translatornote{原书的 OCaml 程序完整保留在正文中，每段代码之后直接给出
-相应的 Rust 对照实现。可运行的完整工程位于 \texttt{code/simple/}；其中
-与本章直接对应的部分包括简单类型、具名项、显式类型环境、上下文查询、
-类型检查和大步求值。该工程与作者工具之间的具体语法差异和验证范围，见该
-目录的 README。}
+译者增补的 Rust 对照实现。Rust 版本不追求逐行照译，而是保持相同的对象语言
+语法、类型检查规则和求值行为。}
 
 \section{上下文}
 \label{sec:10.1}
 
-回想 \taplsecref{7.1}{sec:7.1}，上下文就是变量名与绑定之对组成的列表：
+回想 \taplsecref{7.1}{sec:7.1}，上下文是一个列表；列表中的每一项都是一个
+二元组，包含变量名及其绑定信息：
 \begin{taplocamlcode}
 type context = (string * binding) list
 \end{taplocamlcode}
 \taplrustcounterpart{ch10-context}
 
-在\chapref{7}中，上下文只用于解析和打印时在项的有名形式与无名形式
-之间转换。为此，只需知道变量的名字；\texttt{binding} 类型被定义成一个
-只有单个构造子的平凡数据类型，不携带任何信息：
+在\chapref{7}中，上下文只服务于两项工作：解析时把项从有名形式转换为
+无名形式，打印时再把无名形式还原为有名形式。为此，我们只需记录变量名；
+\texttt{binding} 类型被定义成一个只有单个构造子的平凡数据类型，不携带
+任何信息：
 \begin{taplocamlcode}
 type binding = NameBind
 \end{taplocamlcode}
 \taplrustcounterpart{ch10-binding-name}
 
-实现类型检查器时，需要用上下文携带关于变量的类型假设。因此，我们为
+实现类型检查器时\footnote{这里描述的实现对应带布尔值（\cref{fig:8-1}）的
+简单类型 lambda 演算（\cref{fig:9-1}）。本章代码可在作者网站仓库的
+\texttt{simplebool} 实现中找到。}，需要用上下文携带关于变量的类型假设。因此，我们为
 \texttt{binding} 类型加入一个名为 \texttt{VarBind} 的新构造子：
 \begin{taplocamlcode}
 type binding =
@@ -42,9 +44,6 @@ type binding =
   | VarBind of ty
 \end{taplocamlcode}
 \taplrustcounterpart{ch10-binding-var}
-\footnote{这里描述的实现对应带布尔值（\cref{fig:8-1}）的简单类型
-lambda 演算（\cref{fig:9-1}）。本章代码可在作者网站仓库的
-\texttt{simplebool} 实现中找到。}
 
 每个 \texttt{VarBind} 构造子都携带相应变量的类型假设。旧的
 \texttt{NameBind} 仍然保留，供不关心类型假设的打印和解析函数使用。
@@ -75,18 +74,24 @@ let getTypeFromContext fi ctx i =
 这个模式匹配还提供了一项内部一致性检查：正常情况下，调用
 \texttt{getTypeFromContext} 时，上下文中的第 \texttt{i} 个绑定应当确实
 是 \texttt{VarBind}。不过，后续章节会加入其他形式的绑定，特别是类型变量
-的绑定；届时可能用错误种类的变量调用 \texttt{getTypeFromContext}。在这种
-情况下，它使用底层的 \texttt{error} 函数打印消息，并传入一个
-\texttt{info}，以便报告错误发生的文件位置。
+的绑定。届时，如果传入的索引指向的不是 \texttt{VarBind}，
+\texttt{getTypeFromContext} 就无法从中取得项变量的类型，于是会调用底层的
+\texttt{error} 函数报告这种内部不一致；传入的 \texttt{info} 用于指出错误
+发生的文件位置。
 \begin{taplocamlcode}
 val error : info -> string -> 'a
 \end{taplocamlcode}
 \taplrustcounterpart{ch10-error}
 
-\texttt{error} 的结果类型是\emph{类型变量} \texttt{'a}，可以实例化为
+\texttt{error} 的结果类型是\tapltranslateditalic{类型变量} \texttt{'a}，可以实例化为
 任意 ML 类型。这是合理的，因为该函数无论如何也不会返回：它打印消息后便
 终止程序。这里必须假定 \texttt{error} 的结果是 \texttt{ty}，因为模式
 匹配的另一分支返回的正是 \texttt{ty}。
+
+\translatornote{Rust 对照实现把 \texttt{error} 的返回类型写成
+\texttt{!}，表示该函数永远不会正常返回。因此，对 \texttt{error} 的调用
+也可以出现在需要任何其他结果类型的位置；在这里，\texttt{!} 与 OCaml 中
+可以实例化为任意类型的 \texttt{'a} 起到相同作用。}
 
 注意，类型假设是按索引查找的，因为项在内部采用无名形式表示，变量表示为
 数字索引。函数 \texttt{getbinding} 只是查找给定上下文中的第
@@ -127,8 +132,8 @@ type term =
 \label{sec:10.3}
 
 类型检查函数 \texttt{typeof} 可以看作 \(\lambda_{\to}\) 类型规则
-（\cref{fig:8-1} 与\cref{fig:9-1}）的直接翻译；更准确地说，它是反演
-\cref{lem:9.3.1} 的转写。后一种说法更准确，是因为反演引理针对每一种
+（\cref{fig:8-1} 与\cref{fig:9-1}）的直接翻译；更准确地说，它是
+\taplnamedref{lem:9.3.1}{反演引理}的转写。后一种说法更准确，是因为反演引理针对每一种
 句法形式，精确说明这种形式的项成为良类型项必须满足什么条件。类型规则只
 说明特定形式的项在特定条件下是良类型的；单看一条类型规则，永远不能断定
 某个项不是良类型的，因为总可能有另一条规则能为这个项赋型。（目前这看起来
@@ -177,6 +182,9 @@ let t = TmApp(t1,t2) in
 let t' = TmApp(t1,t2) in
 (=) t t'
 \end{taplocamlcode}
-\taplrustcounterpart{ch10-structural-equality}
-保证得到 \texttt{true}，尽管绑定到 \texttt{t} 与 \texttt{t'} 的两个
-\texttt{TmApp} 实例在不同时刻分配，位于不同的内存地址。
+虽然绑定到 \texttt{t} 与 \texttt{t'} 的两个 \texttt{TmApp} 实例是在不同
+时刻分别分配的，内存地址也不同，上述比较仍会得到 \texttt{true}。
+\taplrustexplanation{Rust 不需要为这个例子另写相等性函数。\texttt{Term}
+已经派生 \texttt{PartialEq} 与 \texttt{Eq}；因此，对两个分别构造但内容
+相同的项直接使用 \texttt{t == t'}，就会递归比较其结构和内容。这与上面的
+OCaml 表达式 \texttt{(=) t t'} 作用相同。}

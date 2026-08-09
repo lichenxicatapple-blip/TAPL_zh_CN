@@ -1,7 +1,7 @@
 % Chapter 9 — Simply Typed Lambda-Calculus
 % Source: ../source/split/chapters/ch09-simply-typed-lambda-calculus_p098-p112.pdf
 % Original print pages: 99--112
-% Status: 初审通过
+% Status: 已确认
 
 \chapter{简单类型 lambda 演算}
 \label{chap:9}
@@ -31,16 +31,18 @@
   \item 不至于过分保守，即应当能为我们真正关心的大多数程序指派类型。
 \end{enumerate}
 
-当然，纯 lambda 演算是图灵完备的，所以不可能对这些基本构件作出精确的
-类型分析。例如，不实际运行下面程序中的漫长而棘手的计算，观察它究竟产生
+但是，纯 lambda 演算能够表达任意计算，其中也包括可能永不终止的计算。
+因此，一个自身保证终止的静态类型检查器，不可能对由这些基本构件组成的所有
+程序都作出完全精确的类型判断；它只能采用保守的近似分析。例如，不实际运行
+下面程序中的漫长而棘手的计算，观察它究竟产生
 \(\tapltrue\) 还是 \(\taplfalse\)，就无法可靠判断整个程序产生的是布尔值
 还是函数：
 \[
 \mathsf{if}\ \langle\text{漫长而棘手的计算}\rangle\
 \mathsf{then\ true\ else}\ (\lambda x.x)
 \]
-而且这个漫长而棘手的计算一般甚至可能发散；任何企图精确预测其结果的类型
-检查器也会随之发散。\footnote{本章研究的是带布尔值
+此外，这段漫长而棘手的计算甚至可能永不终止（即发散）；如果类型检查器试图
+通过实际运行它来精确预测结果，类型检查器本身也会一直运行下去。\footnote{本章研究的是带布尔值
 （\cref{fig:8-1}）的简单类型 lambda 演算（\cref{fig:9-1}）。
 相应的 OCaml 实现为 \texttt{fullsimple}。}
 
@@ -49,7 +51,7 @@
 \begin{minipage}{0.97\linewidth}
 \small
 \noindent\textbf{\(\lambda_{\to}\) [带类型]}\hfill
-\textit{基于 \(\lambda\)（\cref{fig:5-3}）}
+\tapltranslateditalic{基于 \(\lambda\)（\cref{fig:5-3}）}
 \par\smallskip
 \[
 \begin{array}{@{}rcll@{}}
@@ -101,7 +103,7 @@ v&::=&\lambda x\taplnewmaterial{{:}T}.\,t&\text{值：抽象值}\\[2pt]
 \]
 \noindent
 \taplnewmaterial{\text{浅灰区域}}\quad
-表示相对于\cref{fig:5-3} 新增或改变的带类型材料。
+表示相较于\cref{fig:5-3} 新增或修改的部分。
 \end{minipage}
 \caption{纯简单类型 lambda 演算（\(\lambda_{\to}\)）}
 \label{fig:9-1}
@@ -122,11 +124,12 @@ v&::=&\lambda x\taplnewmaterial{{:}T}.\,t&\text{值：抽象值}\\[2pt]
 但这种粗略分析显然太保守：\(\lambda x.\tapltrue\) 和
 \(\lambda x.\lambda y.y\) 被混入同一种类型 \(\to\)，忽略了前者应用于
 \(\tapltrue\) 得到布尔值，而后者应用于 \(\tapltrue\) 得到另一个函数。
-一般地，要为应用结果给出有用的类型，我们不能只知道左侧是一个函数，还必须
-知道这个函数返回什么类型。还要保证函数在调用时行为正确，就必须追踪它预期
-的参数类型。为记录这些信息，我们用形如 \(T_1\to T_2\) 的无限类型家族
-代替单独的类型 \(\to\)；其中每一种类型都对预期接收 \(T_1\) 型参数、
-返回 \(T_2\) 型结果的函数分类。
+通常，为了给函数应用的结果确定一个有用的类型，仅知道被应用的项是函数还
+不够；我们还必须知道该函数返回什么类型。为了确保调用时不会因参数类型不符
+而出错，还必须记录它接受什么类型的参数。为此，我们不再用单独的类型
+\(\to\) 统称所有函数，而把函数类型写成 \(T_1\to T_2\)，表示接受
+\(T_1\) 型参数、返回 \(T_2\) 型结果的函数。由于 \(T_1\) 和 \(T_2\)
+本身也可以是函数类型，这种构造可以无限嵌套。
 
 \begin{definition}
 \label{def:9.1.1}
@@ -166,22 +169,25 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
 
 一般地，若语言在项中使用类型标注来引导类型检查器，就称为
 \termfirst{显式类型}{explicitly typed}语言。若要求类型检查器推断或重建
-这些信息，就称为\termfirst{隐式类型}{implicitly typed}语言；lambda
-演算文献中也使用\termfirst{类型指派系统}{type-assignment system}一词。
+这些信息，就称为\termfirst{隐式类型}{implicitly typed}语言；在 lambda
+演算文献中，这类隐式类型系统也称为
+\termfirst{类型指派系统}{type-assignment system}。
 本书主要研究显式类型语言；\chapref{22}将考察隐式类型。
 
 一旦知道抽象的参数类型，函数的结果类型显然就是抽象体 \(t_2\) 的类型，
-其中 \(t_2\) 中出现的 \(x\) 被假定为表示 \(T_1\) 型的项。这一直觉由
-以下规则表达：
+其中 \(t_2\) 中出现的 \(x\) 被假定为表示 \(T_1\) 型的项。这一关系可以
+写成下面的类型规则：
 \[
 \inferrule*[right=\textsc{T-Abs}]
  {x:T_1\vdash t_2:T_2}
  {\vdash\lambda x:T_1.\,t_2:T_1\to T_2}
 \]
 
-项可能含有嵌套的 lambda 抽象，所以一般需要同时谈论若干项此类假设。类型
-关系也由二元关系 \(t:T\) 变为三元关系 \(\Gamma\vdash t:T\)，其中
-\(\Gamma\) 是关于 \(t\) 中自由变量类型的一组假设。
+lambda 抽象可以层层嵌套。检查内层抽象体时，往往需要同时记录多个处于
+作用域中的变量及其类型。例如，在 \(\lambda x:T_1.\lambda y:T_2.t\) 中，
+检查 \(t\) 时必须同时假定 \(x:T_1\) 与 \(y:T_2\)。因此，类型关系由
+二元关系 \(t:T\) 扩展为三元关系 \(\Gamma\vdash t:T\)，其中 \(\Gamma\)
+集中记录 \(t\) 中自由变量的类型假设。
 
 形式地说，\termfirst{类型上下文}{typing context}（也称
 \termfirst{类型环境}{type environment}）\(\Gamma\) 是变量及其类型的
@@ -192,8 +198,8 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
 为了避免新绑定与 \(\Gamma\) 中已有的绑定混淆，要求所选的名字 \(x\) 不同
 于 \(\Gamma\) 已经绑定的变量。根据约定，lambda 抽象所绑定的变量可以在
 方便时重命名，所以需要时总能通过重命名受约束变量满足这个条件。因此，可以
-把 \(\Gamma\) 看作从变量到类型的有限函数。依照这一直觉，我们用
-\(\dom(\Gamma)\) 表示 \(\Gamma\) 所绑定的变量集合。
+把 \(\Gamma\) 看作从变量到类型的有限函数，并用 \(\dom(\Gamma)\) 表示
+\(\Gamma\) 所绑定的变量集合。
 
 抽象的类型规则一般写作：
 \[
@@ -201,7 +207,8 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
  {\Gamma,x:T_1\vdash t_2:T_2}
  {\Gamma\vdash\lambda x:T_1.\,t_2:T_1\to T_2},
 \]
-其前提比结论多一项假设。
+与结论相比，前提的类型上下文多了假设 \(x:T_1\)：检查抽象体 \(t_2\)
+时，需要暂时假定参数 \(x\) 具有类型 \(T_1\)。
 
 变量的类型规则也直接由上述讨论得到：变量具有当前假定它具有的类型。
 \[
@@ -217,10 +224,9 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
   \Gamma\vdash t_2:T_{11}}
  {\Gamma\vdash t_1\,t_2:T_{12}}
 \]
-若 \(t_1\) 求值为一个把 \(T_{11}\) 型参数映射到 \(T_{12}\) 型结果的函数
-（并假定其自由变量所表示的值具有 \(\Gamma\) 中给出的类型），而 \(t_2\)
-求值为 \(T_{11}\) 型结果，那么把 \(t_1\) 应用于 \(t_2\) 就产生
-\(T_{12}\) 型的值。
+第一个前提表示：在 \(\Gamma\) 记录的自由变量类型假设下，\(t_1\) 具有
+函数类型 \(T_{11}\to T_{12}\)；第二个前提表示，在同样的假设下，\(t_2\)
+具有类型 \(T_{11}\)。因此，应用 \(t_1\,t_2\) 具有类型 \(T_{12}\)。
 
 布尔常量与条件表达式的类型规则与以前相同（\cref{fig:8-1}）。不过，
 \textsc{T-If} 中的元变量 \(T\) 现在可以实例化为任意函数类型，所以分支为
@@ -239,20 +245,21 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
 有时会省略。}
 
 上述规则汇总在\cref{fig:9-1} 中；为求完整，图中也列出了语法与求值规则。
-图中高亮区域表示相对于无类型 lambda 演算新增的材料，包括全新的规则，
-也包括在旧规则中加入的部分。与布尔值和自然数一样，完整演算的定义被拆成
+图中高亮区域表示相较于无类型 lambda 演算新增或修改的部分：有些是全新的
+规则，有些是在原有规则中加入的内容。与布尔值和自然数一样，完整演算的定义被拆成
 两部分：一部分是图中没有任何基本类型的纯简单类型 lambda 演算；另一部分是
-\cref{fig:8-1} 已给出的布尔值规则——当然，必须为该图的每个类型陈述都
+\cref{fig:8-1} 已给出的布尔值规则——当然，必须为该图的每个类型判断都
 加上上下文 \(\Gamma\)。
 
-我们常用符号 \(\lambda_{\to}\) 指简单类型 lambda 演算；基本类型集合不同时
-仍使用同一符号。
+本书常用符号 \(\lambda_{\to}\) 泛指简单类型 lambda 演算；即使具体系统选用的
+基本类型不同，也仍沿用这一符号。
 
 \begin{exercise}[\(\star\)]
 \label{ex:9.2.1}
 完全没有基本类型的纯简单类型 lambda 演算实际上是退化的，因为它根本没有
 良类型项。为什么？
 \end{exercise}
+\taplauthorsolutionlink{sol:author:9.2.1}{9.2.1}
 
 \(\lambda_{\to}\) 的类型规则实例可以像带类型的算术表达式一样组合成推导树。
 例如，下面的推导说明
@@ -273,7 +280,7 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
    \tapltype{Bool}}
 \]
 
-\begin{exercise}[\(\star\star\)]
+\begin{exercise}[\(\star,\nrightarrow\)]
 \label{ex:9.2.2}
 画出推导树，证明下列项具有所标类型：
 \begin{enumerate}
@@ -288,12 +295,14 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
       :\tapltype{Bool}\to\tapltype{Bool}\)。
 \end{enumerate}
 \end{exercise}
+\taplsolutionlink{sol:translator:9.2.2}{9.2.2}
 
 \begin{exercise}[\(\star\)]
 \label{ex:9.2.3}
 找出一个上下文 \(\Gamma\)，使得 \(f\ x\ y\) 具有类型
 \(\tapltype{Bool}\)。能否简洁描述所有这类上下文组成的集合？
 \end{exercise}
+\taplauthorsolutionlink{sol:author:9.2.3}{9.2.3}
 
 \section{类型关系的性质}
 \label{sec:9.3}
@@ -334,8 +343,9 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
 \label{ex:9.3.2}
 是否存在上下文 \(\Gamma\) 和类型 \(T\)，使
 \(\Gamma\vdash x\ x:T\)？若存在，请给出 \(\Gamma\) 和 \(T\)，并画出
-该类型陈述的推导；若不存在，请证明。
+该类型判断的推导树；若不存在，请证明。
 \end{exercise}
+\taplauthorsolutionlink{sol:author:9.3.2}{9.3.2}
 
 \taplsecref{9.2}{sec:9.2} 为了简化类型检查选择了显式类型的演算呈现方式。为此，
 我们只给函数抽象中的受约束变量添加类型标注，其他地方均未标注。这在什么
@@ -345,22 +355,24 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
 
 \begin{theorem}[类型的唯一性]
 \label{thm:9.3.3}
-给定类型上下文 \(\Gamma\)，若项 \(t\) 的所有自由变量均属于
-\(\dom(\Gamma)\)，则 \(t\) 至多具有一种类型。也就是说，若项可赋型，
-它的类型是唯一的。此外，用生成类型关系的推导规则构造的这一类型推导也只有
-一个。
+固定类型上下文 \(\Gamma\)。若项 \(t\) 的所有自由变量都属于
+\(\dom(\Gamma)\)，则 \(t\) 在 \(\Gamma\) 下至多具有一种类型。也就是说，
+如果 \(\Gamma\vdash t:T\) 可以导出，那么 \(T\) 是唯一的；而且，依照本节
+类型规则构造出的这棵类型推导树也是唯一的。
 \end{theorem}
 
 \begin{proof}
 留作练习（推荐，三星）。证明直接得几乎无话可说；不过，写出部分细节很适合
 练习如何“搭起”关于类型关系的证明。
 \end{proof}
+\taplauthorsolutionlink{sol:author:9.3.3}{9.3.3}
 
 本书以后会遇到许多不再具有这种简单对应的类型系统：同一个项会被指派多种
 类型，而每一种类型又会由许多类型推导证明。在这些系统中，有效地从项恢复
 类型推导往往需要相当多的工作。
 
-下面的典范形式引理给出不同类型的值可能具有的形状。
+下面的典范形式引理根据一个值的类型，限定它可能是哪一种值：布尔类型的值
+只能是布尔常量，函数类型的值只能是 lambda 抽象。
 
 \begin{lemma}[典范形式]
 \label{lem:9.3.4}
@@ -391,8 +403,9 @@ T&::=&\tapltype{Bool}&\text{类型：布尔值的类型}\\
 
 \begin{proof}
 对类型推导作直接归纳。布尔常量和条件表达式的情形，与带类型算术表达式的
-进展性证明（\cref{thm:8.3.2}）完全相同。变量情形不可能发生，因为
-\(t\) 是闭项。抽象情形立即成立，因为抽象是值。
+进展性证明（\cref{thm:8.3.2}）完全相同。变量情形不可能发生：若类型推导
+最后使用 \rulename{T-Var}，则 \(t\) 本身必为某个自由变量 \(x\)，这与
+\(t\) 是闭项的假设矛盾。抽象情形立即成立，因为抽象是值。
 
 唯一有意思的是应用情形：
 \[
@@ -410,9 +423,8 @@ t=t_1\,t_2,\qquad
 接下来要证明求值保持类型。先陈述类型关系的两个“结构引理”。它们本身并不
 特别有趣，但能让后续证明对类型推导作若干有用的变换。
 
-第一个结构引理说明，可以按需要
-置换上下文元素，而不会改变从该上下文可以导出的
-类型陈述集合。回想上文的要求：上下文中的所有绑定都必须有不同名字；每次为
+第一个结构引理说明，可以按需要置换上下文元素，而不会改变在该上下文中能够
+导出的类型判断。回想上文的要求：上下文中的所有绑定都必须有不同名字；每次为
 上下文加入绑定时，都默认新名字不同于已经绑定的全部名字，必要时按照
 \cref{conv:5.3.4} 重命名。
 
@@ -427,7 +439,7 @@ t=t_1\,t_2,\qquad
 \end{proof}
 
 第二个结构引理是\termfirst{弱化}{weakening}：向上下文加入未被使用的新
-假设，不会使原有的类型陈述失效。
+假设，不会使原有的类型判断失效。
 
 \begin{lemma}[弱化]
 \label{lem:9.3.7}
@@ -439,7 +451,7 @@ t=t_1\,t_2,\qquad
 对类型推导作直接归纳。
 \end{proof}
 
-借助这些技术引理，可以证明类型关系的一项关键性质：用类型适当的项替换变量
+借助这些辅助引理，可以证明类型关系的一项关键性质：用类型适当的项替换变量
 时，仍然保持良类型性。类似引理在程序语言的安全性证明中无处不在，因而经常
 简称为“替换引理”。
 
@@ -450,9 +462,9 @@ t=t_1\,t_2,\qquad
 \end{lemma}
 
 \begin{proof}
-对陈述 \(\Gamma,x:S\vdash t:T\) 的推导深度作归纳。给定一棵推导后，对
-证明中最后使用的类型规则作分类讨论。\footnote{等价地，也可对 \(t\) 的
-可能形状分类，因为每个句法构造子恰好只有一条类型规则。}最有意思的是变量与
+对类型判断 \(\Gamma,x:S\vdash t:T\) 的推导深度作归纳，并按推导最后使用的
+类型规则分类讨论。\footnote{等价地，也可按 \(t\) 最外层
+的句法构造分类，因为每个句法构造子恰好只有一条类型规则。}最有意思的是变量与
 抽象情形。
 
 \medskip\noindent
@@ -460,9 +472,17 @@ t=t_1\,t_2,\qquad
 \[
 t=z,\qquad z:T\in(\Gamma,x:S)
 \]
-要根据 \(z\) 是 \(x\) 还是另一个变量分成两个子情形。若 \(z=x\)，则
-\(\taplsubst{x}{s}{z}=s\)，所需结论是 \(\Gamma\vdash s:S\)，这正是
-引理的假设。否则 \(\taplsubst{x}{s}{z}=z\)，结论立即成立。
+要根据 \(z\) 是 \(x\) 还是另一个变量分成两个子情形。
+
+若 \(z=x\)，那么绑定 \(z:T\) 就是上下文中新加入的绑定 \(x:S\)，故
+\(T=S\)。又因为 \(\taplsubst{x}{s}{x}=s\)，所需结论
+\(\Gamma\vdash\taplsubst{x}{s}{x}:T\) 化为
+\(\Gamma\vdash s:S\)，这正是引理的第二个假设。
+
+若 \(z\ne x\)，那么绑定 \(z:T\) 只能来自原上下文 \(\Gamma\)，所以
+\(z:T\in\Gamma\)。此时 \(\taplsubst{x}{s}{z}=z\)，再使用
+\rulename{T-Var} 即得所需结论
+\(\Gamma\vdash\taplsubst{x}{s}{z}:T\)。
 
 \medskip\noindent
 \textbf{情形 \rulename{T-Abs}：}
@@ -472,11 +492,40 @@ t=\lambda y:T_2.\,t_1,\qquad T=T_2\to T_1,\\
 \Gamma,x:S,y:T_2\vdash t_1:T_1
 \end{gathered}
 \]
-由\cref{conv:5.3.4}，可以假定 \(x\ne y\) 且
-\(y\notin\fv(s)\)。对给定子推导使用置换，得到
-\(\Gamma,y:T_2,x:S\vdash t_1:T_1\)。对另一给定推导
-\(\Gamma\vdash s:S\) 使用弱化，得到
-\(\Gamma,y:T_2\vdash s:S\)。于是由归纳假设，
+必要时，先把抽象的受约束变量 \(y\) 及其在 \(t_1\) 中受该抽象约束的出现
+一同作 \(\alpha\) 重命名。根据\cref{conv:5.3.4}，总能为它选取一个新名字，
+使 \(x\ne y\) 且 \(y\notin\fv(s)\)。条件 \(x\ne y\) 排除了这个抽象本身
+绑定 \(x\) 的情形；在那种情形中，函数体里的 \(x\) 是受约束变量，不属于
+此次替换要处理的自由出现。条件 \(y\notin\fv(s)\) 则保证替换后，\(s\) 中的
+自由变量不会被这个抽象捕获。
+
+为了把归纳假设用于函数体 \(t_1\)，令
+\(\Delta=\Gamma,y:T_2\)。归纳假设要求先有
+\[
+\Delta,x:S\vdash t_1:T_1
+\qquad\text{和}\qquad
+\Delta\vdash s:S
+\]
+展开 \(\Delta\) 后，这两个前提分别是
+\[
+\Gamma,y:T_2,x:S\vdash t_1:T_1
+\qquad\text{和}\qquad
+\Gamma,y:T_2\vdash s:S
+\]
+
+当前关于函数体的子推导给出的是
+\(\Gamma,x:S,y:T_2\vdash t_1:T_1\)。使用置换引理调换后两个绑定的顺序，
+就得到所需的第一个前提
+\(\Gamma,y:T_2,x:S\vdash t_1:T_1\)。引理的另一个假设是
+\(\Gamma\vdash s:S\)；使用弱化引理加入未被 \(s\) 使用的新绑定
+\(y:T_2\)，就得到所需的第二个前提
+\(\Gamma,y:T_2\vdash s:S\)。
+
+函数体的类型推导是整个 \rulename{T-Abs} 推导的直接子推导，深度严格更小；
+置换引理又保证调换上下文顺序不会改变推导深度，所以可以对该子推导使用
+归纳假设。这里，归纳假设处理的项是 \(t_1\)，其类型是 \(T_1\)，基础上下文
+就是前面设定的 \(\Delta=\Gamma,y:T_2\)。
+上面得到的两个类型判断正好是归纳假设的两个前提，因而可以推出
 \[
 \Gamma,y:T_2\vdash\taplsubst{x}{s}{t_1}:T_1
 \]
@@ -485,7 +534,12 @@ t=\lambda y:T_2.\,t_1,\qquad T=T_2\to T_1,\\
 \Gamma\vdash
 \lambda y:T_2.\,\taplsubst{x}{s}{t_1}:T_2\to T_1
 \]
-根据替换定义，这恰是所需结论
+根据替换定义以及上面两个关于变量名不冲突的条件，
+\[
+\taplsubst{x}{s}{(\lambda y:T_2.\,t_1)}
+=\lambda y:T_2.\,\taplsubst{x}{s}{t_1}
+\]
+再结合 \(t=\lambda y:T_2.\,t_1\) 和 \(T=T_2\to T_1\)，这恰是所需结论
 \(\Gamma\vdash\taplsubst{x}{s}{t}:T\)。
 
 \medskip\noindent
@@ -497,22 +551,46 @@ t=t_1\,t_2,\qquad
 \Gamma,x:S\vdash t_2:T_2,\qquad T=T_1
 \end{gathered}
 \]
-由归纳假设，
-\(\Gamma\vdash\taplsubst{x}{s}{t_1}:T_2\to T_1\)，且
-\(\Gamma\vdash\taplsubst{x}{s}{t_2}:T_2\)。由 \textsc{T-App}，
+这里 \(T_2\) 是参数类型，\(T_1\) 是函数的结果类型，因此整个应用的类型
+\(T\) 就是 \(T_1\)。本情形需要证明
+\[
+\Gamma\vdash\taplsubst{x}{s}{(t_1\,t_2)}:T
+\]
+
+上面关于 \(t_1\) 和 \(t_2\) 的两个类型判断来自整个 \rulename{T-App}
+推导的两个直接子推导，深度都严格更小。因此可以分别使用归纳假设，得到
+\[
+\Gamma\vdash\taplsubst{x}{s}{t_1}:T_2\to T_1
+\qquad\text{和}\qquad
+\Gamma\vdash\taplsubst{x}{s}{t_2}:T_2
+\]
+替换后的函数部分仍接受 \(T_2\) 型参数并返回 \(T_1\) 型结果，而替换后的
+参数部分仍具有类型 \(T_2\)。对这两个判断使用 \rulename{T-App}，得到
 \[
 \Gamma\vdash
-(\taplsubst{x}{s}{t_1})\,(\taplsubst{x}{s}{t_2}):T,
+(\taplsubst{x}{s}{t_1})\,(\taplsubst{x}{s}{t_2}):T_1
 \]
-即 \(\Gamma\vdash\taplsubst{x}{s}{(t_1\,t_2)}:T\)。
+由于 \(T=T_1\)，上式的结果类型也就是 \(T\)。另一方面，根据替换对应用项
+的定义，
+\[
+\taplsubst{x}{s}{(t_1\,t_2)}
+=(\taplsubst{x}{s}{t_1})\,(\taplsubst{x}{s}{t_2})
+\]
+所以刚刚由 \rulename{T-App} 得到的判断正是所需结论
+\(\Gamma\vdash\taplsubst{x}{s}{(t_1\,t_2)}:T\)。
 
 \medskip\noindent
 \textbf{情形 \rulename{T-True}：}
 \(t=\tapltrue\) 且 \(T=\tapltype{Bool}\)。此时
-\(\taplsubst{x}{s}{t}=\tapltrue\)，所需结论立即成立。
+\(\taplsubst{x}{s}{t}=\tapltrue\)。由 \rulename{T-True} 可得
+\(\Gamma\vdash\tapltrue:\tapltype{Bool}\)，也就是所需结论
+\(\Gamma\vdash\taplsubst{x}{s}{t}:T\)。
 
 \medskip\noindent
-\textbf{情形 \rulename{T-False}：} 类似。
+\textbf{情形 \rulename{T-False}：}
+\(t=\taplfalse\) 且 \(T=\tapltype{Bool}\)。替换不改变布尔常量，所以
+\(\taplsubst{x}{s}{t}=\taplfalse\)。由 \rulename{T-False} 可得
+\(\Gamma\vdash\taplfalse:\tapltype{Bool}\)，也就是所需结论。
 
 \medskip\noindent
 \textbf{情形 \rulename{T-If}：}
@@ -532,7 +610,15 @@ t=\taplif{t_1}{t_2}{t_3},\\
 \Gamma&\vdash\taplsubst{x}{s}{t_3}:T
 \end{aligned}
 \]
-再用 \textsc{T-If} 即得结论。
+对这三个判断使用 \rulename{T-If}，得到
+\[
+\Gamma\vdash
+\taplif{\taplsubst{x}{s}{t_1}}
+        {\taplsubst{x}{s}{t_2}}
+        {\taplsubst{x}{s}{t_3}}:T
+\]
+替换会分别进入条件项的三个子项，因此上式正是
+\(\Gamma\vdash\taplsubst{x}{s}{t}:T\)。
 \end{proof}
 
 借助替换引理，可以证明类型安全性的另一半：求值保持良类型性。
@@ -547,6 +633,7 @@ t=\taplif{t_1}{t_2}{t_3},\\
 留作练习（推荐，三星）。其结构与算术表达式的类型保持性证明
 （\cref{thm:8.3.3}）非常相似，区别是这里要使用替换引理。
 \end{proof}
+\taplauthorsolutionlink{sol:author:9.3.9}{9.3.9}
 
 \begin{exercise}[推荐，\(\star\star\star\)]
 \label{ex:9.3.10}
@@ -555,6 +642,7 @@ t=\taplif{t_1}{t_2}{t_3},\\
 \(t\) 不含条件表达式，\(t\trans t'\) 与 \(\Gamma\vdash t':T\) 是否
 蕴含 \(\Gamma\vdash t:T\)？
 \end{exercise}
+\taplauthorsolutionlink{sol:author:9.3.10}{9.3.10}
 
 \section{Curry--Howard 对应}
 \label{sec:9.4}
@@ -578,6 +666,7 @@ t=\taplif{t_1}{t_2}{t_3},\\
 \cref{fig:8-1} 中 \(\tapltype{Bool}\) 类型的哪些规则是引入规则，
 哪些是消去规则？\cref{fig:8-2} 中 \(\tapltype{Nat}\) 的规则又如何？
 \end{exercise}
+\taplauthorsolutionlink{sol:author:9.4.1}{9.4.1}
 
 引入／消去术语来自类型论与逻辑之间一种称为
 \termfirst{Curry--Howard 对应}{Curry--Howard correspondence}或
@@ -587,11 +676,12 @@ t=\taplif{t_1}{t_2}{t_3},\\
 区别，是后者省略了排中律一类证明规则。排中律说，对每个命题 \(Q\)，要么
 \(Q\) 成立，要么 \(\neg Q\) 成立。在构造逻辑中证明
 \(Q\lor\neg Q\)，必须给出支持 \(Q\) 或支持 \(\neg Q\) 的证据。}
-Curry 与 Howard 注意到，这种证据具有强烈的计算意味。例如，命题
-\(P\supset Q\) 的证明可以看作一种机械过程：给它一个 \(P\) 的证明，它就
-构造一个 \(Q\) 的证明；也可以说，这是一个关于 \(P\) 的证明抽象出来的
-\(Q\) 的证明。类似地，\(P\land Q\) 的证明由 \(P\) 的证明与 \(Q\) 的
-证明共同构成。由此得到以下对应：
+Curry 与 Howard 注意到，这类证据可以用程序来表示和操作。在逻辑记法中，
+\(P\supset Q\) 表示“\(P\) 蕴含 \(Q\)”，也就是“如果 \(P\)，那么 \(Q\)”。
+它的证明可以看作一个过程：给它一个 \(P\) 的证明，它就构造一个 \(Q\) 的
+证明。换一种说法，它把 \(P\) 的证明作为抽象参数，函数体则构造 \(Q\) 的
+证明。类似地，\(P\land Q\) 表示“\(P\) 且 \(Q\)”，它的证明由 \(P\) 的
+证明与 \(Q\) 的证明共同构成。由此得到以下对应：
 
 \begin{center}
 \begin{tabular}{@{}ll@{}}
@@ -602,11 +692,113 @@ Curry 与 Howard 注意到，这种证据具有强烈的计算意味。例如，
 命题 \(P\supset Q\) & 类型 \(P\to Q\)\\
 命题 \(P\land Q\) & 类型 \(P\times Q\)（见 \taplsecref{11.6}{sec:11.6}）\\
 命题 \(P\) 的证明 & 类型为 \(P\) 的项 \(t\)\\
-命题 \(P\) 可证明 & 类型 \(P\) \termfirst{有居项}{inhabited}
-  （某个项属于它）\\
+命题 \(P\) 可证明 & 类型 \(P\) \termfirst{有居留元}{inhabited}
+  （即存在某个具有类型 \(P\) 的项）\\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\translatornote{\textbf{阅读本节所需的最少逻辑背景。}命题是可以讨论其是否成立的断言，例如
+“2 是偶数”。本节用大写字母 \(P,Q\) 代表任意命题，就像前文用 \(T\)
+代表任意类型。几个逻辑符号的读法如下：
+\begin{itemize}
+  \item \(P\supset Q\)：\(P\) 蕴含 \(Q\)，即“如果 \(P\)，那么 \(Q\)”；
+  \item \(P\land Q\)：\(P\) 且 \(Q\)，证明它必须同时证明两边；
+  \item \(P\lor Q\)：\(P\) 或 \(Q\)，构造性证明必须选择并证明其中一边；
+  \item \(\neg P\)：非 \(P\)。要证明它，必须说明：即使暂且假设 \(P\)
+    成立，也一定会推出矛盾。这是在作条件推理，并没有承认 \(P\) 确实为真；
+  \item \(\vdash p:P\)：不依赖任何未说明的假设，\(p\) 是命题 \(P\) 的证明。
+\end{itemize}
+
+表中逻辑一栏的符号 \(\supset\) 表示蕴含，而不是集合的包含关系。作者在
+逻辑一侧写 \(P\supset Q\)，在程序语言一侧写函数类型 \(P\to Q\)，正是为了
+把两边的记号区分开来；Curry--Howard 对应说明，这两种结构彼此对应。
+
+\textbf{“命题即类型”究竟在说什么。}这里并不是简单地把“命题”改名为
+“类型”，而是说同一个形式判断可以从两边来读。例如
+\[
+\Gamma\vdash t:P
+\]
+在程序语言一侧，它读作“在类型上下文 \(\Gamma\) 下，项 \(t\) 具有类型
+\(P\)”；在逻辑一侧，它读作“在 \(\Gamma\) 所列假设下，\(t\) 是命题
+\(P\) 的证明”。若
+\[
+\Gamma=x_1:P_1,\ldots,x_n:P_n
+\]
+那么逻辑读法就是：手头已经分别有 \(P_1,\ldots,P_n\) 的证据
+\(x_1,\ldots,x_n\)，利用这些证据构造出了 \(P\) 的证据 \(t\)。在给定上下文
+\(\Gamma\) 中，只要存在某个项 \(t\) 满足 \(\Gamma\vdash t:P\)，就称类型
+\(P\) 在该上下文中有居留元；这样的 \(t\) 称为类型 \(P\) 的
+\termfirst{居留元}{inhabitant}。当上下文非空时，\(t\) 可以使用其中声明的
+变量，因而不一定是闭项。
+
+当上下文为空时，\(\vdash p:P\) 表示不借助任何额外假设便得到 \(P\) 的证明，
+此时 \(p\) 必然是闭项。因此，“命题 \(P\) 可证明”恰好对应“类型 \(P\) 在
+空上下文中有居留元”，也等价于“存在一个类型为 \(P\) 的闭项”。从这个
+角度看，类型检查器验证 \(t:P\)，就像证明检查器验证 \(t\) 确实构成
+命题 \(P\) 的证明。
+
+\textbf{三条类型规则如何成为证明规则。}
+\begin{itemize}
+  \item \rulename{T-Var}：若上下文中已经有 \(x:P\)，就可以使用这份现成的
+    证据，得到 \(\Gamma\vdash x:P\)。逻辑上，这只是“使用一项假设”。
+  \item \rulename{T-Abs}：若在额外假定 \(x:P\) 时，项 \(t\) 能证明
+    \(Q\)，即 \(\Gamma,x:P\vdash t:Q\)，那么把这段推理封装成
+    \(\lambda x:P.\,t\)，就得到类型 \(P\to Q\) 的函数。逻辑上，这表示：
+    从一份 \(P\) 的证明出发能够构造 \(Q\) 的证明，因而证明了
+    \(P\supset Q\)。
+  \item \rulename{T-App}：若 \(f\) 证明了 \(P\supset Q\)，而 \(p\)
+    证明了 \(P\)，那么函数应用 \(f\,p\) 就证明了 \(Q\)。程序语言一侧
+    正好是：\(f:P\to Q\)、\(p:P\)，所以 \(f\,p:Q\)。
+\end{itemize}
+
+\textbf{以 \(P\supset P\) 为例看证明怎样成为程序。}这里要证明的不是命题
+\(P\) 本身，而是条件命题“如果 \(P\) 成立，那么 \(P\) 成立”。证明可以
+逐步写成：
+\begin{enumerate}
+  \item 为了讨论“如果 \(P\) 成立”这一条件，先暂时设想已经得到一份
+    \(P\) 的证明，并把它命名为 \(x\)。上下文中的 \(x:P\) 记录的正是这项
+    临时假设；它并没有证明 \(P\) 无条件成立。
+  \item 在上下文 \(x:P\) 中，\rulename{T-Var} 允许直接使用这份已有的
+    证明，所以得到 \(x:P\vdash x:P\)。
+  \item \rulename{T-Abs} 把上述推理封装成函数 \(\lambda x:P.\,x\)：它
+    接受一份 \(P\) 的证明，再原样返回这份证明。原来的临时假设由此变成函数
+    参数，函数外部不再需要预先拥有 \(P\) 的证明。
+\end{enumerate}
+完整推导可以写成
+\[
+\frac{x:P\vdash x:P}
+     {\vdash(\lambda x:P.\,x):P\to P}
+\quad\text{\rulename{T-Abs}}
+\]
+横线上方说明函数体 \(x\) 在临时假设下具有类型 \(P\)；横线下方说明整个
+lambda 抽象不依赖外部假设，具有类型 \(P\to P\)。关键不在于只要写出一个
+lambda 表达式就算完成了证明，而在于类型规则确实能够推出这个表达式具有
+\(P\to P\) 类型。于是，\(\lambda x:P.\,x\) 既是恒等函数，也是命题
+\(P\supset P\) 的证明；“程序”和“证明”是同一个形式对象的两种读法。
+
+其他逻辑联结词也以类似方式对应数据类型。\(P\land Q\) 的证明必须同时携带
+\(P\) 与 \(Q\) 的证明，因而对应数对类型 \(P\times Q\)；析取
+\(P\lor Q\) 的构造性证明必须明确选择左边或右边，并携带相应一侧的证明，
+因而对应带标签的分支；存在命题的构造性证明则必须给出一个满足条件的具体
+取值（称为\termfirst{见证}{witness}），并证明该取值确实满足条件。
+
+\textbf{为什么这里使用构造逻辑。}经典逻辑可以直接使用排中律
+\(P\lor\neg P\)，而构造逻辑要求证明者实际给出 \(P\) 的证据，或者给出
+\(\neg P\) 的证据。换成程序语言的说法，证明不能只声称“两种结果必有一种”，
+而必须构造出带有明确分支和值的结果。这种对具体证据的要求，正是逻辑证明
+能够对应为程序的原因。
+
+\textbf{计算为什么对应证明化简。}归约
+\[
+(\lambda x:P.\,t)\,s\trans\taplsubst{x}{s}{t}
+\]
+把作为参数传入的证明 \(s\) 直接代入使用假设 \(x\) 的证明 \(t\)。在逻辑中，
+这相当于消去一层“先证明 \(P\)，再借助 \(P\) 证明其他结论”的中间环节，
+使证明变得更直接；后文所说的割消去正是在形式上刻画这种证明化简。
+
+现阶段可以把整套观点压缩为四句话：命题对应类型；逻辑假设对应类型上下文；
+证明对应良类型项；证明的化简对应程序的求值。}
 
 从这种观点看，简单类型 lambda 演算的项就是其类型所对应之逻辑命题的证明。
 计算——lambda 项的归约——对应于通过
@@ -620,7 +812,7 @@ Curry--Howard 对应之美在于，它并不局限于某一个类型系统和某
 相反，它可以扩展到种类繁多的类型系统与逻辑。例如，参数多态涉及对类型量化
 的 System \(F\)（\chapref{23}），精确对应于允许对命题量化的二阶
 构造逻辑；System \(F_\omega\)（\chapref{30}）对应于高阶逻辑。
-事实上，人们经常利用这种对应在两个领域之间转移新进展。Girard 的线性逻辑
+事实上，人们经常借助这种对应，把一个领域的新成果引入另一个领域。Girard 的线性逻辑
 （1987）催生了线性类型系统的思想（Wadler，1990、1991；Turner、Wadler 与
 Mossin，1995；Hodas，1992；Mackie，1994；Chirimar、Gunter 与 Riecke，
 1996；Kobayashi、Pierce 与 Turner，1996；等等）；模态逻辑则被用于帮助
@@ -690,6 +882,13 @@ Wickline、Lee、Pfenning 与 Davies，1998，以及其中引用的其他资料�
 lambda 演算中的项 \(m\) 在 \(\lambda_{\to}\) 中可赋型。
 \end{definition}
 
+\translatornote{这里的“可赋型”是说：能否在不改变无类型项原有程序结构的
+前提下，为其中的绑定变量补上适当的类型标注，并为自由变量选择适当的上下文，
+使所得项通过简单类型检查。例如，\(\lambda x.\,x\) 可以补成
+\(\lambda x:\tapltype{Bool}.\,x\)，因而可赋型；而 \(\lambda x.\,x\,x\) 无法在简单
+类型系统中补出一致的类型，因而不可赋型。这个定义只要求存在一种可行的赋型，
+不要求这种赋型唯一。}
+
 \chapref{22}讨论与此密切相关的
 \(\lambda_{\to}\) 类型重建时，还会更详细地回到这个问题。
 
@@ -698,8 +897,9 @@ lambda 演算中的项 \(m\) 在 \(\lambda_{\to}\) 中可赋型。
 
 我们已经看到两种表述简单类型 lambda 演算语义的方式：直接在简单类型演算
 的语法上定义求值关系，或者编译到无类型演算，再在无类型项上定义求值关系。
-两者有一个重要共同点：无论项 \(t\) 是否确实为良类型，谈论它的行为都有
-意义。这种语言定义形式常称为\termfirst{Curry 风格}{Curry-style}。先定义
+两者有一个重要共同点：它们都先为全部语法合法的项规定求值规则。因此，即使
+某个项没有通过类型检查，我们仍能按照这些规则判断它会怎样求值——当然，它也
+可能最终卡住。这种语言定义形式常称为\termfirst{Curry 风格}{Curry-style}。先定义
 项，再用语义说明项的行为，然后给出类型系统，拒绝一部分我们不喜欢其行为的
 项。语义先于类型。
 
@@ -723,3 +923,9 @@ Hindley 与 Seldin（1986）研究了简单类型 lambda 演算；Hindley 的专
   {良类型程序不会“出错”。}
   {Well-typed programs cannot ``go wrong.''}
   {Robin Milner（1978）}
+
+\translatornote{这里的“出错”具有特定的技术含义：通过类型检查的闭项在求值
+过程中不会落入“既不是值、又无法继续求值”的卡住状态。进展性保证良类型闭项
+要么已经是值，要么还能继续求值；保持性保证它经过一次单步求值后仍为良类型。两者合在
+一起，排除了类型系统所针对的运行时错误，但并不保证程序一定终止、计算结果
+符合预期，或不会发生资源耗尽等其他问题。}

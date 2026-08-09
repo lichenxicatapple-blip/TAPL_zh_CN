@@ -1,0 +1,72 @@
+\section{第 8 章：带类型的算术表达式}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:8.3.5}
+\textbf{8.3.5 解答}
+
+不能；删去这条规则会破坏进展性。如果我们确实不愿定义
+\(\mathsf{pred}\;0\)，就必须换一种方式处理：例如，程序尝试求
+\(0\) 的前驱时抛出异常（见\chapref{14}），或者细化
+\(\mathsf{pred}\) 的类型，明确它只能合法地应用于严格为正的数；后一种
+做法或许可以使用交类型（\taplsecref{15.7}{sec:15.7}）或依赖类型
+（\taplsecref{30.5}{sec:30.5}）。
+
+\taplsolutionbacklink{ex:8.3.5}{返回练习 8.3.5}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:8.3.6}
+\textbf{8.3.6 解答}
+
+反例是
+\[
+  \taplif{\taplfalse}{\tapltrue}{\taplzero}
+\]
+该项不是良类型的，却求值为良类型项 \(\taplzero\)。
+
+\taplsolutionbacklink{ex:8.3.6}{返回练习 8.3.6}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:8.3.7}
+\textbf{8.3.7 解答}
+
+大步语义的类型保持性与小步语义中的性质相似：若一个良类型项求值为某个
+最终值，则该值与原项具有相同类型；证明也与前面的证明相似。
+
+另一方面，大步语义下的进展性提出了强得多的要求：每个良类型项都能求值为
+某个最终值，也就是说，良类型项的求值总会终止。对算术表达式而言，这恰好
+成立；但对更有意思的语言，例如含一般递归的语言
+（参见\taplsecref{11.11}{sec:11.11}），它往往不成立。这样的语言根本没有
+这种形式的进展性：从大步语义的角度看，求值到达错误状态与求值不终止之间
+没有可见区别。这也是语言理论研究者通常更偏爱小步语义的原因之一。
+
+另一种选择，是像练习 8.3.8 那样，在大步语义中显式加入转移到
+\(\mathsf{wrong}\) 的规则。例如，Abadi 与 Cardelli 在其对象演算的操作
+语义中采用了这种风格（Abadi 与 Cardelli，1996，第 87 页）。
+
+\taplsolutionbacklink{ex:8.3.7}{返回练习 8.3.7}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:8.3.8}
+\textbf{8.3.8 解答}
+
+扩充后的语义中不再有卡住状态。对每个不是值的项，求值规则要么给出一次普通
+求值步骤，要么明确把它转移到 \(\mathsf{wrong}\)；当然，还需要证明这些规则
+确实覆盖了所有非值项。因此，“一个项要么是值，要么能迈出一步”现在对错误项
+也成立，进展性本身便无法再区分安全程序与错误程序。
+
+安全性的信息转而来自主体归约定理，也就是保持性。保持性要求：若一个良类型
+项迈出一步，所得项仍然是良类型的。由于 \(\mathsf{wrong}\) 没有类型，假如
+某个良类型项能够一步转移到 \(\mathsf{wrong}\)，保持性就会要求
+\(\mathsf{wrong}\) 具有类型，从而产生矛盾。因此，良类型项不可能一步转移到
+\(\mathsf{wrong}\)。证明扩充后语义的保持性时，必须逐一排除那些通向
+\(\mathsf{wrong}\) 的规则；这部分论证实际上就是原进展性证明所做的工作。
+
+\taplsolutionbacklink{ex:8.3.8}{返回练习 8.3.8}
+\end{taplauthorsolutionentrybox}

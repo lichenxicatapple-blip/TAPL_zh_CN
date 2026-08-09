@@ -1,0 +1,59 @@
+\newpage
+\section{第 14 章：异常}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:14.1.1}
+\textbf{14.1.1 解答}
+
+若在 \(\mathsf{error}\) 上标注它预期具有的类型，就会破坏类型保持性。例如，
+以下项是良类型的：
+\[
+  (\lambda x:\tapltype{Nat}.\,x)
+  \bigl((\lambda y:\tapltype{Bool}.\,5)
+        (\mathsf{error}\ \mathsf{as}\ \tapltype{Bool})\bigr)
+\]
+这里 \(\mathsf{error}\ \mathsf{as}\ T\) 表示带类型标注的异常语法。但该项
+经过一次单步求值后会得到不是良类型的项
+\[
+  (\lambda x:\tapltype{Nat}.\,x)
+  (\mathsf{error}\ \mathsf{as}\ \tapltype{Bool})
+\]
+
+求值规则把错误从发生处一路向上传播到程序最外层；在传播途中，我们需要把它
+视为具有不同的类型。规则 \rulename{T-Error} 的灵活性正是为此而设。
+
+\taplsolutionbacklink{ex:14.1.1}{返回练习 14.1.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:14.3.1}
+\textbf{14.3.1 解答}
+
+《Standard ML 定义》（Milner、Tofte、Harper 与 MacQueen，1997；Milner 与
+Tofte，1991b）形式化了 \texttt{exn} 类型。Harper 与 Stone（2000）给出了
+一种相关的处理方式。
+
+\taplsolutionbacklink{ex:14.3.1}{返回练习 14.3.1}
+\medskip
+\hrule
+\medskip
+\phantomsection
+\label{sol:author:14.3.2}
+\textbf{14.3.2 解答}
+
+见 Leroy 与 Pessaux（2000）。
+
+\taplsolutionbacklink{ex:14.3.2}{返回练习 14.3.2}
+\medskip
+\hrule
+\medskip
+\phantomsection
+\label{sol:author:14.3.3}
+\textbf{14.3.3 解答}
+
+见 Harper 等人（1993）。
+
+\taplsolutionbacklink{ex:14.3.3}{返回练习 14.3.3}
+\end{taplauthorsolutionentrybox}

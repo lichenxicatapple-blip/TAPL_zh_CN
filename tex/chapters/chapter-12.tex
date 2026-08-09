@@ -1,7 +1,7 @@
 % Chapter 12 — Normalization
 % Source: ../source/split/chapters/ch12-normalization_p144-p148.pdf
 % Original print pages: 149--152
-% Status: 初审通过
+% Status: 已确认
 
 \chapter{规范化}
 \label{chap:12}
@@ -9,7 +9,7 @@
 \section*{概述}
 
 本章考察纯简单类型 lambda 演算的另一项基本理论性质：良类型程序的求值保证
-在有限步内停止，也就是说，每个良类型项都是
+在有限步内终止，也就是说，每个良类型项都是
 \termfirst{可规范化的}{normalizable}。
 
 不同于此前考察的类型安全性质，规范化性质不能推广到完整程序语言，因为这类
@@ -37,7 +37,7 @@ System \(F_\omega\) 的
 \label{sec:12.1}
 
 这里考察以单一基本类型 \(A\) 为基础的简单类型 lambda 演算。该演算的规范化
-证明并非完全平凡，因为项的每一步归约都可能复制子项中的可归约式。
+证明并非完全平凡，因为项的每次单步归约都可能复制子项中的可归约式。
 \footnote{本章研究带一个基本类型 \(A\)（\cref{fig:11-1}）的简单类型
 lambda 演算（\cref{fig:9-1}）。}
 
@@ -45,10 +45,12 @@ lambda 演算（\cref{fig:9-1}）。}
 \label{ex:12.1.1}
 若试图直接对良类型项的大小作归纳来证明规范化，会在哪一步失败？
 \end{exercise}
+\taplauthorsolutionlink{sol:author:12.1.1}{12.1.1}
 
 这里的关键问题——许多归纳证明也一样——是找到足够强的归纳假设。为此，
-对每个类型 \(T\)，定义由类型为 \(T\) 的闭项组成的集合
-\(\mathcal R_T\)。我们把这些集合视为谓词，用 \(\mathcal R_T(t)\) 表示
+对每个类型 \(T\)，我们在类型为 \(T\) 的闭项中定义一个集合
+\(\mathcal R_T\)。下面按照类型 \(T\) 的结构，递归规定哪些闭项属于这个
+集合。我们把这些集合视为谓词，用 \(\mathcal R_T(t)\) 表示
 \(t\in\mathcal R_T\)。\footnote{集合 \(\mathcal R_T\) 有时称为
 \termfirst{饱和集}{saturated set}或
 \termfirst{可归约性候选集}{reducibility candidate}。}
@@ -58,41 +60,80 @@ lambda 演算（\cref{fig:9-1}）。}
 \[
 \begin{aligned}
 \mathcal R_A(t)
-&\quad\Longleftrightarrow\quad t\text{ 停止},\\
+&\quad\Longleftrightarrow\quad t\text{ 的求值会在有限步内终止},\\
 \mathcal R_{T_1\to T_2}(t)
 &\quad\Longleftrightarrow\quad
-t\text{ 停止，并且对每个 }s:T_1,\
-\mathcal R_{T_1}(s)\text{ 都蕴含 }\mathcal R_{T_2}(t\,s)
+\begin{aligned}[t]
+&t\text{ 的求值会在有限步内终止，并且对每个 }s:T_1,\\
+&\mathcal R_{T_1}(s)\text{ 都蕴含 }\mathcal R_{T_2}(t\,s)
+\end{aligned}
 \end{aligned}
 \]
 \end{definition}
 
 这个定义给出了所需的加强归纳假设。我们的主要目标是证明全部程序——即全部
-基本类型的闭项——都停止。然而，基本类型的闭项可能含有函数类型的子项，
-所以还需要知道这些子项的情况。此外，只知道这些子项停止仍不够，因为把已经
-规范化的函数应用于已经规范化的参数会发生替换，从而可能产生更多求值步骤。
-因此，对函数类型的项需要更强的条件：它们不仅自身应当停止，应用于停止的
-参数时还应当产生停止的结果。
+基本类型的闭项——求值都会终止。然而，基本类型的闭项可能含有函数类型的子项，
+所以还需要知道这些子项的情况。
 
-\cref{def:12.1.2} 的形式是
-\termfirst{逻辑关系}{logical relation}证明技术的典型形式；这里只处理一元
-关系，严格地说更应称为\termfirst{逻辑谓词}{logical predicate}。若想证明
-基本类型 \(A\) 的全部闭项都具有某项性质 \(P\)，可以对类型作归纳，证明：
-\(A\) 的所有项都具有 \(P\)；\(A\to A\) 的所有项都保持 \(P\)；
-\((A\to A)\to(A\to A)\) 的所有项都保持“保持 \(P\)”这项性质；依此
-类推。具体做法是定义按类型索引的谓词族：在基本类型 \(A\) 上，谓词就是
-\(P\)；在函数类型上，谓词说明函数应当把满足输入类型谓词的值映射为满足
-输出类型谓词的值。
+\translatornote{假设语言中有一个闭的基本值 \(a:A\)，并令
+\[
+I=\lambda x:A.\,x,
+\qquad
+F=\lambda f:A\to A.\,f\,a
+\]
+那么
+\[
+I:A\to A,
+\qquad
+F:(A\to A)\to A,
+\qquad
+F\,I:A
+\]
+因此，\(F\,I\) 虽然是基本类型 \(A\) 的闭项，内部却含有两个函数类型的
+子项 \(F\) 和 \(I\)。二者都是 lambda 抽象，本身已经是值；只知道它们
+自身的求值终止，并不能说明调用它们以后仍会终止。
+
+对 \(I\)，关系 \(\mathcal R_{A\to A}(I)\) 要求：任取满足
+\(\mathcal R_A\) 的参数 \(u\)，应用 \(I\,u\) 后所得结果仍满足
+\(\mathcal R_A\)。对 \(F\)，关系 \(\mathcal R_{(A\to A)\to A}(F)\)
+要求：任取满足 \(\mathcal R_{A\to A}\) 的函数 \(g\)，应用 \(F\,g\)
+后所得结果满足 \(\mathcal R_A\)。在这个例子中可以取 \(g=I\)，于是
+\[
+F\,I\trans I\,a\trans a
+\]
+这说明，要证明基本类型闭项的求值终止，还必须知道其中的函数类型子项在接受
+满足相应条件的参数后，所得结果的求值仍会终止。函数类型条件正是为表达这项
+更强的性质而设置的。}
+
+此外，只知道这些子项的求值会终止仍不够，因为把已经
+规范化的函数应用于已经规范化的参数会发生替换，从而可能产生更多求值步骤。
+因此，对函数类型的项需要更强的条件：它们自身的求值不仅应当终止，应用于
+求值会终止的参数后，所得结果的求值也应当终止。
+
+假设我们想证明：所有类型为 \(A\) 的闭项都具有某项性质 \(P\)。为了能够对
+类型作归纳，不能只规定 \(A\) 型项应当满足什么条件，还必须为每一种函数类型
+规定相应的条件。对于基本类型 \(A\)，所要求的条件就是 \(P\)；对于任意函数
+类型 \(T_1\to T_2\)，则要求函数把满足 \(T_1\) 型条件的参数映射为满足
+\(T_2\) 型条件的结果。因此，类型为 \(A\to A\) 的函数必须保持性质 \(P\)；
+类型为 \((A\to A)\to(A\to A)\) 的函数必须把“保持 \(P\) 的函数”映射为
+另一个“保持 \(P\) 的函数”；其余类型依此定义。
+
+换言之，每一种类型 \(T\) 都对应一个谓词 \(\mathcal R_T\)，用于判断类型为
+\(T\) 的项是否满足相应条件。这些随类型而变化、彼此配套的谓词，合称一个
+按类型索引的谓词族。像\cref{def:12.1.2} 这样按照类型结构递归定义谓词，
+是\termfirst{逻辑关系}{logical relation}证明法的典型做法。由于这里的
+\(\mathcal R_T(t)\) 每次只判断一个项 \(t\)，更准确地说，\(\mathcal R_T\)
+是一个\termfirst{逻辑谓词}{logical predicate}。
 
 我们用这个定义分两步证明规范化。第一步，观察每个集合
 \(\mathcal R_T\) 的每个元素都可规范化。第二步，证明每个类型为 \(T\) 的
-良类型项都是 \(\mathcal R_T\) 的元素。
+良类型闭项都是 \(\mathcal R_T\) 的元素。
 
 第一步直接来自 \(\mathcal R_T\) 的定义。
 
 \begin{lemma}
 \label{lem:12.1.3}
-若 \(\mathcal R_T(t)\)，则 \(t\) 停止。
+若 \(\mathcal R_T(t)\)，则 \(t\) 的求值会在有限步内终止。
 \end{lemma}
 
 第二步拆成两个引理。首先，\(\mathcal R_T\) 的成员关系在求值下不变。
@@ -104,7 +145,8 @@ t\text{ 停止，并且对每个 }s:T_1,\
 \end{lemma}
 
 \begin{proof}
-对类型 \(T\) 的结构作归纳。首先，显然 \(t\) 停止当且仅当 \(t'\) 停止。
+对类型 \(T\) 的结构作归纳。首先，显然 \(t\) 的求值终止当且仅当
+\(t'\) 的求值终止。
 若 \(T=A\)，无需再证。另一方面，设 \(T=T_1\to T_2\)。
 
 对“仅当”方向 \((\Rightarrow)\)，假设 \(\mathcal R_T(t)\)，并任取
@@ -116,7 +158,7 @@ t\text{ 停止，并且对每个 }s:T_1,\
 \((\Leftarrow)\) 类似。
 \end{proof}
 
-接下来要证明，每个类型为 \(T\) 的项都属于 \(\mathcal R_T\)。这里对类型
+接下来要证明，每个类型为 \(T\) 的良类型闭项都属于 \(\mathcal R_T\)。这里对类型
 推导作归纳——关于良类型项的证明若完全不在某处对类型推导作归纳，反倒令人
 意外。唯一的技术困难是 lambda 抽象情形。既然是在作归纳，要证明
 \(\lambda x:T_1.\,t_2\) 属于 \(\mathcal R_{T_1\to T_2}\)，自然应当
@@ -162,63 +204,64 @@ x_1:T_1,\ldots,x_n:T_n,x:S_1\vdash s_2:S_2,\\
 T=S_1\to S_2
 \end{gathered}
 \]
-显然，
+令 \(w\) 表示对 \(t\) 完成引理所要求的替换：
 \[
+w=
 \taplsubst{x_1}{v_1}{\cdots
-  \taplsubst{x_n}{v_n}{t}}
+ \taplsubst{x_n}{v_n}{t}}
 \]
-已经是值，因而求值会停止。余下只需证明：任取 \(s:S_1\)，若
-\(\mathcal R_{S_1}(s)\)，则
+由于 \(t=\lambda x:S_1.\,s_2\)，这些替换只改变函数体中自由出现的
+\(x_1,\ldots,x_n\)，不会消去最外层的 lambda 抽象。因此
 \[
-\mathcal R_{S_2}\bigl(
- (\lambda x:S_1.\,
-   \taplsubst{x_1}{v_1}{\cdots
-    \taplsubst{x_n}{v_n}{s_2}})\,s\bigr)
+w=
+\lambda x:S_1.\,
+\taplsubst{x_1}{v_1}{\cdots
+ \taplsubst{x_n}{v_n}{s_2}}
 \]
-于是设 \(s\) 是这样的项。由\cref{lem:12.1.3}，存在某个 \(v\)，使
-\(s\transmulti v\)。由\cref{lem:12.1.4}，
-\(\mathcal R_{S_1}(v)\)。现在使用归纳假设，得到
+右侧是 lambda 抽象，所以 \(w\) 已经是值，其求值会立即终止。这验证了
+\(\mathcal R_{S_1\to S_2}(w)\) 定义中的第一个条件。
+
+还需验证第二个条件：任取 \(s:S_1\)，若
+\(\mathcal R_{S_1}(s)\)，则必须证明
+\[
+\mathcal R_{S_2}(w\,s)
+\]
+现在任取一个满足上述条件的 \(s\)。归纳假设要求用闭值替换函数体子推导
+上下文中的变量，而 \(s\) 本身未必是值。由\cref{lem:12.1.3}，\(s\)
+的求值会终止，因而存在某个闭值 \(v\)，使
+\[
+s\transmulti v
+\]
+沿这条求值序列反复应用\cref{lem:12.1.4}，得到
+\(\mathcal R_{S_1}(v)\)。
+
+现在对函数体的子推导
+\[
+x_1:T_1,\ldots,x_n:T_n,x:S_1\vdash s_2:S_2
+\]
+使用归纳假设：分别以闭值 \(v_1,\ldots,v_n,v\) 替换
+\(x_1,\ldots,x_n,x\)。归纳假设给出
 \[
 \mathcal R_{S_2}\bigl(
 \taplsubst{x_1}{v_1}{\cdots
  \taplsubst{x_n}{v_n}{
   \taplsubst{x}{v}{s_2}}}\bigr)
 \]
-而
+另一方面，\(w\,s\) 的求值先把参数 \(s\) 求值为 \(v\)，再进行
+\(\beta\) 归约，所以
 \[
 \begin{aligned}
-&(\lambda x:S_1.\,
-  \taplsubst{x_1}{v_1}{\cdots
-   \taplsubst{x_n}{v_n}{s_2}})\,s\\
-&\qquad\transmulti
+w\,s
+&\transmulti
 \taplsubst{x_1}{v_1}{\cdots
  \taplsubst{x_n}{v_n}{
   \taplsubst{x}{v}{s_2}}}
 \end{aligned}
 \]
-再由\cref{lem:12.1.4} 得到
-\[
-\mathcal R_{S_2}\Bigl(
- \taplobjparens{\lambda x:S_1.\,
-   \taplsubst{x_1}{v_1}{\cdots
-    \taplsubst{x_n}{v_n}{s_2}}}\,s
-\Bigr)
-\]
-也就是说，
-\[
-\mathcal R_{S_2}\Bigl(
- \taplobjparens{
-  \taplsubst{x_1}{v_1}{\cdots
-   \taplsubst{x_n}{v_n}{\lambda x:S_1.\,s_2}}}\,s
-\Bigr)
-\]
-由于 \(s\) 任取，\(\mathcal R_{S_1\to S_2}\) 的定义给出
-\[
-\mathcal R_{S_1\to S_2}\Bigl(
- \taplsubst{x_1}{v_1}{\cdots
-  \taplsubst{x_n}{v_n}{\lambda x:S_1.\,s_2}}
-\Bigr)
-\]
+再沿这条求值序列反复应用\cref{lem:12.1.4}，便得到
+\(\mathcal R_{S_2}(w\,s)\)。由于 \(s\) 是任取的，第二个条件成立。
+结合前面已经验证的第一个条件，得到
+\(\mathcal R_{S_1\to S_2}(w)\)，即所需结论。
 
 \medskip\noindent
 \textbf{情形 \rulename{T-App}：}
@@ -258,8 +301,10 @@ T=T_{12}
 \]
 \end{proof}
 
-现在只需在\cref{lem:12.1.5} 中令 \(t\) 为闭项，再回想每个
-\(\mathcal R_T\) 的元素都可规范化，就得到规范化性质。
+由上述两个引理可以直接推出规范化性质。考虑任意满足
+\(\vdash t:T\) 的闭项 \(t\)。它的类型上下文为空，因此在
+\cref{lem:12.1.5} 中取 \(n=0\)，无需替换任何自由变量，便得到
+\(\mathcal R_T(t)\)。再由\cref{lem:12.1.3} 可知 \(t\) 可规范化。
 
 \begin{theorem}[规范化]
 \label{thm:12.1.6}
@@ -276,6 +321,32 @@ T=T_{12}
 扩展本章的证明技术，说明简单类型 lambda 演算加入布尔值
 （\cref{fig:8-1}）与积（\cref{fig:11-5}）之后仍然可规范化。
 \end{exercise}
+\taplauthorsolutionlink{sol:author:12.1.7}{12.1.7}
+
+\translatornote{\cref{thm:12.1.6} 正好回应了
+\taplsecref{11.11}{sec:11.11} 中关于 \(\mathsf{fix}\) 的说明。本章考察的
+是纯简单类型 lambda 演算，其语法不含 \(\mathsf{fix}\)。无类型 lambda
+演算虽然能够定义不动点组合子，但这种定义需要自应用 \(x\,x\)。若要给
+\(x\,x\) 赋予简单类型，同一个 \(x\) 必须既具有函数类型 \(U\to V\)，
+又具有参数类型 \(U\)，从而要求 \(U=U\to V\)；有限的简单类型无法满足
+这个等式。因此，无类型演算中的不动点组合子不能写成简单类型演算中的
+良类型项。
+
+\taplsecref{11.11}{sec:11.11} 把 \(\mathsf{fix}\) 作为新的基本构造加入
+语言，并配套加入类型规则 \textsc{T-Fix}。加入这项扩展后，本章的规范化
+定理便不再适用。例如，对任意类型 \(T\)，都有
+\[
+\vdash\mathsf{fix}\,(\lambda x:T.\,x):T
+\]
+但规则 \textsc{E-FixBeta} 使它反复求值为自身：
+\[
+\mathsf{fix}\,(\lambda x:T.\,x)
+\trans
+\mathsf{fix}\,(\lambda x:T.\,x)
+\trans\cdots
+\]
+所以它虽然是良类型闭项，求值却不会终止。简单类型保证终止的结论，适用于
+不含 \(\mathsf{fix}\) 等一般递归机制的纯演算。}
 
 \section{注记}
 \label{sec:12.2}
@@ -284,19 +355,21 @@ T=T_{12}
 \(\beta\) 归约的演算具有\termfirst{强规范化}{strong normalization}。
 标准证明方法由 Tait（1967）发明，经 Girard（1972、1989）推广到
 System \(F\)（见\chapref{23}），后来又由 Tait（1975）简化。
-本章的呈现由 Martin Hofmann（私人通信）给出，是把 Tait 的方法改写到按值
-调用系统的版本。逻辑关系证明技术的经典参考文献包括 Howard（1973）、
+本章采用的呈现方式由 Martin Hofmann 在与作者的私下交流中提出，是把
+Tait 的方法改写到按值调用系统的版本。逻辑关系证明技术的经典参考文献包括
+Howard（1973）、
 Tait（1967）、Friedman（1975）、Plotkin（1973、1980）和 Statman
 （1982、1985a、1985b）。Mitchell（1996）与 Gunter（1992）等语义学教材
 也讨论了这种技术。
 
-规范化技术还导出了求值简单类型项的算法，称为
+这种规范化证明还可以转化为一种用于求值简单类型项的算法，称为
 \termfirst{以求值实现规范化}{normalization by evaluation}，或
 \termfirst{类型导向的部分求值}{type-directed partial evaluation}
 （Berger，1993；Danvy，1998；另见 Berger 与 Schwichtenberg，1991；
 Filinski，1999、2001；Reynolds，1998a）。
 
-\translatornote{原书称“Tait 的强规范化证明与上述算法精确对应”。作者
-勘误指出，这一说法并不准确：以求值实现规范化对应的是
+\translatornote{原书在介绍“以求值实现规范化”时称“Tait 的强规范化证明
+与这种算法精确对应”；作者勘误指出，以求值实现规范化对应的是
 \termfirst{弱规范化}{weak normalization}，不能直接与强规范化证明等同。
-本段据此避免保留原来的等同断言。}
+本译文据此将相应句子改为“这种规范化证明还可以转化为一种用于求值简单
+类型项的算法”，没有保留“精确对应”的说法。}

@@ -1,0 +1,111 @@
+\section{第 12 章：规范化}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:12.1.1}
+\textbf{12.1.1 解答}
+
+问题出在应用情形。设我们要证明 \(t_1\,t_2\) 可规范化。由归纳假设，
+\(t_1\) 与 \(t_2\) 都可规范化；记其范式分别为 \(v_1\) 与 \(v_2\)。
+由\taplnamedref{lem:9.3.1}{类型关系的反演引理}，\(v_1\) 具有某个函数类型
+\(T_{11}\to T_{12}\)。再由典范形式引理（\cref{lem:9.3.4}），\(v_1\)
+必为 \(\lambda x:T_{11}.\,t_{12}\)。
+
+可是，把 \(t_1\,t_2\) 归约到
+\((\lambda x:T_{11}.\,t_{12})\,v_2\) 并没有得到范式，因为此时
+\rulename{E-AppAbs} 仍然适用，产生
+\([x\mapsto v_2]t_{12}\)。要完成证明，就必须说明这个新项也可规范化；
+而结构归纳在这里无法继续，因为替换可能按照 \(x\) 在 \(t_{12}\) 中出现的
+次数复制 \(v_2\)，使新项比原项 \(t_1\,t_2\) 更大。
+
+\taplsolutionbacklink{ex:12.1.1}{返回练习 12.1.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:12.1.7}
+\textbf{12.1.7 解答}
+
+在定义 12.1.2 中增加两项：
+\[
+\begin{aligned}
+\mathcal R_{\tapltype{Bool}}(t)
+  &\quad\Longleftrightarrow\quad
+    t\text{ 的求值会在有限步内终止},\\
+\mathcal R_{T_1\times T_2}(t)
+  &\quad\Longleftrightarrow\quad
+    \begin{aligned}[t]
+    &t\text{ 的求值会在有限步内终止，且}\\
+    &\mathcal R_{T_1}(t.1)\text{ 与 }\mathcal R_{T_2}(t.2)
+    \end{aligned}
+\end{aligned}
+\]
+
+引理 12.1.4 的证明需要增加一个情形。设 \(T=T_1\times T_2\)。对于
+“仅当”方向，假设 \(\mathcal R_T(t)\) 且 \(t\trans t'\)，需证
+\(\mathcal R_T(t')\)。由 \(\mathcal R_T\) 的定义可知
+\(\mathcal R_{T_1}(t.1)\) 与 \(\mathcal R_{T_2}(t.2)\)。规则
+\rulename{E-Proj1} 和 \rulename{E-Proj2} 给出
+\(t.1\trans t'.1\) 与 \(t.2\trans t'.2\)；对二者使用归纳假设，得到
+\(\mathcal R_{T_1}(t'.1)\) 与 \(\mathcal R_{T_2}(t'.2)\)，再由定义
+得到 \(\mathcal R_T(t')\)。
+“如果”方向相同。
+
+最后，要为引理 12.1.5 的证明补上各条新类型规则的情形。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-If}：}
+
+此时
+\[
+  t=\taplif{t_1}{t_2}{t_3},
+  \quad
+  \Gamma\vdash t_1:\tapltype{Bool},
+  \quad
+  \Gamma\vdash t_2:T,
+  \quad
+  \Gamma\vdash t_3:T
+\]
+其中 \(\Gamma=x_1:T_1,\ldots,x_n:T_n\)。令
+\(\sigma=[x_1\mapsto v_1]\cdots[x_n\mapsto v_n]\)。由归纳假设，
+\(\mathcal R_{\tapltype{Bool}}(\sigma t_1)\)、
+\(\mathcal R_T(\sigma t_2)\) 和 \(\mathcal R_T(\sigma t_3)\)。
+第一项说明 \(\sigma t_1\) 的求值会在有限步内终止；它又具有布尔类型，
+所以其最终值只能是 \(\tapltrue\) 或 \(\taplfalse\)。因此条件表达式
+\(\sigma t\) 最终会选择 \(\sigma t_2\) 或 \(\sigma t_3\)。两者均已满足
+\(\mathcal R_T\)，再由引理 12.1.4 对求值保持 \(\mathcal R_T\) 的结论，
+得到 \(\mathcal R_T(\sigma t)\)。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-True} 与 \rulename{T-False}：}
+
+立即成立。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-Pair}：}
+
+此时 \(t=\{t_1,t_2\}\)，且 \(T=T_1\times T_2\)。由归纳假设，
+对 \(i=1,2\) 都有 \(\mathcal R_{T_i}(\sigma t_i)\)，所以两个分量的
+求值都会在有限步内终止；按值求值因而也会把
+\(\{\sigma t_1,\sigma t_2\}\) 求值为一个值。记 \(\sigma t_i\) 的范式
+为 \(w_i\)；由引理 12.1.4，\(\mathcal R_{T_i}(w_i)\)。投影的求值规则给出
+\[
+  \{\sigma t_1,\sigma t_2\}.i\transmulti w_i
+\]
+再次使用引理 12.1.4，可得
+\(\mathcal R_{T_i}(\{\sigma t_1,\sigma t_2\}.i)\)。于是由定义得到
+\(\mathcal R_{T_1\times T_2}(\{\sigma t_1,\sigma t_2\})\)，也就是
+\(\mathcal R_{T_1\times T_2}(\sigma t)\)。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-Proj1}：}
+
+由 \(\mathcal R_{T_1\times T_2}\) 的定义立即得到。
+
+\medskip\noindent
+\textbf{情形 \rulename{T-Proj2}：}
+
+类似。
+
+\taplsolutionbacklink{ex:12.1.7}{返回练习 12.1.7}
+\end{taplauthorsolutionentrybox}

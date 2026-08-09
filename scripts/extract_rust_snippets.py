@@ -26,12 +26,23 @@ SUPPORT_REFERENCE = re.compile(
     r"\\taplrustsupport(?:\[[^\]]*\])?"
     r"\{([a-z0-9][a-z0-9-]*)\}"
 )
+EXPLANATION_REFERENCE = re.compile(r"\\taplrustexplanation\{")
+OCAML_SYNTAX_ONLY_REFERENCE = re.compile(r"(?<!\{)\\taplocamlsyntaxonly\b")
 OCAML_BEGIN = re.compile(r"\\begin\{taplocamlcode\}(?:\[[^\]]*\])?")
 OCAML_END = re.compile(r"\\end\{taplocamlcode\}")
 OCAML_WITH_RUST = re.compile(
     r"\\end\{taplocamlcode\}\s*"
     r"\\taplrustcounterpart(?:\[[^\]]*\])?"
     r"\{([a-z0-9][a-z0-9-]*)\}"
+)
+OCAML_WITH_RUST_EXPLANATION = re.compile(
+    r"\\end\{taplocamlcode\}"
+    r"(?:(?!\\begin\{taplocamlcode\}).)*?"
+    r"\\taplrustexplanation\{",
+    re.DOTALL,
+)
+OCAML_WITH_SYNTAX_ONLY = re.compile(
+    r"\\end\{taplocamlcode\}\s*\\taplocamlsyntaxonly\b"
 )
 
 
@@ -81,22 +92,37 @@ def references() -> set[str]:
         begin_count = len(OCAML_BEGIN.findall(contents))
         end_count = len(OCAML_END.findall(contents))
         paired = OCAML_WITH_RUST.findall(contents)
+        explained = OCAML_WITH_RUST_EXPLANATION.findall(contents)
+        syntax_only = OCAML_WITH_SYNTAX_ONLY.findall(contents)
         counterparts_in_file = COUNTERPART_REFERENCE.findall(contents)
         support_in_file = SUPPORT_REFERENCE.findall(contents)
+        explanations_in_file = EXPLANATION_REFERENCE.findall(contents)
+        syntax_only_in_file = OCAML_SYNTAX_ONLY_REFERENCE.findall(contents)
         if begin_count != end_count:
             errors.append(
                 f"{source.relative_to(ROOT)}: {begin_count} OCaml starts, "
                 f"{end_count} OCaml ends"
             )
-        if end_count != len(paired):
+        if end_count != len(paired) + len(explained) + len(syntax_only):
             errors.append(
-                f"{source.relative_to(ROOT)}: every OCaml block must be followed "
-                "immediately by one Rust counterpart"
+                f"{source.relative_to(ROOT)}: every OCaml block must have either "
+                "an immediate Rust counterpart, an explicit Rust explanation "
+                "before the next OCaml block, or an immediate OCaml-syntax-only marker"
             )
         if len(counterparts_in_file) != len(paired):
             errors.append(
                 f"{source.relative_to(ROOT)}: Rust counterpart found without an "
                 "immediately preceding OCaml block"
+            )
+        if len(explanations_in_file) != len(explained):
+            errors.append(
+                f"{source.relative_to(ROOT)}: Rust explanation could not be associated "
+                "with the preceding OCaml block"
+            )
+        if len(syntax_only_in_file) != len(syntax_only):
+            errors.append(
+                f"{source.relative_to(ROOT)}: OCaml-syntax-only marker found without "
+                "an immediately preceding OCaml block"
             )
         names.extend(counterparts_in_file)
         names.extend(support_in_file)

@@ -1,7 +1,7 @@
 % Chapter 8 — Typed Arithmetic Expressions
 % Source: ../source/split/chapters/ch08-typed-arithmetic-expressions_p089-p097.pdf
 % Original print pages: 91--98
-% Status: 初审通过
+% Status: 已确认
 
 \chapter{带类型的算术表达式}
 \label{chap:8}
@@ -48,16 +48,18 @@ nv&::=&\taplzero&\text{数值：零值}\\
 全书将用元变量 \(S,T,U\) 等表示类型。
 
 说“项 \(t\) 具有类型 \(T\)”（或“\(t\) 属于 \(T\)”“\(t\) 是 \(T\)
-的元素”），意指 \(t\) “显然”会求值为形状适当的值。这里的“显然”是指：
-不对 \(t\) 做任何求值，仅凭静态观察即可看出。例如，
+的元素”），意思是仅凭静态检查就能看出：\(t\) 的求值结果将具有类型 \(T\)
+所规定的形式。也就是说，无需实际求值 \(t\) 即可作出这一判断。例如，
 \(\taplif{\tapltrue}{\taplfalse}{\tapltrue}\) 具有类型
 \(\tapltype{Bool}\)，而
 \(\taplpred{(\taplsucc{(\taplpred{(\taplsucc{\taplzero})})})}\)
-具有类型 \(\tapltype{Nat}\)。不过，我们对项的类型分析是保守的，只使用
-静态信息。因此，虽然
+具有类型 \(\tapltype{Nat}\)。不过，这套类型分析是保守的：它只检查项的
+静态结构，不会先对项求值，以判断哪些分支实际会被执行。只要无法仅凭静态
+信息确认一个项不会卡住，类型系统就不会为它给出类型，即使它实际求值时不会
+卡住。例如，
 \(\taplif{(\tapliszero{\taplzero})}{\taplzero}{\taplfalse}\)，甚至
 \(\taplif{\tapltrue}{\taplzero}{\taplfalse}\) 的求值事实上都不会卡住，
-我们仍然不能判定它们具有任何类型。
+但按照这套类型规则，我们仍然无法为它们推导出类型。
 
 \section{类型关系}
 \label{sec:8.2}
@@ -73,7 +75,7 @@ nv&::=&\taplzero&\text{数值：零值}\\
 \begin{minipage}{0.94\linewidth}
 \small
 \noindent\textbf{B（带类型）}\hfill
-\textit{扩展 B（\cref{fig:3-1}）}
+\tapltranslateditalic{扩展 B（\cref{fig:3-1}）}
 \par\smallskip
 \noindent\begin{minipage}[t]{0.38\linewidth}
 \textbf{新增句法形式}
@@ -109,7 +111,7 @@ T&::=&\tapltype{Bool}&\text{布尔值类型}
 \begin{minipage}{0.94\linewidth}
 \small
 \noindent\textbf{N（带类型）}\hfill
-\textit{扩展 NB（\cref{fig:3-2}）与 B}
+\tapltranslateditalic{扩展 NB（\cref{fig:3-2}）与 B}
 \par\smallskip
 \noindent\begin{minipage}[t]{0.38\linewidth}
 \textbf{新增句法形式}
@@ -167,10 +169,11 @@ T&::=&\cdots&\text{类型}\\
 良类型）。
 \end{definition}
 
-对类型关系进行推理时，我们常会说：“如果形如 \(\taplsucc{t_1}\) 的项
-具有某种类型，那么它必定具有类型 \(\tapltype{Nat}\)。”下面的
-\termfirst{反演引理}{inversion lemma}汇集了这一类基本事实；每一项都直接
-来自相应类型规则的形状。
+对类型关系进行推理时，我们常会用到这样的事实：“若项
+\(\taplsucc{t_1}\) 能够通过类型检查，那么它的类型只能是
+\(\tapltype{Nat}\)，并且其参数 \(t_1\) 也必须具有
+\(\tapltype{Nat}\) 类型。”下面的\termfirst{反演引理}{inversion lemma}
+汇集了这一类基本事实；其中每一项都可以直接从相应类型规则的形式看出。
 
 \begin{lemma}[类型关系的反演]
 \label{lem:8.2.2}
@@ -194,20 +197,22 @@ T&::=&\cdots&\text{类型}\\
 \end{proof}
 
 反演引理有时也称为类型关系的\termfirst{生成引理}{generation lemma}：
-给定一个有效的类型陈述，它说明该陈述的证明可能怎样生成。反演引理直接导出
-一个递归算法来计算项的类型，因为它针对每一种句法形式，都告诉我们怎样从
-子项的类型计算整个项的类型（如果存在）。\chapref{9}会详细回到
+给定一个已经成立的类型判断，它可以反推出该判断的类型推导最后可能使用了
+哪条规则，以及该规则的前提必须满足什么条件。反演引理直接导出一个递归算法
+来计算项的类型，因为它针对每一种句法形式，都告诉我们怎样从子项的类型计算
+整个项的类型（如果存在）。\chapref{9}会详细回到
 这一点。
 
 \begin{exercise}[\(\star,\nrightarrow\)]
 \label{ex:8.2.3}
 证明：良类型项的每个子项都是良类型的。
 \end{exercise}
+\taplsolutionlink{sol:translator:8.2.3}{8.2.3}
 
 \taplsecref{3.5}{sec:3.5} 引入了求值推导的概念。类似地，
 \termfirst{类型推导}{typing derivation} 是由类型规则实例构成的树。类型
-关系中的每一对 \((t,T)\) 都有一棵以 \(t:T\) 为结论的类型推导作为依据。
-例如，陈述
+关系中的每一对 \((t,T)\) 都有一棵以 \(t:T\) 为结论的类型推导树作为依据。
+例如，类型判断
 \(\taplif{(\tapliszero{\taplzero})}{\taplzero}
  {(\taplpred{\taplzero})}:\tapltype{Nat}\)
 的推导树是：
@@ -228,14 +233,14 @@ T&::=&\cdots&\text{类型}\\
  {\taplif{(\tapliszero{\taplzero})}{\taplzero}
    {(\taplpred{\taplzero})}:\tapltype{Nat}}
 \]
-换言之，陈述是关于程序类型的形式断言，类型规则是陈述之间的蕴涵，而推导是
-以类型规则为依据的演绎。
+换言之，类型判断是关于程序类型的形式断言，类型规则表达类型判断之间的蕴涵
+关系，而类型推导树记录以这些规则为依据的演绎过程。
 
 \begin{theorem}[类型的唯一性]
 \label{thm:8.2.4}
 每个项 \(t\) 至多具有一种类型。也就是说，如果 \(t\) 可赋型，它的类型是
-唯一的。此外，用\cref{fig:8-1} 和\cref{fig:8-2} 中推导规则构造出来
-的这一类型推导也只有一个。
+唯一的。此外，由\cref{fig:8-1} 和\cref{fig:8-2} 中的推理规则构成、以
+这一类型判断为结论的类型推导树也是唯一的。
 \end{theorem}
 
 \begin{proof}
@@ -243,9 +248,9 @@ T&::=&\cdots&\text{类型}\\
 \end{proof}
 
 在本章这个简单类型系统里，每个项只具有一种类型（如果它确实具有类型），
-并且总共只有一棵推导树见证这一事实。以后，这两项性质都会放宽。例如，到
+而且证明该类型判断的推导树也只有一棵。以后，这两项性质都会放宽。例如，到
 \chapref{15}讨论带子类型化的类型系统时，同一个项可能具有多种
-类型，而给定项具有给定类型这一陈述通常也可能有多种推导方式。
+类型，而同一个类型判断通常也可能有多棵不同的推导树。
 
 类型关系的性质常常通过对推导树作归纳来证明，正如求值关系的性质通常通过
 对求值推导作归纳来证明。从下一节开始，我们会看到许多对类型推导作归纳的
@@ -258,7 +263,7 @@ T&::=&\cdots&\text{类型}\\
 \termfirst{安全性}{safety}（也称\termfirst{可靠性}{soundness}）：
 良类型项不会“出错”。我们已经选定了“出错”的形式含义：到达一个不是最终
 值、求值规则却没有说明下一步该怎么做的“卡住状态”
-（\cref{def:3.5.15}）。因此，我们想知道良类型项不会卡住。证明分为
+（\cref{def:3.5.15}）。因此，我们希望证明良类型项不会卡住。证明分为
 两个步骤，通常称为\termfirst{进展性}{progress}定理和
 \termfirst{保持性}{preservation}定理。\footnote{“安全性等于进展性加
 保持性”（并使用一个典范形式引理）这一口号由 Harper 明确提出；Wright 和
@@ -266,7 +271,7 @@ Felleisen（1994）提出了一个变体。}
 
 \begin{description}[style=nextline,leftmargin=2em]
   \item[进展性] 良类型项不会卡住：它要么是值，要么能按求值规则迈出一步。
-  \item[保持性] 良类型项迈出一步求值后，所得的项仍然是良类型的。
+  \item[保持性] 良类型项经过一次单步求值后，所得的项仍然是良类型的。
     \footnote{在本书考察的大多数类型系统中，求值不仅保持良类型性，也保持项
     的精确类型。不过，有些系统允许类型在求值期间改变。例如，在带子类型化
     的系统（\chapref{15}）中，项的类型可能在求值时变得更小，也就是包含
@@ -275,9 +280,9 @@ Felleisen（1994）提出了一个变体。}
 
 两项性质合起来告诉我们：良类型项在求值过程中永远不会到达卡住状态。
 
-证明进展性定理之前，先记录关于 \(\tapltype{Bool}\) 与
-\(\tapltype{Nat}\) 的典范形式可能具有何种形状的两个事实；所谓
-\termfirst{典范形式}{canonical forms}，就是这些类型的良类型值。
+证明进展性定理之前，先说明 \(\tapltype{Bool}\) 与
+\(\tapltype{Nat}\) 类型的良类型值分别只能采用哪些形式；这样的良类型值
+称为相应类型的\termfirst{典范形式}{canonical forms}。
 
 \begin{lemma}[典范形式]
 \label{lem:8.3.1}
@@ -316,14 +321,17 @@ Felleisen（1994）提出了一个变体。}
 t=\taplif{t_1}{t_2}{t_3}
 \qquad t_1:\tapltype{Bool}\qquad t_2:T\qquad t_3:T
 \]
-由归纳假设，\(t_1\) 要么是值，要么存在 \(t_1'\) 使
-\(t_1\trans t_1'\)。若 \(t_1\) 是值，典范形式引理
-（\cref{lem:8.3.1}）保证它必为 \(\tapltrue\) 或
-\(\taplfalse\)，因而 \textsc{E-IfTrue} 或 \textsc{E-IfFalse} 适用于
-\(t\)。另一方面，若 \(t_1\trans t_1'\)，则由 \textsc{E-If}，
+整个项 \(t\) 是条件表达式，因而不是值；所以这里只需证明它能够迈出一步。
+对前提 \(t_1:\tapltype{Bool}\) 的类型推导使用归纳假设可知，\(t_1\)
+要么是值，要么存在 \(t_1'\) 使 \(t_1\trans t_1'\)。若 \(t_1\) 是值，
+典范形式引理（\cref{lem:8.3.1}）保证它必为 \(\tapltrue\) 或
+\(\taplfalse\)。前一种情况下，\textsc{E-IfTrue} 给出 \(t\trans t_2\)；
+后一种情况下，\textsc{E-IfFalse} 给出 \(t\trans t_3\)。若
+\(t_1\trans t_1'\)，则由 \textsc{E-If}，
 \[
 \taplif{t_1}{t_2}{t_3}\trans\taplif{t_1'}{t_2}{t_3}
 \]
+两种情形下，整个项 \(t\) 都能迈出一步，因此进展性成立。
 
 \medskip\noindent
 \textbf{情形 \rulename{T-Succ}：}
@@ -370,7 +378,7 @@ t=\taplpred{t_1}\qquad t_1:\tapltype{Nat}
 \[
 t=\tapltrue\qquad T=\tapltype{Bool}
 \]
-若最后一条规则是 \textsc{T-True}，由规则形状可知 \(t\) 必为常量
+若最后一条规则是 \textsc{T-True}，由该规则可知 \(t\) 必为常量
 \(\tapltrue\)，\(T\) 必为 \(\tapltype{Bool}\)。但 \(t\) 是值，所以对
 任何 \(t'\) 都不可能有 \(t\trans t'\)；定理要求因此空泛成立。
 
@@ -386,18 +394,22 @@ t=\taplif{t_1}{t_2}{t_3}
 \textsc{E-IfTrue} 类似的 \textsc{E-IfFalse} 情形。
 
 \smallskip\noindent
-\emph{子情形 \rulename{E-IfTrue}：}
-\(t_1=\tapltrue\) 且 \(t'=t_2\)。由 \textsc{T-If} 情形的假设已经知道
-\(t_2:T\)，即 \(t':T\)，所以证明完成。
+\textbf{子情形 \rulename{E-IfTrue}：}
+\(t_1=\tapltrue\) 且 \(t'=t_2\)。当前类型推导的最后一步是
+\textsc{T-If}，因此该规则的第二个前提给出 \(t_2:T\)。又因
+\(t'=t_2\)，所以 \(t':T\)，证明完成。
 
 \smallskip\noindent
-\emph{子情形 \rulename{E-If}：}
-对某个 \(t_1'\)，有 \(t_1\trans t_1'\) 且
-\(t'=\taplif{t_1'}{t_2}{t_3}\)。原类型推导包含结论为
-\(t_1:\tapltype{Bool}\) 的子推导。把归纳假设用于它，得到
-\(t_1':\tapltype{Bool}\)。再结合 \(t_2:T\) 与 \(t_3:T\)，由
-\textsc{T-If} 得
-\(\taplif{t_1'}{t_2}{t_3}:T\)，即 \(t':T\)。
+\textbf{子情形 \rulename{E-If}：}
+当前类型推导的最后一步是 \textsc{T-If}，因此该规则的三个前提给出
+\(t_1:\tapltype{Bool}\)、\(t_2:T\) 与 \(t_3:T\)。在这个子情形中，
+\textsc{E-If} 说明：对某个 \(t_1'\)，有 \(t_1\trans t_1'\)，并且
+\(t'=\taplif{t_1'}{t_2}{t_3}\)。把归纳假设用于
+\(t_1:\tapltype{Bool}\) 和 \(t_1\trans t_1'\)，得到
+\(t_1':\tapltype{Bool}\)。两个分支没有改变，仍有 \(t_2:T\) 与
+\(t_3:T\)；再次应用 \textsc{T-If}，便得到
+\(\taplif{t_1'}{t_2}{t_3}:T\)。这个条件表达式正是 \(t'\)，所以
+\(t':T\)。
 
 \medskip\noindent
 \textbf{情形 \rulename{T-Zero}：}
@@ -412,23 +424,29 @@ t=\taplzero\qquad T=\tapltype{Nat}
 t=\taplsucc{t_1}\qquad T=\tapltype{Nat}\qquad
 t_1:\tapltype{Nat}
 \]
-检查\cref{fig:3-2} 的求值规则可知，只有 \textsc{E-Succ} 能导出
-\(t\trans t'\)。由其形状，对某个 \(t_1'\) 有
-\(t_1\trans t_1'\) 且 \(t'=\taplsucc{t_1'}\)。又因
-\(t_1:\tapltype{Nat}\)，由归纳假设得
-\(t_1':\tapltype{Nat}\)，再用 \textsc{T-Succ} 得
-\(\taplsucc{t_1'}:\tapltype{Nat}\)，即 \(t':T\)。
+当前类型推导的最后一步是 \textsc{T-Succ}，因此它的前提给出
+\(t_1:\tapltype{Nat}\)，而结论中的类型 \(T\) 就是
+\(\tapltype{Nat}\)。另一方面，定理假设 \(t\trans t'\)。检查
+\cref{fig:3-2} 的求值规则可知，只有 \textsc{E-Succ} 能让
+\(\taplsucc{t_1}\) 迈出一步。因此，对某个 \(t_1'\)，必有
+\(t_1\trans t_1'\)，并且 \(t'=\taplsucc{t_1'}\)。
+
+把归纳假设用于 \(t_1:\tapltype{Nat}\) 和 \(t_1\trans t_1'\)，得到
+\(t_1':\tapltype{Nat}\)。再次应用 \textsc{T-Succ}，便有
+\(\taplsucc{t_1'}:\tapltype{Nat}\)。这个项正是 \(t'\)，而
+\(\tapltype{Nat}=T\)，所以 \(t':T\)。
 \end{proof}
 
 \begin{exercise}[\(\star\star,\nrightarrow\)]
 \label{ex:8.3.4}
 重组上述证明，使其对求值推导而非类型推导作归纳。
 \end{exercise}
+\taplsolutionlink{sol:translator:8.3.4}{8.3.4}
 
 保持性定理常称为\termfirst{主体归约}{subject reduction}（或
-\termfirst{主体求值}{subject evaluation}）。其直觉是把类型陈述 \(t:T\)
-看成句子“\(t\) 具有类型 \(T\)”；项 \(t\) 是这个句子的主体，而主体归约
-性质说明：对主体进行归约时，句子的真实性得以保持。
+\termfirst{主体求值}{subject evaluation}）。其直觉是把类型判断 \(t:T\)
+看成句子“\(t\) 具有类型 \(T\)”；项 \(t\) 是这个句子的主体。主体归约
+性质说明，把 \(t\) 归约为 \(t'\) 后，相应的类型判断 \(t':T\) 仍然成立。
 
 类型的唯一性在一些类型系统中成立，在另一些系统中不成立；相比之下，进展性
 与保持性将是本书所考察的所有类型系统的基本要求。\footnote{有些语言不满足
@@ -444,6 +462,7 @@ Wadler，1999），这里给出的保持性形式会失效（详见\chapref{19}�
 觉得零的前驱应当没有定义，而不是定义为零。只需从单步求值的定义中删去这条
 规则，就能达到这个目的吗？
 \end{exercise}
+\taplauthorsolutionlink{sol:author:8.3.5}{8.3.5}
 
 \begin{exercise}[推荐，\(\star\star\)]
 \label{ex:8.3.6}
@@ -452,18 +471,21 @@ Wadler，1999），这里给出的保持性形式会失效（详见\chapref{19}�
 \(t\trans t'\) 且 \(t':T\)，是否总有 \(t:T\)？若是，请证明；若不是，
 请给出反例。
 \end{exercise}
+\taplauthorsolutionlink{sol:author:8.3.6}{8.3.6}
 
 \begin{exercise}[推荐，\(\star\star\)]
 \label{ex:8.3.7}
 假设求值关系采用\cref{ex:3.5.17} 那样的大步风格定义。类型安全性的
 直觉性质应如何形式化？
 \end{exercise}
+\taplauthorsolutionlink{sol:author:8.3.7}{8.3.7}
 
 \begin{exercise}[推荐，\(\star\star\)]
 \label{ex:8.3.8}
 假设按照\cref{ex:3.5.16}，在求值关系中加入把无意义项归约到显式
 \(\taplwrong\) 状态的规则。此时类型安全性又应如何形式化？
 \end{exercise}
+\taplauthorsolutionlink{sol:author:8.3.8}{8.3.8}
 
 \bilingualepigraph
   {从无类型宇宙通向有类型宇宙的道路，已在许多不同领域走过许多次，

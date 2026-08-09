@@ -1,0 +1,452 @@
+\section{第 11 章：简单扩展}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:11.2.1}
+\textbf{11.2.1 解答}
+
+\[
+\begin{aligned}
+t_1 &=(\lambda x:\tapltype{Unit}.\,x)\;\mathsf{unit},\\
+t_{i+1}
+  &=(\lambda f:\tapltype{Unit}\to\tapltype{Unit}.\,
+       f\,(f\;\mathsf{unit}))
+    (\lambda x:\tapltype{Unit}.\,t_i)
+\end{aligned}
+\]
+
+\translatornote{作者的构造把 \(t_i\) 包装成函数
+\(g_i=\lambda x:\tapltype{Unit}.\,t_i\)。lambda 抽象本身是值，因此构造
+\(g_i\) 时不会求值它的函数体 \(t_i\)；每次调用 \(g_i\)，\(\beta\) 规约才会
+取出函数体。又因为 \(x\) 不在 \(t_i\) 中自由出现，代入实参不会改变函数体，
+所以规约结果恰好是 \(t_i\)：
+\[
+\begin{aligned}
+g_i\;\mathsf{unit}
+  &=(\lambda x:\tapltype{Unit}.\,t_i)\;\mathsf{unit}\\
+  &\trans \taplsubst{x}{\mathsf{unit}}{t_i}\\
+  &=t_i
+\end{aligned}
+\]
+因此，每调用一次 \(g_i\)，都会触发一次对 \(t_i\) 的完整求值。再用 \(g_i\)
+改写上面的定义，第一步规约为
+\[
+t_{i+1}\trans g_i\,(g_i\;\mathsf{unit})
+\]
+按照按值求值的次序，内层的 \(g_i\;\mathsf{unit}\) 先执行一次 \(t_i\)；得到
+\(\mathsf{unit}\) 后，外层调用又执行一次 \(t_i\)。若 \(E_i\) 表示 \(t_i\)
+求值到范式所需的步数，那么这两次求值共需 \(2E_i\) 步。此外还有三次
+\(\beta\) 规约：第一步把外层函数应用于 \(g_i\)，第二步调用内层的 \(g_i\)，
+第三步调用外层的 \(g_i\)。因此
+\[
+E_1=1,
+\qquad
+E_{i+1}=2E_i+3,
+\qquad
+E_i=2^{i+1}-3
+\]
+由此可见，求值步数呈指数增长。另一方面，\(t_{i+1}\) 的书写形式中只出现一次
+\(t_i\)，其余部分的大小固定。若用 \(S_i\) 表示项的大小，则存在常数 \(c\)
+使 \(S_{i+1}=S_i+c\)，所以 \(S_i=O(i)\)。这个构造的关键在于：项本身的
+大小只线性增长，函数应用却会在求值过程中把前一项的计算重复两次。}
+
+\taplsolutionbacklink{ex:11.2.1}{返回练习 11.2.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:11.3.2}
+\textbf{11.3.2 解答}
+
+\[
+\inferrule*[right=\rulename{T-Wildcard}]
+  {\Gamma\vdash t_2:T_2}
+  {\Gamma\vdash \lambda\_ :T_1.\,t_2:T_1\to T_2}
+\qquad
+(\lambda\_ :T_{11}.\,t_{12})\;v_2\trans t_{12}
+\quad\rulename{E-Wildcard}
+\]
+
+证明这两条规则可由语法糖定义导出，与\cref{thm:11.3.1}的证明完全相同。
+
+\taplsolutionbacklink{ex:11.3.2}{返回练习 11.3.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:11.4.1}
+\textbf{11.4.1 解答}
+
+第一问很直接。把类型断言展开为
+\[
+  t\ \mathsf{as}\ T\ \mathrel{\stackrel{\mathrm{def}}{=}}\
+  (\lambda x:T.\,x)\;t
+\]
+即可直接由抽象和应用的规则导出类型断言的类型规则与求值规则。
+
+若把类型断言的求值规则改为急切版本，就需要更细致的展开方式，使 \(t\)
+等到断言本身被消去之后才开始求值。例如，可定义
+\[
+  t\ \mathsf{as}\ T
+  \ \mathrel{\stackrel{\mathrm{def}}{=}}\ 
+  (\lambda x:\tapltype{Unit}\to T.\,x\;\mathsf{unit})
+  (\lambda y:\tapltype{Unit}.\,t)
+  \qquad\text{其中 \(y\notin\fv(t)\)}
+\]
+
+\translatornote{这两种展开方式的区别在于求值顺序。第一种展开
+\((\lambda x:T.\,x)\,t\) 把 \(t\) 作为普通参数传入恒等函数。按照按值求值
+的规则，必须先把 \(t\) 求值为某个值 \(v\)，然后才能进行外层的 \(\beta\)
+规约：
+\[
+(\lambda x:T.\,x)\,t
+\transmulti
+(\lambda x:T.\,x)\,v
+\trans v
+\]
+这正好对应正式规则的次序：先在类型标注内部求值，得到值后再去掉标注。
+
+第二种展开先把 \(t\) 包进 \(\lambda y:\tapltype{Unit}.\,t\)。lambda 抽象
+本身已经是值，所以按值求值不会立即进入函数体计算 \(t\)。这种把尚未求值的
+表达式包进函数、留待以后触发的结构称为
+\termfirst{延迟计算封装}{thunk}。外层应用可以立即进行两次 \(\beta\) 规约：
+\[
+\begin{aligned}
+&(\lambda x:\tapltype{Unit}\to T.\,x\;\mathsf{unit})
+ (\lambda y:\tapltype{Unit}.\,t)\\
+&\qquad\trans
+ (\lambda y:\tapltype{Unit}.\,t)\;\mathsf{unit}
+ \trans t
+\end{aligned}
+\]
+因此，只有在表示类型标注的两层包装都被消去之后，\(t\) 才开始求值。这与
+急切规则的求值顺序相符，但高层语言的一步对应内部语言的两步。条件
+\(y\notin\fv(t)\) 保证新增的 lambda 抽象不会意外绑定 \(t\) 中原本自由的
+\(y\)。}
+
+这里选用 \(\tapltype{Unit}\) 并不重要，换成任何类型都可以。
+
+这种展开在直观上正确，却不能逐字满足\cref{thm:11.3.1}中的性质：展开后的
+类型断言需要两步才消失，而高层规则 \rulename{E-Ascribe} 只走一步。可把展开
+看成一种简单编译；源语言的一步往往需要目标语言中的多步来模拟。因此，应把
+要求放宽为
+\[
+  t\trans_E t'
+  \quad\Longrightarrow\quad
+  e(t)\trans_I^*e(t')
+\]
+
+反方向也要谨慎表述。展开后的断言走完第一步时，中间项既不是原高层项的展开，
+也不是消去断言后那个高层项的展开；不过，这一步总能再走若干步，抵达另一个
+高层项的展开。形式化地，若 \(e(t)\trans_I s\)，则存在 \(t'\)，使得
+\[
+  t\trans_E t'
+  \qquad\text{且}\qquad
+  s\trans_I^*e(t')
+\]
+
+\taplsolutionbacklink{ex:11.4.1}{返回练习 11.4.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:11.5.1}
+\textbf{11.5.1 解答}
+
+需要加入以下分支：
+\end{taplauthorsolutionentrybox}
+
+\begin{taplocamlcode}
+let rec eval1 ctx t =
+  match t with
+    ...
+  | TmLet(fi, x, v1, t2) when isval ctx v1 ->
+      termSubstTop v1 t2
+  | TmLet(fi, x, t1, t2) ->
+      let t1' = eval1 ctx t1 in
+      TmLet(fi, x, t1', t2)
+  | ...
+
+let rec typeof ctx t =
+  match t with
+    ...
+  | TmLet(fi, x, t1, t2) ->
+      let tyT1 = typeof ctx t1 in
+      let ctx' = addbinding ctx x (VarBind tyT1) in
+      typeof ctx' t2
+  | ...
+\end{taplocamlcode}
+\taplrustcounterpart{sol-author-11-let-types}
+\taplrustsupport{sol-author-11-let-eval1}
+\taplrustsupport{sol-author-11-let-shift}
+\taplrustsupport{sol-author-11-let-substitution}
+\taplrustsupport{sol-author-11-let-typeof}
+
+\taplsolutionbacklink{ex:11.5.1}{返回练习 11.5.1}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:11.5.2}
+\textbf{11.5.2 解答}
+
+这个定义存在两个问题。第一，它改变了求值次序：规则 \rulename{E-LetV}
+与 \rulename{E-Let} 规定按值调用，即在
+\(\mathsf{let}\ x=t_1\ \mathsf{in}\ t_2\) 中，必须先把 \(t_1\) 归约为值，
+才能用它替换 \(x\)，继而开始处理 \(t_2\)。
+
+第二，尽管这种翻译保持了类型规则 \rulename{T-Let} 的有效性——这可直接由
+替换引理（\cref{lem:9.3.8}）得到——它却不保持“不是良类型的”这一性质。
+例如，不是良类型的项
+\[
+  \mathsf{let}\ x=\mathsf{unit}\;\mathsf{unit}\ \mathsf{in}\ \mathsf{unit}
+\]
+会被翻译成良类型项 \(\mathsf{unit}\)：因为 let 体 \(\mathsf{unit}\) 中没有
+出现 \(x\)，不是良类型的子项 \(\mathsf{unit}\;\mathsf{unit}\) 便直接消失了。
+
+\taplsolutionbacklink{ex:11.5.2}{返回练习 11.5.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:11.8.2}
+\textbf{11.8.2 解答}
+
+一种为记录模式加入类型的方案如下。除了通常的项类型判断，还需要定义一种
+专门分析模式的类型判断 \(\vdash p:T\Rightarrow\Delta\)。从算法角度看，
+它以模式 \(p\) 和待匹配值的类型 \(T\) 为输入；若成功，就返回上下文
+\(\Delta\)，列出模式中各变量应获得的类型。规则 \rulename{T-Let} 在检查
+let 体 \(t_2\) 时，把该上下文加入当前
+上下文 \(\Gamma\)。以下始终假设，记录模式中不同字段绑定的变量集合互不
+相交。
+
+新增的模式语法为
+\[
+  p::=x\mid\{l_i=p_i\}^{i\in1..n}
+\]
+模式类型判断与推广后的 let 类型规则如下：
+
+\begin{center}
+\[
+\inferrule*[right=\rulename{P-Var}]
+  { }
+  {\vdash x:T\Rightarrow x:T}
+\qquad
+\inferrule*[right=\rulename{P-Rcd}]
+  {\vdash p_i:T_i\Rightarrow\Delta_i\quad\text{对每个 }i}
+  {\vdash \{l_i=p_i\}^{i\in1..n}:
+     \{l_i:T_i\}^{i\in1..n}\Rightarrow
+     \Delta_1,\ldots,\Delta_n}
+\]
+\[
+\inferrule*[right=\rulename{T-Let}]
+  {\Gamma\vdash t_1:T_1 \\
+   \vdash p:T_1\Rightarrow\Delta \\
+   \Gamma,\Delta\vdash t_2:T_2}
+  {\Gamma\vdash \mathsf{let}\ p=t_1\ \mathsf{in}\ t_2:T_2}
+\]
+\captionof{figure}{带类型的记录模式}
+\label{fig:a-1}
+\end{center}
+
+\translatornote{P-Var 与 P-Rcd 是\cref{fig:11-8}中 M-Var 与 M-Rcd 的静态
+对应，也要按模式结构递归配合。检查模式 \(\{a=x,b=y\}\) 时，外层使用
+P-Rcd，它的两个前提再分别使用 P-Var。区别在于，运行时的 M 规则产生实际
+替换 \(\sigma\)，这里的 P 规则只计算各模式变量的类型，并把它们汇总为上下文
+\(\Delta\)。}
+
+还可以放宽记录模式规则：模式不必列出记录的全部字段，只需写出希望提取的
+那些字段：
+\[
+\inferrule*[right=\rulename{P-Rcd'}]
+  {\{l_i\mid i\in1..n\}\subseteq\{k_j\mid j\in1..m\} \\
+   \text{对每个 }i\text{，存在 }j\text{ 使 }l_i=k_j
+   \text{ 且 }\vdash p_i:T_j\Rightarrow\Delta_i}
+  {\vdash \{l_i=p_i\}^{i\in1..n}:
+     \{k_j:T_j\}^{j\in1..m}\Rightarrow
+     \Delta_1,\ldots,\Delta_n}
+\]
+
+\translatornote{这条规则同时使用两套下标，分别枚举模式字段和完整记录类型的
+字段：
+\begin{itemize}
+  \item \(n\) 是模式中实际写出的字段数，\(i\in1..n\) 逐一枚举这些字段；
+    \(l_i\) 是第 \(i\) 个字段的标签，\(p_i\) 是它的子模式；
+  \item \(m\) 是被匹配记录类型的总字段数，\(j\in1..m\) 逐一枚举这些字段；
+    \(k_j\) 是第 \(j\) 个字段的标签，\(T_j\) 是它的类型；
+  \item \(\{l_i\mid i\in1..n\}\) 是模式使用的标签集合，
+    \(\{k_j\mid j\in1..m\}\) 是记录类型提供的全部标签；子集条件要求前者
+    中的每个标签都出现在后者中；
+  \item 条件 \(l_i=k_j\) 表示在记录类型中找到了与当前模式字段同名的字段；
+  \item \(\Delta_i\) 是子模式 \(p_i\) 引入的变量类型绑定，最后把所有
+    \(\Delta_i\) 合并为结果上下文。
+\end{itemize}
+因此，横线下方的判断可以读作：“模式 \(\{l_i=p_i\}\) 用来匹配类型为
+\(\{k_j:T_j\}\) 的记录时，会引入上下文
+\(\Delta_1,\ldots,\Delta_n\)。”
+例如，对模式 \(\{b=x\}\) 和记录类型
+\(\{a:\tapltype{Nat},b:\tapltype{Bool},c:\tapltype{Nat}\}\)，有
+\(n=1\)、\(l_1=b\)、\(p_1=x\)，以及 \(m=3\)、\(k_2=b\)、
+\(T_2=\tapltype{Bool}\)。因此按标签找到 \(l_1=k_2\)，再由 P-Var 得到
+\(\vdash x:\tapltype{Bool}\Rightarrow x:\tapltype{Bool}\)，最终输出上下文
+\(x:\tapltype{Bool}\)。}
+
+采用这条规则后，记录投影不必再作为核心语言中单独定义的基本构造，因为它
+可以用模式匹配和 let 表达，作为下列语法糖：
+\[
+  t.l\ \mathrel{\stackrel{\mathrm{def}}{=}}\
+  \mathsf{let}\ \{l=x\}=t\ \mathsf{in}\ x
+\]
+
+扩展系统的保持性证明与简单类型 lambda 演算几乎相同，只需再证明一个把模式
+类型关系与运行时匹配联系起来的引理。若替换 \(\sigma\) 与上下文 \(\Delta\)
+有相同的定义域，记 \(\Gamma\vdash\sigma:\Delta\) 表示：对每个
+\(x\in\dom(\Delta)\)，都有 \(\Gamma\vdash\sigma(x):\Delta(x)\)。
+
+\translatornote{这里的 \(\Delta\) 是“变量到类型”的表，\(\sigma\) 是“变量到
+实际值”的表。例如，模式类型判断可能得到
+\[
+\Delta=(x:\tapltype{Nat},y:\tapltype{Bool})
+\]
+而运行时匹配得到
+\[
+\sigma=[x\mapsto5,y\mapsto\tapltrue]
+\]
+二者有相同的定义域，表示它们记录的是同一组变量：
+\(\dom(\Delta)=\dom(\sigma)=\{x,y\}\)。其中，\(\Delta(x)\) 是静态分析为
+\(x\) 规定的类型，\(\sigma(x)\) 是运行时实际绑定给 \(x\) 的值。因此
+\(\Gamma\vdash\sigma:\Delta\) 在这个例子中就是同时要求
+\(\Gamma\vdash5:\tapltype{Nat}\) 和
+\(\Gamma\vdash\tapltrue:\tapltype{Bool}\)：运行时得到的每个值都符合静态
+分析为相应变量预测的类型。}
+
+于是：
+
+\begin{quote}
+若 \(\Gamma\vdash t:T\) 且 \(\vdash p:T\Rightarrow\Delta\)，则
+\(\mathit{match}(p,t)=\sigma\)，并且 \(\Gamma\vdash\sigma:\Delta\)。
+\end{quote}
+
+还需要把通常的替换引理（\cref{lem:9.3.8}）推广为：
+
+\begin{quote}
+若 \(\Gamma,\Delta\vdash t:T\) 且 \(\Gamma\vdash\sigma:\Delta\)，则
+\(\Gamma\vdash\sigma t:T\)。
+\end{quote}
+
+有了这两个引理，\rulename{T-Let} 情形的保持性证明便与从前相同。进展性方面，
+模式类型判断保证：当 \(t_1\) 已求值为值时，规则 \rulename{E-LetV} 中的
+\(\mathit{match}(p,t_1)\) 一定有定义，不会因为匹配失败而卡住。
+
+\taplsolutionbacklink{ex:11.8.2}{返回练习 11.8.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:11.9.1}
+\textbf{11.9.1 解答}
+
+\[
+\begin{aligned}
+\tapltype{Bool} &\mathrel{\stackrel{\mathrm{def}}{=}}
+  \tapltype{Unit}+\tapltype{Unit},\\
+\tapltrue &\mathrel{\stackrel{\mathrm{def}}{=}} \mathsf{inl}\;\mathsf{unit},\\
+\taplfalse &\mathrel{\stackrel{\mathrm{def}}{=}} \mathsf{inr}\;\mathsf{unit},\\
+\taplif{t_0}{t_1}{t_2}
+  &\mathrel{\stackrel{\mathrm{def}}{=}}
+    \mathsf{case}\ t_0\ \mathsf{of}\
+      \mathsf{inl}\ x_1\Rightarrow t_1
+      \mid
+      \mathsf{inr}\ x_2\Rightarrow t_2
+\end{aligned}
+\]
+其中另取互不相同的变量 \(x_1,x_2\)，并要求它们都不在
+\(t_0,t_1,t_2\) 中自由出现。
+
+\taplsolutionbacklink{ex:11.9.1}{返回练习 11.9.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:11.11.1}
+\textbf{11.11.1 解答}
+
+\begin{lstlisting}[mathescape=true]
+equal =
+  fix
+    (lambda eq:Nat -> Nat -> Bool.
+      lambda m:Nat. lambda n:Nat.
+        if iszero m then iszero n
+        else if iszero n then false
+        else eq (pred m) (pred n));
+$\blacktriangleright$ equal : Nat -> Nat -> Bool
+
+plus = fix (lambda p:Nat -> Nat -> Nat.
+             lambda m:Nat. lambda n:Nat.
+               if iszero m then n else succ (p (pred m) n));
+$\blacktriangleright$ plus : Nat -> Nat -> Nat
+
+times = fix (lambda t:Nat -> Nat -> Nat.
+              lambda m:Nat. lambda n:Nat.
+                if iszero m then 0 else plus n (t (pred m) n));
+$\blacktriangleright$ times : Nat -> Nat -> Nat
+
+factorial = fix (lambda f:Nat -> Nat.
+                  lambda m:Nat.
+                    if iszero m then 1 else times m (f (pred m)));
+$\blacktriangleright$ factorial : Nat -> Nat
+
+factorial 5;
+$\blacktriangleright$ 120 : Nat
+\end{lstlisting}
+
+\taplsolutionbacklink{ex:11.11.1}{返回练习 11.11.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:11.11.2}
+\textbf{11.11.2 解答}
+
+\begin{lstlisting}[mathescape=true]
+letrec plus : Nat -> Nat -> Nat =
+  lambda m:Nat. lambda n:Nat.
+    if iszero m then n else succ (plus (pred m) n) in
+letrec times : Nat -> Nat -> Nat =
+  lambda m:Nat. lambda n:Nat.
+    if iszero m then 0 else plus n (times (pred m) n) in
+letrec factorial : Nat -> Nat =
+  lambda m:Nat.
+    if iszero m then 1 else times m (factorial (pred m)) in
+factorial 5;
+$\blacktriangleright$ 120 : Nat
+\end{lstlisting}
+
+\taplsolutionbacklink{ex:11.11.2}{返回练习 11.11.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:11.12.1}
+\textbf{11.12.1 解答}
+
+出人意料的是，进展性并不成立。例如，表达式
+\(\mathsf{head}[T]\;\mathsf{nil}[T]\) 已经卡住：没有求值规则适用，但它
+又不是值。在完整的程序语言中，通常会让这个表达式抛出异常，而不是卡住；
+\chapref{14}会讨论异常。
+
+\taplsolutionbacklink{ex:11.12.1}{返回练习 11.12.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:11.12.2}
+\textbf{11.12.2 解答}
+
+并非所有类型标注都能省略：若擦去 \(\mathsf{nil}\) 上的标注，类型唯一性定理
+就不再成立。类型检查器看到 \(\mathsf{nil}\) 时，知道必须赋予它
+\(\tapltype{List}\ T\) 这一形式的类型，却无法在不作某种猜测的情况下决定
+\(T\) 是什么。当然，更复杂的类型算法——例如 OCaml 编译器使用的算法——
+恰恰会进行这种推断。\chapref{22}会回到这一点。
+
+\taplsolutionbacklink{ex:11.12.2}{返回练习 11.12.2}
+\end{taplauthorsolutionentrybox}
