@@ -192,6 +192,7 @@
 }
 \newcommand{\taplrustcounterpart}[2][]{%
   \ifstrequal{#1}{break}{\tcbbreak}{}%
+  \ifstrequal{#1}{page}{\tcbbreak\newpage}{}%
   \par\Needspace{8\baselineskip}\smallskip
   \begingroup
     \noindent
@@ -204,6 +205,7 @@
 \newcommand{\taplrustsupport}[2][]{%
   \ifstrequal{#1}{break}{\tcbbreak}{}%
   \ifstrequal{#1}{implementation-break}{\tcbbreak}{}%
+  \ifstrequal{#1}{page}{\tcbbreak\newpage}{}%
   \par\Needspace{8\baselineskip}\smallskip
   \begingroup
     \noindent
@@ -224,6 +226,7 @@
 \newcommand{\taplrustsupportreuse}[2][]{%
   \ifstrequal{#1}{break}{\tcbbreak}{}%
   \ifstrequal{#1}{implementation-break}{\tcbbreak}{}%
+  \ifstrequal{#1}{page}{\tcbbreak\newpage}{}%
   \par\Needspace{8\baselineskip}\smallskip
   \begingroup
     \noindent
@@ -235,6 +238,16 @@
       \par}
     \nobreak\smallskip
     \inputminted{rust}{../build/code-snippets/#2.rs}%
+  \endgroup
+  \par\medskip
+}
+% Continue a group of already-extracted support snippets without repeating the
+% visible heading for every source region.
+\newcommand{\taplrustsupportreusecontinuation}[1]{%
+  \tcbbreak
+  \par\smallskip
+  \begingroup
+    \inputminted{rust}{../build/code-snippets/#1.rs}%
   \endgroup
   \par\medskip
 }

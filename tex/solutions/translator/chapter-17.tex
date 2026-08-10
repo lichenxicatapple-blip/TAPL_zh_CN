@@ -1,3 +1,4 @@
+\Needspace{22\baselineskip}
 \section*{第17章：子类型化的 ML 实现}
 \addcontentsline{toc}{section}{第17章：子类型化的 ML 实现}
 
@@ -24,10 +25,8 @@
 \taplocamlfilechunk{../code/ocaml/chapter17/diagnostics.ml}{121}{150}
 \taplocamlfilechunk{../code/ocaml/chapter17/diagnostics.ml}{151}{175}
 
-下面是参与本工程编译和测试的 Rust 对照实现：
-
 \taplrustsupportreuse[implementation-break]{ch17-syntax}
-\taplrustsupportreuse{ch17-support}
+\taplrustsupportreusecontinuation{ch17-support}
 \taplrustsupportchunkfirst{sol-translator-17-diagnostics}{1}{30}
 \taplrustsupportchunk{sol-translator-17-diagnostics}{31}{60}
 \taplrustsupportchunk{sol-translator-17-diagnostics}{61}{90}
@@ -80,6 +79,13 @@
 
 下面依次给出同一算法的 Rust 目标语法、强制转换、项翻译和求值实现：
 
+为使这份实现可以直接从书稿核查，先相邻重列源语言的语法、上下文、子类型判断与
+类型检查器；这些片段与正文使用的是同一份参与编译和测试的源码。
+
+\taplrustsupportreuse[page]{ch17-syntax}
+\taplrustsupportreusecontinuation{ch17-support}
+\taplrustsupportreusecontinuation{ch17-subtype}
+\taplrustsupportreusecontinuation{ch17-type-of}
 \taplrustsupportchunkfirst{sol-translator-17-coercion-support}{1}{20}
 \taplrustsupportchunk{sol-translator-17-coercion-support}{21}{41}
 \taplrustsupportchunkfirst{sol-translator-17-coercion}{1}{30}

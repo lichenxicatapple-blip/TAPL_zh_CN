@@ -239,8 +239,8 @@ T-Sub 提升为 \(D_i\)，即可满足这些规则。
 \textbf{一、抽象语法与类表。}
 分别为类声明、构造函数、方法声明和五类项定义数据类型。类表是从类名到类声明
 的映射。载入类表时先检查：类名唯一；除 \texttt{Object} 外所有被引用的类均有
-定义；继承图无环；字段不遮蔽继承字段；同一类中字段名、方法名与方法形参名均不
-重复。
+定义；	exttt{Object} 不得在类表中重复声明；继承图无环；字段不遮蔽继承字段；
+同一类中字段名、方法名与方法形参名均不重复。
 
 \taplrustsupport[implementation-break]{ch19-fj-syntax}
 
@@ -251,7 +251,7 @@ T-Sub 提升为 \(D_i\)，即可满足这些规则。
 \taplrustsupportchunk{ch19-fj-class-table}{61}{90}
 \taplrustsupportchunk{ch19-fj-class-table}{91}{120}
 \taplrustsupportchunk{ch19-fj-class-table}{121}{150}
-\taplrustsupportchunk{ch19-fj-class-table}{151}{186}
+\taplrustsupportchunk{ch19-fj-class-table}{151}{190}
 
 \textbf{二、辅助查询。}
 实现以下四个函数：
@@ -306,8 +306,9 @@ T-Sub 提升为 \(D_i\)，即可满足这些规则。
 
 配套测试覆盖正文的 \texttt{Pair.setfst}、字段访问、合法向上与向下转换、
 运行时失败的向下转换、荒谬转换警告、方法参数数量错误、构造函数错误、覆盖类型
-错误、继承环、未定义的类名、重复方法形参及保留名称 \texttt{this}。源码与测试
-共同参与整书构建，因而书内片段与实际验证的实现保持一致。
+错误、继承环、未定义的类名、重复方法形参、保留名称 \texttt{this}，以及非法重定义
+\texttt{Object}。源码与测试共同参与整书构建，因而书内片段与实际验证的实现保持
+一致。
 
 \taplsolutionbacklink{ex:19.5.5}{返回练习19.5.5}
 \end{taplsolutionentrybox}
@@ -369,18 +370,24 @@ F-有界约束，例如 \(X\subtype\mathit{Comparable}\langle X\rangle\)。
 这里采用完整的擦除执行路径。建立泛型类表时先检查类型形参、上界、继承、字段、
 方法签名和方法体；字段或方法的接收者是类型变量时，沿 \(\Delta\) 中的上界查询
 成员。执行程序前，把泛型类声明、字段、方法签名和方法体全部擦除为 FJ 类表，
-为每个类生成 FJ 的标准构造函数，再擦除待求值项并交给上一题的 FJ 解释器。这样
-书中的泛型实现不只检查擦除后的语法结构，还会实际执行擦除结果。
+为每个类生成 FJ 的标准构造函数。若类型实参代入后，某个字段或方法的结果类型
+比其擦除后声明的结果类型更具体，擦除过程会在成员访问外插入必要的 FJ 类型转换；
+例如，\texttt{Box<A>.get()} 的声明在擦除后返回 \texttt{Object}，用于需要
+\texttt{A} 的位置时便插入到 \texttt{A} 的转换。最后以同样方式擦除待求值项，
+并交给上一题的 FJ 解释器实际执行。
 
+\Needspace{14\baselineskip}
 \textbf{验证顺序。}
 先测试无泛型 FJ 程序在扩展后行为不变；再测试单一泛型容器、带界类型变量、泛型
-方法、继承时改变类型实参、递归上界，以及违反上界的拒绝案例。最后比较擦除前后
-的求值结果。这样既覆盖 GJ 扩展新增的静态机制，也验证它没有改变 FJ 原有程序的
-可观察行为。
+方法、继承时改变类型实参、递归上界，以及违反上界的拒绝案例。还要拒绝重定义
+\texttt{Object} 和改变类型形参上界的非法方法覆盖，并用泛型返回值处于更具体类型
+上下文的程序检验转换插入。最后比较擦除前后的求值结果。这样既覆盖 GJ 扩展新增
+的静态机制，也验证它没有改变 FJ 原有程序的可观察行为。
 
 下面给出参与编译和测试的泛型语法、类表检查、带界类型检查及擦除执行实现。配套
 测试覆盖无泛型程序回归、泛型容器、泛型方法、通过上界查询成员、继承时改变类型
-实参、递归上界、上界违反、方法体类型错误，以及擦除结果的实际求值。
+实参、递归上界、上界违反、方法体类型错误、非法泛型覆盖、保留类名，以及擦除后
+需要插入转换的方法体和链式成员调用。
 
 \taplrustsupportchunkfirst{ch19-gj}{1}{30}
 \taplrustsupportchunk{ch19-gj}{31}{60}
@@ -402,7 +409,10 @@ F-有界约束，例如 \(X\subtype\mathit{Comparable}\langle X\rangle\)。
 \taplrustsupportchunk{ch19-gj}{511}{540}
 \taplrustsupportchunk{ch19-gj}{541}{570}
 \taplrustsupportchunk{ch19-gj}{571}{600}
-\taplrustsupportchunk{ch19-gj}{601}{619}
+\taplrustsupportchunk{ch19-gj}{601}{630}
+\taplrustsupportchunk{ch19-gj}{631}{660}
+\taplrustsupportchunk{ch19-gj}{661}{690}
+\taplrustsupportchunk{ch19-gj}{691}{718}
 
 \taplsolutionbacklink{ex:19.5.6}{返回练习19.5.6}
 \end{taplsolutionentrybox}
