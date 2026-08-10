@@ -1,14 +1,14 @@
 PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 PYGMENTS_PATH := $(abspath .venv/bin)
 
-.PHONY: setup pdf preface-figures split verify-splits preface-assets init-review rust-snippets rust-check check-terms check-links clean
+.PHONY: setup pdf preface-figures split verify-splits preface-assets init-review rust-snippets rust-check ocaml-check check-terms check-links clean
 
 setup:
 	python3 -m venv .venv
 	.venv/bin/python -m pip install --upgrade pip
 	.venv/bin/python -m pip install -r requirements.txt
 
-pdf: check-terms check-links rust-snippets preface-figures
+pdf: check-terms check-links rust-snippets rust-check ocaml-check preface-figures
 	mkdir -p build output/pdf
 	@if command -v latexmk >/dev/null && command -v xelatex >/dev/null; then \
 		cd tex && PATH="$(PYGMENTS_PATH):$$PATH" latexmk -xelatex -shell-escape \
@@ -58,6 +58,14 @@ rust-check: rust-snippets
 	cd code && cargo fmt --all --check
 	cd code && cargo clippy --workspace --all-targets -- -D warnings
 	cd code && cargo test --workspace
+
+ocaml-check:
+	@command -v ocamlc >/dev/null || { echo "ocamlc is required"; exit 1; }
+	mkdir -p build/ocaml/chapter17
+	cp code/ocaml/chapter17/diagnostics.ml build/ocaml/chapter17/
+	cp code/ocaml/chapter17/coercion.ml build/ocaml/chapter17/
+	cd build/ocaml/chapter17 && ocamlc -o diagnostics.byte diagnostics.ml && ./diagnostics.byte
+	cd build/ocaml/chapter17 && ocamlc -o coercion.byte coercion.ml && ./coercion.byte
 
 check-terms:
 	$(PYTHON) scripts/check_term_first_use.py

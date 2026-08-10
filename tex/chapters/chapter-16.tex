@@ -1,12 +1,14 @@
 % 第 16 章：子类型化的元理论
 % Source: source/split/chapters/ch16-metatheory-of-subtyping_p200-p211.pdf
 % Original print pages: 209--220
-% Status: 待独立初审
+% Status: 独立复核
 
 \chapter{子类型化的元理论}
 \label{chap:16}
 
 \section*{概述}
+\phantomsection
+\label{sec:16-overview}
 
 上一章定义的带子类型化简单类型 lambda 演算还不适合直接实现。与此前的演算
 不同，这套规则不是\termfirst{语法导向的}{syntax directed}：不能简单地从
@@ -50,7 +52,7 @@
 
 \taplsecref{16.1}{sec:16.1}构造算法子类型关系，
 \taplsecref{16.2}{sec:16.2}构造算法类型关系。
-\taplsecref{16.3}{sec:16.3}处理条件式等多分支构造；它们还需要子类型关系
+\taplsecref{16.3}{sec:16.3}处理\cref{fig:8-1}中的布尔值、条件式等多分支构造；它们还需要子类型关系
 具有最小公共超类型，即并。\taplsecref{16.4}{sec:16.4}讨论最小类型
 \(\tapltype{Bot}\)。\footnote{本章研究\cref{fig:15-1,fig:15-3}中的演算。
 原书相应 OCaml 实现为 \texttt{rcdsub}；\taplsecref{16.3}{sec:16.3}
@@ -74,7 +76,8 @@
 而且包含的类型对与声明式子类型关系完全相同。两者最明显的区别是：算法关系
 没有 \textsc{S-Trans} 和 \textsc{S-Refl}。
 
-不过，在删去传递规则之前，先要重组记录子类型规则。上一章中，宽度、深度和
+不过，在删去传递规则之前，先要重组记录子类型规则。如
+\taplsecref{15.2}{sec:15.2}所见，宽度、深度和
 排列推导必须借助传递性拼接。将三条规则合并为一条宏规则：
 \[
 \inferrule*[right=\textsc{S-Rcd}]
@@ -104,21 +107,24 @@
 \centering
 \begin{minipage}{0.98\linewidth}
 \small
-\taplfigureheader{\(<:\)}
-  {扩展\cref{fig:15-1,fig:15-3}}
+\taplfigureheader{{\Large \(<:\)}}
+  {\cref{fig:15-1,fig:15-3}}
+\taplformalsystemcolumns{
 \[
-\begin{array}{c@{\qquad}c}
 \inferrule*[right=\textsc{S-Refl}]{ }{S\subtype S}
-&
-\inferrule*[right=\textsc{S-Top}]{ }{S\subtype\tapltype{Top}}
-\\[14pt]
+\]
+\[
 \inferrule*[right=\textsc{S-Trans}]
  {S\subtype U\\U\subtype T}{S\subtype T}
-&
+\]
+\[
+\inferrule*[right=\textsc{S-Top}]{ }{S\subtype\tapltype{Top}}
+\]
+}{
+\[
 \inferrule*[right=\textsc{S-Arrow}]
  {T_1\subtype S_1\\S_2\subtype T_2}
  {S_1\to S_2\subtype T_1\to T_2}
-\end{array}
 \]
 \[
 \inferrule*[right=\textsc{S-Rcd}]
@@ -127,6 +133,7 @@
  {\{k_j:S_j\}^{j\in1..m}\subtype
   \{l_i:T_i\}^{i\in1..n}}
 \]
+}
 \end{minipage}
 \caption{带记录的子类型关系（紧凑版本）}
 \label{fig:16-1}
@@ -164,19 +171,14 @@
 \centering
 \begin{minipage}{0.98\linewidth}
 \small
-\taplfigureheader{\(\algturnstile S\subtype T\)}
-  {算法子类型关系}
+\taplfigureheaderplain{\(\algturnstile\;<:\)}
+  {\tapltranslateditalic{算法子类型关系}}
+\taplformalsystemcolumns{
 \[
-\begin{array}{c@{\qquad}c}
 \inferrule*[right=\textsc{SA-Top}]
  { }{\algturnstile S\subtype\tapltype{Top}}
-&
-\inferrule*[right=\textsc{SA-Arrow}]
- {\algturnstile T_1\subtype S_1\\
-  \algturnstile S_2\subtype T_2}
- {\algturnstile S_1\to S_2\subtype T_1\to T_2}
-\end{array}
 \]
+}{
 \[
 \inferrule*[right=\textsc{SA-Rcd}]
  {\{l_i\mid i\in1..n\}\subseteq\{k_j\mid j\in1..m\}\\
@@ -184,6 +186,13 @@
  {\algturnstile\{k_j:S_j\}^{j\in1..m}\subtype
   \{l_i:T_i\}^{i\in1..n}}
 \]
+\[
+\inferrule*[right=\textsc{SA-Arrow}]
+ {\algturnstile T_1\subtype S_1\\
+  \algturnstile S_2\subtype T_2}
+ {\algturnstile S_1\to S_2\subtype T_1\to T_2}
+\]
+}
 \end{minipage}
 \caption{算法子类型关系}
 \label{fig:16-2}
@@ -246,7 +255,8 @@ subtype(S, T) =
 \section{算法类型关系}
 \label{sec:16.2}
 
-处理好子类型关系后，还要以同样方式处理类型关系。唯一不语法导向的类型规则是
+处理好子类型关系后，还要以同样方式处理类型关系。如
+\taplnamedref{sec:16-overview}{本章概述}所见，唯一不语法导向的类型规则是
 \textsc{T-Sub}。它不能简单删掉；必须先找出包容规则在类型推导中不可替代的
 用途，再把这种用途嵌入其他类型规则。
 
@@ -299,8 +309,11 @@ subtype(S, T) =
   S_{12}\subtype T_{12}}
  {\Gamma\vdash s_1\,s_2:T_{12}}
 \]
-原书勘误所说的“右侧子推导”，指的正是产生结果类型关系
-\(S_{12}\subtype T_{12}\) 的那棵子推导。
+这里发生了两种移动。原来 \textsc{S-Arrow} 右侧的前提
+\(S_{12}\subtype T_{12}\) 被下移到整个应用推导的末端，用来提升最终结果
+类型；原来 \textsc{T-App} 右侧、用于推导实参
+\(\Gamma\vdash s_2:T_{11}\) 的子推导，则被嵌入新的实参推导中，再由
+\(T_{11}\subtype S_{11}\) 把实参提升为函数真正接受的类型。
 
 若包容规则出现在 \textsc{T-App} 的右侧实参子推导末尾，只能把它移入左侧：
 把函数的参数类型从 \(T_{11}\) 逆变为实参原有的 \(T_2\)。这部分包容无法
@@ -343,38 +356,39 @@ subtype(S, T) =
 \centering
 \begin{minipage}{0.98\linewidth}
 \small
-\taplfigureheader{\(\Gamma\algturnstile t:T\)}
-  {算法类型关系}
+\taplfigureheaderplain{\(\Gamma\algturnstile t:T\)}
+  {\tapltranslateditalic{算法类型关系}}
+\taplformalsystemcolumns{
 \[
-\begin{array}{c@{\qquad}c}
 \inferrule*[right=\textsc{TA-Var}]
  {x:T\in\Gamma}{\Gamma\algturnstile x:T}
-&
+\]
+\[
 \inferrule*[right=\textsc{TA-Abs}]
  {\Gamma,x:T_1\algturnstile t_2:T_2}
  {\Gamma\algturnstile\lambda x:T_1.\,t_2:T_1\to T_2}
-\\[18pt]
-\multicolumn{2}{c}{
+\]
+\[
 \inferrule*[right=\textsc{TA-App}]
  {\Gamma\algturnstile t_1:T_1\\T_1=T_{11}\to T_{12}\\
   \Gamma\algturnstile t_2:T_2\\
   \algturnstile T_2\subtype T_{11}}
- {\Gamma\algturnstile t_1\,t_2:T_{12}}}
-\end{array}
+ {\Gamma\algturnstile t_1\,t_2:T_{12}}
 \]
+}{
 \[
-\begin{array}{c@{\qquad}c}
 \inferrule*[right=\textsc{TA-Rcd}]
  {\Gamma\algturnstile t_i:T_i\quad(\text{对每个 }i)}
  {\Gamma\algturnstile\{l_i=t_i\}^{i\in1..n}:
   \{l_i:T_i\}^{i\in1..n}}
-&
+\]
+\[
 \inferrule*[right=\textsc{TA-Proj}]
  {\Gamma\algturnstile t_1:R_1\\
   R_1=\{l_i:T_i\}^{i\in1..n}}
  {\Gamma\algturnstile t_1.l_j:T_j}
-\end{array}
 \]
+}
 \end{minipage}
 \caption{算法类型关系}
 \label{fig:16-3}

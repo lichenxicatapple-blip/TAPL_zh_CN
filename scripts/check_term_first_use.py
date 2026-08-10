@@ -93,37 +93,42 @@ def scan_first_uses() -> tuple[list[FirstUse], list[str]]:
     problems: list[str] = []
 
     for path in source_files():
+        contents = path.read_text(encoding="utf-8")
+        headings = list(HEADING_PATTERN.finditer(contents))
+        heading_index = 0
         heading = ""
-        for line_number, line in enumerate(
-            path.read_text(encoding="utf-8").splitlines(), start=1
-        ):
-            heading_match = HEADING_PATTERN.search(line)
-            if heading_match:
-                heading = plain_heading(heading_match.group(1))
 
-            for match in TERM_PATTERN.finditer(line):
-                location = base_location(path)
-                if heading:
-                    location = f"{location}·{heading}"
-                use = FirstUse(
-                    chinese=" ".join(match.group(1).split()),
-                    english=" ".join(match.group(2).split()),
-                    location=location,
-                    source=path.relative_to(ROOT),
-                    line=line_number,
+        # Read the whole file so an annotation may wrap across source lines.
+        for match in TERM_PATTERN.finditer(contents):
+            while (
+                heading_index < len(headings)
+                and headings[heading_index].start() < match.start()
+            ):
+                heading = plain_heading(headings[heading_index].group(1))
+                heading_index += 1
+
+            location = base_location(path)
+            if heading:
+                location = f"{location}·{heading}"
+            use = FirstUse(
+                chinese=" ".join(match.group(1).split()),
+                english=" ".join(match.group(2).split()),
+                location=location,
+                source=path.relative_to(ROOT),
+                line=contents.count("\n", 0, match.start()) + 1,
+            )
+            key = normalize_english(use.english)
+            previous = seen.get(key)
+            if previous is not None:
+                problems.append(
+                    "duplicate \\\\termfirst for "
+                    f"{use.english!r}: "
+                    f"{previous.source}:{previous.line} and "
+                    f"{use.source}:{use.line}"
                 )
-                key = normalize_english(use.english)
-                previous = seen.get(key)
-                if previous is not None:
-                    problems.append(
-                        "duplicate \\\\termfirst for "
-                        f"{use.english!r}: "
-                        f"{previous.source}:{previous.line} and "
-                        f"{use.source}:{use.line}"
-                    )
-                else:
-                    seen[key] = use
-                    uses.append(use)
+            else:
+                seen[key] = use
+                uses.append(use)
 
     return uses, problems
 

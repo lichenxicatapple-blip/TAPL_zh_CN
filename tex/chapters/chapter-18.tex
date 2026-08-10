@@ -1,20 +1,22 @@
 % 第 18 章：案例研究——命令式对象
 % Source: source/split/chapters/ch18-imperative-objects_p216-p238.pdf
 % Original print pages: 225--247
-% Status: 待独立初审
+% Status: 独立复核
 
 \chapter{案例研究：命令式对象}
 \label{chap:18}
 
 本章进入第一个较为完整的程序设计示例。我们将综合运用此前定义的大部分
-机制——函数、记录、一般递归、可变引用与子类型化——构造一组支持对象和类的
+机制——函数、记录、一般递归、可变引用与子类型化——构造一组支持对象和
+\termfirst{类}{class}的
 编程惯用法。这些对象与类类似于 Smalltalk、Java 等面向对象语言中的相应机制。
 本章不会为对象或类加入新的具体语法；这里的目标，是用层次更低的构造近似
 实现这些较复杂的语言特性，从而理解它们的工作方式。
 
 在本章大部分内容中，这种近似相当准确：把对象和类视为派生形式，并将其去糖
-为已有机制的简单组合，便能令人满意地实现它们的大多数特性。不过，讨论虚方法
-与 \texttt{self} 时会遇到求值次序问题，使这种去糖不够贴近真实实现。更直接的
+为已有机制的简单组合，便能令人满意地实现它们的大多数特性。不过，
+\taplsecref{18.9}{sec:18.9}讨论\termfirst{虚方法}{virtual method}与
+\texttt{self} 时会遇到求值次序问题，使这种去糖不够贴近真实实现。更直接的
 做法是明确规定对象与类的语法、操作语义和类型规则；\chapref{19}将采用这种方式。
 
 \section{什么是面向对象程序设计？}
@@ -41,7 +43,8 @@
   组成。操作实现由静态定义，既有优点也有缺点；\taplsecref{24.2}{sec:24.2}
   会进一步比较二者。
 
-\item \textbf{封装。}对象的内部表示通常不会暴露在对象定义之外；只有对象
+\item \textbf{\termfirst{封装}{encapsulation}。}对象的内部表示通常不会
+  暴露在对象定义之外；只有对象
   自身的方法可以直接查看或修改其字段。\footnote{不同语言对封装的具体规定
   并不相同。在 Smalltalk 中，对象外部根本无法命名其内部字段；Java 和 C++
   则允许把字段标为 \texttt{public} 或 \texttt{private}。反过来，Smalltalk
@@ -51,8 +54,12 @@
   Fisher 与 Mitchell, 1996；Fisher, 1996b；Fisher 与 Reppy, 1999）。
 
   虽然大多数面向对象语言都把封装视为核心概念，也有一些语言并不如此。
-  CLOS、Cecil、Dylan、KEA 以及 Castagna、Ghelli 与 Longo 的
-  lambda-\& 演算采用多方法，把对象状态与方法分开，并在方法调用时借助特殊
+  CLOS（Bobrow、DeMichiel、Gabriel、Keene、Kiczales 与 Moon, 1988；
+  Kiczales、des Rivières 与 Bobrow, 1991）、Cecil（Chambers, 1992,
+  1993）、Dylan（Feinberg、Keene、Mathews 与 Withington, 1997；Shalit）、
+  KEA（Mugridge、Hamer 与 Hosking, 1991），以及 Castagna、Ghelli 与
+  Longo（1995；另见 Castagna, 1997）的 lambda-\& 演算采用多方法，把对象
+  状态与方法分开，并在方法调用时借助特殊
   类型标签从重载的方法体中选择合适分支。这些语言在对象创建、方法调用和类
   定义方面的底层机制与本章差别很大，不过最终形成的高层编程惯用法颇为相似。}
   这意味着修改对象的内部表示时，影响
@@ -74,13 +81,13 @@
   一部分操作的能力，使同一段客户代码能够统一处理多种对象，只要求它们提供
   某组共同操作。
 
-\item \textbf{继承。}接口有部分重合的对象通常也会共享部分行为，我们希望
-  这些共同行为只实现一次。大多数面向对象语言通过\termfirst{类}{class}实现
+\item \textbf{\termfirst{继承}{inheritance}。}接口有部分重合的对象通常也会共享部分行为，我们希望
+  这些共同行为只实现一次。大多数面向对象语言通过类实现
   这种复用：类是创建对象的模板；\termfirst{子类化}{subclassing}允许在旧类
   上增加新方法，并在必要时有选择地覆盖旧方法，从而派生新类。有些语言不用
   类，而采用\termfirst{委托}{delegation}，把对象与类的特性结合起来。
 
-\item \textbf{开放递归。}大多数具有对象和类的语言还允许一个方法体通过特殊
+\item \textbf{\termfirst{开放递归}{open recursion}。}大多数具有对象和类的语言还允许一个方法体通过特殊
   变量 \texttt{self}（有些语言写作 \texttt{this}）调用同一对象的其他方法。
   \texttt{self} 的特殊之处在于它采用\termfirst{迟绑定}{late binding}：在
   某个类中定义的方法，可以调用直到该类的某个子类中才定义的方法。
@@ -443,8 +450,8 @@ newSetCounter =
 \section{通过 \texttt{self} 实现开放递归}
 \label{sec:18.10}
 
-大多数面向对象语言支持更一般的方法间递归调用，称为
-\termfirst{开放递归}{open recursion}，也称 \texttt{self} 的迟绑定。
+大多数面向对象语言支持更一般的方法间递归调用，称为开放递归，也称
+\texttt{self} 的迟绑定。
 要实现这种行为，先从类定义中移走 \texttt{fix}：
 
 \begin{lstlisting}
@@ -523,6 +530,8 @@ newInstrCounter =
     fix (instrCounterClass r);
 
 ? newInstrCounter : Unit -> InstrCounter
+
+ic = newInstrCounter unit;
 \end{lstlisting}
 
 再计算 \texttt{newInstrCounter unit}，求值器会发散。下面逐步说明原因。用
@@ -557,7 +566,7 @@ newInstrCounter =
 把括号中的函数记作 \(\langle f\rangle\)，当前项便是
 \(\mathsf{fix}\,\langle f\rangle\)。
 
-\item 按照规则 \textsc{E-FixBeta} 展开
+\item 按照\cref{fig:11-12}中的规则 \textsc{E-FixBeta} 展开
 \(\mathsf{fix}\,\langle f\rangle\)，也就是在
 \(\langle f\rangle\) 的函数体中，用
 \(\mathsf{fix}\,\langle f\rangle\) 替换 \texttt{self}：
@@ -579,11 +588,35 @@ newInstrCounter =
 
 \item 按值调用要求先把实参
 \(\mathsf{fix}\,\langle f\rangle\) 求值为值，才能执行外层 beta 归约。
-于是下一步只能再次展开 \texttt{fix}，得到一个更深的同类表达式。
+于是下一步只能再次展开 \texttt{fix}，得到
+\[
+\begin{aligned}
+\mathsf{let}\ super={}&
+  (\lambda self:\mathit{SetCounter}.\,
+    \langle\mathit{smethods}\rangle)\\
+&\quad(\mathsf{let}\ super=
+    \mathit{setCounterClass}\,\langle\mathit{ivars}\rangle\,
+      (\mathsf{fix}\,\langle f\rangle)\\
+&\qquad\mathsf{in}\ \langle\mathit{imethods}\rangle)\\
+\mathsf{in}\ &\langle\mathit{imethods}\rangle
+\end{aligned}
+\]
 
-\item 对内层的 \texttt{setCounterClass} 应用继续求值，又出现一项
-\((\lambda self.\langle\mathit{smethods}\rangle)
-  (\mathsf{fix}\,\langle f\rangle)\)。
+\item 外层 lambda 抽象的实参仍不是值，因此继续求值其中的内层项。把
+\texttt{setCounterClass} 应用于 \(\langle\mathit{ivars}\rangle\)，得到
+\[
+\begin{aligned}
+\mathsf{let}\ super={}&
+  (\lambda self:\mathit{SetCounter}.\,
+    \langle\mathit{smethods}\rangle)\\
+&\quad(\mathsf{let}\ super=
+  (\lambda self:\mathit{SetCounter}.\,
+    \langle\mathit{smethods}\rangle)
+      (\mathsf{fix}\,\langle f\rangle)\\
+&\qquad\mathsf{in}\ \langle\mathit{imethods}\rangle)\\
+\mathsf{in}\ &\langle\mathit{imethods}\rangle
+\end{aligned}
+\]
 
 \item 新出现的应用仍须先把实参 \(\mathsf{fix}\,\langle f\rangle\)
 求值，于是再次展开 \texttt{fix}。相同结构会不断加深，外层应用永远无法执行。
@@ -591,8 +624,9 @@ newInstrCounter =
 
 问题在于，传给 \texttt{fix} 的函数过早使用了自己的参数 \texttt{self}。
 \texttt{fix} 的操作语义预期：对 \(\lambda x.t\) 取不动点时，\(t\) 只在
-受保护的位置——例如内层 lambda 抽象的函数体——引用 \(x\)。\chapref{11}的
-\texttt{iseven} 把 \texttt{fix} 用于形如
+受保护的位置——例如内层 lambda 抽象的函数体——引用 \(x\)。
+\taplnamedref{sec:11.11}{第11.11节的 \texttt{iseven} 示例}把
+\texttt{fix} 用于形如
 \(\lambda ie.\lambda x.\ldots\) 的函数，递归引用 \(ie\) 受内层抽象
 \(\lambda x\) 保护。这里的 \texttt{instrCounterClass} 却在计算
 \texttt{super} 时立刻使用 \texttt{self}。
@@ -614,7 +648,8 @@ newInstrCounter =
 
 用无关紧要的 lambda 抽象控制求值次序，是函数式程序设计中常用的技巧。任意
 表达式 \(t\) 都可以变成函数
-\(\lambda\_:\tapltype{Unit}.t\)，也就是延迟计算封装。这个函数在句法上
+\(\lambda\_:\tapltype{Unit}.t\)，也就是
+\termfirst{延迟计算封装}{thunk}。这个函数在句法上
 已经是值；求值 \(t\) 所需的计算都会推迟到该函数应用于 \texttt{unit} 时。
 于是，程序可以先以未求值形式传递 \(t\)，以后再请求它的结果。
 
@@ -764,6 +799,20 @@ newSetCounter =
 \texttt{Ref InstrCounter} 不可比较；把后者提升为前者并不安全。于是，在
 \texttt{instrCounterClass} 中构造 \texttt{super} 时会发生参数类型不匹配。
 
+\begin{lstlisting}
+instrCounterClass =
+  lambda r:InstrCounterRep.
+  lambda self:Ref InstrCounter.
+    let super = setCounterClass r self in
+      {get = super.get,
+       set = lambda i:Nat.
+               (r.a := succ(!(r.a)); super.set i),
+       inc = super.inc,
+       accesses = lambda _:Unit. !(r.a)};
+
+? Error: parameter type mismatch
+\end{lstlisting}
+
 解决办法是把 \texttt{self} 类型中的 \texttt{Ref} 换成
 \texttt{Source}：只把读取方法指针的能力交给类，不交出它并不需要的写入能力。
 \texttt{Source} 允许协变子类型化，所以
@@ -844,8 +893,8 @@ newInstrCounter =
 
 \item \textbf{开放递归。}现实语言中由 \texttt{self} 或 \texttt{this}
   提供的开放递归，在这里通过另一项类参数 \texttt{self} 模拟。方法可以借它
-  引用同一对象的其他方法。创建对象时再用 \texttt{fix} 或可回填的引用单元
-  把这项参数与最终的方法记录连接起来。
+  引用同一对象的其他方法。创建对象时再用 \texttt{fix} 把这项参数与最终的
+  方法记录连接起来。
 \end{enumerate}
 
 \begin{exercise}[\(\star\star\star\)]

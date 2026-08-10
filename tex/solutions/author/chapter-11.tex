@@ -109,7 +109,7 @@ E_i=2^{i+1}-3
 第二种展开先把 \(t\) 包进 \(\lambda y:\tapltype{Unit}.\,t\)。lambda 抽象
 本身已经是值，所以按值求值不会立即进入函数体计算 \(t\)。这种把尚未求值的
 表达式包进函数、留待以后触发的结构称为
-\termfirst{延迟计算封装}{thunk}。外层应用可以立即进行两次 \(\beta\) 规约：
+延迟计算封装。外层应用可以立即进行两次 \(\beta\) 规约：
 \[
 \begin{aligned}
 &(\lambda x:\tapltype{Unit}\to T.\,x\;\mathsf{unit})

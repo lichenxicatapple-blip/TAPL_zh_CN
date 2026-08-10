@@ -48,10 +48,24 @@
   \vdash xy:R_{xy}}
  {\vdash f\,xy:\tapltype{Nat}}
 \]
-也可以先由 \textsc{S-RcdWidth} 得到 \(R_{xy}\subtype R_x\)，再接一条
-\textsc{S-Refl} 和 \textsc{S-Trans}，然后才用 \textsc{T-Sub} 把
-\(xy\) 赋予 \(R_x\)。第二种做法还能任意插入更多反身和传递步骤。因此，本
-演算中每个可导出的类型判断实际上都有无穷多棵不同的推导树。
+另一棵推导先把实参 \(xy\) 的类型从 \(R_{xy}\) 提升为 \(R_x\)：
+\[
+\inferrule*[right=\textsc{T-App}]
+ {\vdash f:R_x\to\tapltype{Nat}
+  \\
+  \inferrule*[right=\textsc{T-Sub}]
+   {\inferrule*[right=\textsc{T-Rcd}]{\cdots}{\vdash xy:R_{xy}}
+    \\
+    \inferrule*[right=\textsc{S-Trans}]
+     {\inferrule*[right=\textsc{S-RcdWidth}]{ }{R_{xy}\subtype R_x}
+      \\
+      \inferrule*[right=\textsc{S-Refl}]{ }{R_x\subtype R_x}}
+     {R_{xy}\subtype R_x}}
+   {\vdash xy:R_x}}
+ {\vdash f\,xy:\tapltype{Nat}}
+\]
+第二种做法还能任意插入更多反身和传递步骤。因此，本演算中每个可导出的类型
+判断实际上都有无穷多棵不同的推导树。
 
 \taplsolutionbacklink{ex:15.2.2}{返回练习15.2.2}
 \end{taplauthorsolutionentrybox}
@@ -138,9 +152,24 @@
 反过来，从子类型关系中删去类型对并无妨。进展性定理只在前提中提到类型关系；
 限制子类型关系，继而限制类型关系，只会减少需要考虑的良类型项。保持性方面，
 即使删去 \textsc{S-Trans} 也不会有问题，因为 \textsc{T-Sub} 可以恢复它
-在类型推导中的作用：若已有 \(\Gamma\vdash t:S\)、\(S\subtype U\) 和
-\(U\subtype T\)，可以连续使用两次 \textsc{T-Sub}，先得到
-\(\Gamma\vdash t:U\)，再得到 \(\Gamma\vdash t:T\)。
+在类型推导中的作用。例如，原先可以写成
+\[
+\inferrule*[right=\textsc{T-Sub}]
+ {\Gamma\vdash t:S
+  \\
+  \inferrule*[right=\textsc{S-Trans}]
+   {S\subtype U\\U\subtype T}{S\subtype T}}
+ {\Gamma\vdash t:T}
+\]
+的推导，总可以改写为连续两次包容：
+\[
+\inferrule*[right=\textsc{T-Sub}]
+ {\inferrule*[right=\textsc{T-Sub}]
+   {\Gamma\vdash t:S\\S\subtype U}{\Gamma\vdash t:U}
+  \\
+  U\subtype T}
+ {\Gamma\vdash t:T}
+\]
 
 \taplsolutionbacklink{ex:15.3.1}{返回练习15.3.1}
 \end{taplauthorsolutionentrybox}

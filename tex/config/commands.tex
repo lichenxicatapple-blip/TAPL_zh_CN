@@ -47,17 +47,20 @@
 \newcommand{\taplfigureheader}[2]{%
   \noindent\textbf{#1}\hfill\textit{扩展 #2}\par\smallskip
 }
-\newcommand{\taplformalsystemcolumns}[2]{%
+\newcommand{\taplfigureheaderplain}[2]{%
+  \noindent\textbf{#1}\hfill\textit{#2}\par\smallskip
+}
+\newcommand{\taplformalsystemcolumns}[3][0.38]{%
   \par\smallskip
   \noindent
   \begin{tabularx}{\linewidth}{%
-    @{}>{\raggedright\arraybackslash}p{0.38\linewidth}%
+    @{}>{\raggedright\arraybackslash}p{#1\linewidth}%
     !{\hspace{0.018\linewidth}\vrule width 0.4pt\hspace{0.018\linewidth}}%
     >{\raggedright\arraybackslash}X@{}%
   }
     \hline
     \noalign{\vskip 6pt}
-    #1 & #2 \\
+    #2 & #3 \\
     \noalign{\vskip 6pt}
     \hline
   \end{tabularx}%
@@ -200,12 +203,37 @@
 }
 \newcommand{\taplrustsupport}[2][]{%
   \ifstrequal{#1}{break}{\tcbbreak}{}%
+  \ifstrequal{#1}{implementation-break}{\tcbbreak}{}%
   \par\Needspace{8\baselineskip}\smallskip
   \begingroup
     \noindent
-    {\footnotesize\bfseries Rust 辅助实现（译者增补）\par}
+    {\footnotesize\bfseries
+      \ifboolexpr{
+        test {\ifstrequal{#1}{implementation}}
+        or test {\ifstrequal{#1}{implementation-break}}
+      }{Rust 实现（译者增补）}{Rust 辅助实现（译者增补）}%
+      \par}
     \nobreak\smallskip
     \inputminted{rust}{../build/code-snippets/#2.rs}%
+  \endgroup
+  \par\medskip
+}
+\newcommand{\taplrustsupportchunk}[3]{%
+  \tcbbreak
+  \par\smallskip
+  \begingroup
+    \inputminted[firstline=#2,lastline=#3]{rust}{../build/code-snippets/#1.rs}%
+  \endgroup
+  \par\medskip
+}
+\newcommand{\taplrustsupportchunkfirst}[3]{%
+  \tcbbreak
+  \par\smallskip
+  \begingroup
+    \noindent
+    {\footnotesize\bfseries Rust 实现（译者增补）\par}
+    \nobreak\smallskip
+    \inputminted[firstline=#2,lastline=#3]{rust}{../build/code-snippets/#1.rs}%
   \endgroup
   \par\medskip
 }

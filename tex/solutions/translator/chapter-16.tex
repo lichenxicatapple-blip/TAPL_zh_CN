@@ -9,9 +9,11 @@
 证明分为两种情形。
 
 \textbf{情形 \textsc{T-Rcd}。}设记录的第 \(i\) 个字段原先由
-\(\Gamma\vdash t_i:T_i\) 得到。若这棵字段推导最后使用了
-\textsc{T-Sub}，则存在 \(S_i\)，使
-\(\Gamma\vdash t_i:S_i\) 且 \(S_i\subtype T_i\)。先对所有字段应用
+\(\Gamma\vdash t_i:T_i\) 得到。对每个字段分别定义 \(S_i\)：若该字段
+推导最后使用了 \textsc{T-Sub}，就取包容前的类型 \(S_i\)，使
+\(\Gamma\vdash t_i:S_i\) 且 \(S_i\subtype T_i\)；若末条规则不是
+\textsc{T-Sub}，则令 \(S_i=T_i\)，并由反身性得到
+\(S_i\subtype T_i\)。先对所有字段应用
 \textsc{T-Rcd}，得到
 \[
   \Gamma\vdash\{l_i=t_i\}^{i\in1..n}:

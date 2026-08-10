@@ -26,6 +26,10 @@ SUPPORT_REFERENCE = re.compile(
     r"\\taplrustsupport(?:\[[^\]]*\])?"
     r"\{([a-z0-9][a-z0-9-]*)\}"
 )
+SUPPORT_CHUNK_REFERENCE = re.compile(
+    r"\\taplrustsupportchunk(?:first)?"
+    r"\{([a-z0-9][a-z0-9-]*)\}\{\d+\}\{\d+\}"
+)
 EXPLANATION_REFERENCE = re.compile(r"\\taplrustexplanation\{")
 OCAML_SYNTAX_ONLY_REFERENCE = re.compile(r"(?<!\{)\\taplocamlsyntaxonly\b")
 OCAML_BEGIN = re.compile(r"\\begin\{taplocamlcode\}(?:\[[^\]]*\])?")
@@ -86,6 +90,8 @@ def extract() -> dict[str, tuple[Path, str]]:
 
 def references() -> set[str]:
     names: list[str] = []
+    direct_names: list[str] = []
+    chunk_names: list[str] = []
     errors: list[str] = []
     for source in sorted(TEX_ROOT.rglob("*.tex")):
         contents = source.read_text(encoding="utf-8")
@@ -96,6 +102,7 @@ def references() -> set[str]:
         syntax_only = OCAML_WITH_SYNTAX_ONLY.findall(contents)
         counterparts_in_file = COUNTERPART_REFERENCE.findall(contents)
         support_in_file = SUPPORT_REFERENCE.findall(contents)
+        support_chunks_in_file = SUPPORT_CHUNK_REFERENCE.findall(contents)
         explanations_in_file = EXPLANATION_REFERENCE.findall(contents)
         syntax_only_in_file = OCAML_SYNTAX_ONLY_REFERENCE.findall(contents)
         if begin_count != end_count:
@@ -126,10 +133,20 @@ def references() -> set[str]:
             )
         names.extend(counterparts_in_file)
         names.extend(support_in_file)
+        names.extend(support_chunks_in_file)
+        direct_names.extend(counterparts_in_file)
+        direct_names.extend(support_in_file)
+        chunk_names.extend(support_chunks_in_file)
 
-    duplicates = sorted(name for name, count in Counter(names).items() if count > 1)
+    duplicates = sorted(name for name, count in Counter(direct_names).items() if count > 1)
     if duplicates:
         errors.append(f"duplicate Rust snippet references: {', '.join(duplicates)}")
+    mixed = sorted(set(direct_names) & set(chunk_names))
+    if mixed:
+        errors.append(
+            "Rust snippets cannot be referenced both whole and in chunks: "
+            + ", ".join(mixed)
+        )
     if errors:
         raise ValueError("\n".join(errors))
     return set(names)

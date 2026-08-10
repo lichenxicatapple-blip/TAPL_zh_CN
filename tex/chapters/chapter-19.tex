@@ -1,7 +1,7 @@
 % 第 19 章：案例研究——Featherweight Java
 % Source: source/split/chapters/ch19-featherweight-java_p239-p253.pdf
-% Original print pages: 247--263
-% Status: 待独立初审
+% Original print pages: 247--264
+% Status: 独立复核
 
 \chapter{案例研究：Featherweight Java}
 \label{chap:19}
@@ -41,9 +41,12 @@ Krishnamurthi 与 Felleisen（1998a, 1998b）的系统。由于规模小，FJ �
 
 FJ 主要用于研究 Java 的扩展。由于 FJ 本身十分紧凑，扩展中的本质部分会更
 醒目；同时，纯 FJ 的类型安全性证明很短，所以即使加入重要扩展，严格的安全性
-证明仍可能保持在可管理范围内。FJ 原始论文以 GJ 风格的泛型类和泛型方法说明
-这种用途；后续工作还用它形式化原始类型、研究 Java 内部类、保类型编译以及
-Java 的语义基础。
+证明仍可能保持在可管理范围内。FJ 原始论文以 GJ 风格的泛型类和泛型方法
+（Bracha、Odersky、Stoutamire 与 Wadler, 1998）说明这种用途。后续论文
+（Igarashi、Pierce 与 Wadler, 2001）还用 FJ 形式化了原始类型；这种类型是
+GJ 为方便既有 Java 程序逐步迁移到 GJ 而引入的。Igarashi 与 Pierce（2000）
+以 FJ 为基础研究 Java 内部类；FJ 也被用于研究 Java 的保类型编译（League、
+Trifonov 与 Shao, 2001）和语义基础（Studer, 2001）。
 
 设计 FJ 时，希望在保留完整版 Java 核心特性之安全性论证的同时，让类型安全性
 证明尽量简短。若某项语言特性只会把证明拉长，却不会使论证发生实质变化，就
@@ -54,10 +57,14 @@ Java 的语义基础。
 方法调用、方法覆盖、通过 \texttt{this} 进行方法递归、子类型化与类型转换。
 
 省略赋值是关键的简化。对象字段由构造函数初始化，此后不再改变。FJ 因而只
-覆盖 Java 的“函数式”片段，许多常见 Java 惯用法无法表示。尽管如此，这个
+覆盖 Java 的“函数式”片段，许多常见 Java 惯用法——例如枚举的用法——无法
+表示。尽管如此，这个
 片段仍然计算完备——把 lambda 演算编码进去并不困难——也足以容纳有实际意义
 的程序；例如 Felleisen 与 Friedman（1998）的 Java 教材中，许多程序采用
 纯函数式风格。
+
+\translatornote{作者勘误指出，原文举出的 ``use of enumerations'' 究竟指
+哪一种具体用法并不明确。译文保留原文的概括说法，不擅自指定某种枚举编码。}
 
 \section{概览}
 \label{sec:19.2}
@@ -73,9 +80,11 @@ class B extends Object { B() { super(); } }
 class Pair extends Object {
   Object fst;
   Object snd;
+  // Constructor:
   Pair(Object fst, Object snd) {
     super(); this.fst=fst; this.snd=snd;
   }
+  // Method definition:
   Pair setfst(Object newfst) {
     return new Pair(newfst, this.snd);
   }
@@ -138,6 +147,21 @@ new Pair(new A(), new B()).setfst(new B())
 \begin{lstlisting}
 new Pair(newfst,this.snd)
 \end{lstlisting}
+这次方法调用的完整规约为
+\[
+\begin{aligned}
+&\mathsf{new}\ \mathit{Pair}(\mathsf{new}\ A(),\mathsf{new}\ B())
+  .\mathit{setfst}(\mathsf{new}\ B())\\
+\trans{}&
+  [\mathit{newfst}\mapsto\mathsf{new}\ B(),\nobreak\quad
+   \mathsf{this}\mapsto
+     \mathsf{new}\ \mathit{Pair}(\mathsf{new}\ A(),\mathsf{new}\ B())]
+  \;\mathsf{new}\ \mathit{Pair}(\mathit{newfst},\mathsf{this}.snd)\\
+={}&\mathsf{new}\ \mathit{Pair}
+  (\mathsf{new}\ B(),
+   \mathsf{new}\ \mathit{Pair}(\mathsf{new}\ A(),\mathsf{new}\ B()).snd)
+\end{aligned}
+\]
 规约时用实参替换形参，并用接收者对象替换特殊变量 \texttt{this}。这类似
 lambda 演算的 beta 归约规则
 \textsc{E-AppAbs}，但有两个重要区别：接收者的类决定到哪里查找方法体，从而
@@ -164,7 +188,23 @@ lambda 演算的 beta 归约规则
 类型程序绝不会出现前两种情况；不含向下类型转换和下文所谓“荒谬转换”的良类型
 程序也不会出现第三种情况。
 
-FJ 采用标准的按值调用求值策略。
+FJ 采用标准的按值调用求值策略。前面第二个示例按以下四步求值；每一行的下划线
+标出下一步要规约的子项：
+\[
+\begin{aligned}
+&((\mathit{Pair})\,
+  \taplredex{\mathsf{new}\ \mathit{Pair}
+    (\mathsf{new}\ \mathit{Pair}(\mathsf{new}\ A(),\mathsf{new}\ B()),
+     \mathsf{new}\ A()).fst}).snd\\
+\trans{}&
+  \taplredex{(\mathit{Pair})\,
+    \mathsf{new}\ \mathit{Pair}(\mathsf{new}\ A(),\mathsf{new}\ B())}.snd\\
+\trans{}&
+  \taplredex{\mathsf{new}\ \mathit{Pair}
+    (\mathsf{new}\ A(),\mathsf{new}\ B()).snd}\\
+\trans{}&\mathsf{new}\ B()
+\end{aligned}
+\]
 
 \section{名义类型系统与结构类型系统}
 \label{sec:19.3}
@@ -202,7 +242,9 @@ type system}。
 指针。这类类型标签可用于运行期类型测试（例如 Java 的 \texttt{instanceof}
 与向下转换）、打印、把数据结构编组为二进制格式以便保存或传输，以及反射。
 结构系统也能支持运行期类型标签，但它们是额外的独立机制；名义系统则把运行期
-标签与编译期类型统一起来。
+标签与编译期类型统一起来。结构系统中的相关实现可参见 Glew（1999）、
+League、Shao 与 Trifonov（1999）以及 League、Trifonov 与 Shao（2001）及
+这些论文所引文献。
 
 名义系统还自然地处理递归类型，也就是定义中提到自身的类型。\chapref{20}将
 详细讨论递归类型。列表、树等常见结构都需要这种类型；在名义系统中，在
@@ -220,11 +262,12 @@ type system}。
 在定义处检查一次，不必每次子类型判断都重新检查。名义类型检查器因此较容易
 获得良好性能。不过在成熟编译器中，两种风格的实际性能差异未必很大，因为工程
 良好的结构类型检查器会利用表示技术，把大多数子类型检查化为一次比较；参见
-原书第 222 页。
+\taplsecref{17.2}{sec:17.2}。
 
 显式子类型声明还常被认为可以防止“偶然包容”：一个值虽与预期类型用途完全
 不同，却因结构相容而被类型检查器接受。这个优点更有争议，因为单构造子数据
-类型或抽象数据类型等办法也能防止偶然包容，而且可能更合适。
+类型（见\taplsecref{11.10}{sec:11.10}）或抽象数据类型（见\chapref{24}）
+等办法也能防止偶然包容，而且可能更合适。
 
 鉴于运行期类型标签十分有用，递归类型处理又很简单，主流程序语言普遍采用名义
 类型系统并不意外。程序语言研究文献却几乎完全关注结构类型系统。
@@ -237,7 +280,10 @@ type system}。
 多态、抽象数据类型、用户定义的类型算子、函子等，以及实现这些特性的 ML、
 Haskell 等语言。这些机制很难自然纳入纯名义系统。例如 \texttt{List(T)} 无法
 看作原子名称：程序某处只有一份 \texttt{List} 构造子的定义，必须查看它才能
-理解 \texttt{List(T)} 的行为。若干名义语言已经扩展了“泛型”机制，但结果
+理解 \texttt{List(T)} 的行为。若干名义语言已经扩展了“泛型”机制
+（Myers、Bank 与 Liskov, 1997；Agesen、Freund 与 Mitchell, 1997；
+Bracha、Odersky、Stoutamire 与 Wadler, 1998；Cartwright 与 Steele,
+1998；Stroustrup, 1997），但结果
 不再是纯名义系统，而是两种方法的复杂混合。因此，带高级类型特性的语言设计者
 往往偏好结构方法。
 
@@ -259,10 +305,11 @@ FJ 的语法见\cref{fig:19-1}。元变量 \(A,B,C,D,E\) 表示类名；\(f,g\) 
 
 \begin{figure}[!ht]
 \centering
-\begin{minipage}{0.96\linewidth}
+\begin{minipage}{0.98\linewidth}
 \scriptsize
-\begin{minipage}[t]{0.56\linewidth}
-\textit{语法}
+\taplfigureheaderplain{FJ}{\tapltranslateditalic{语法与子类型关系}}
+\taplformalsystemcolumns[0.56]{
+\tapltranslateditalic{语法}
 \[
 \begin{array}{rcll}
 CL&::=&\mathsf{class}\ C\ \mathsf{extends}\ D\
@@ -275,15 +322,16 @@ K&::=&C(\overline C\ \overline f)
 M&::=&C\ m(\overline C\ \overline x)
        \{\mathsf{return}\ t;\}
    &\text{方法声明}\\
-t&::=&x\mid t.f\mid t.m(\overline t)\mid
-       \mathsf{new}\ C(\overline t)\mid(C)t
-   &\text{项}\\
+t&::=&x&\text{变量}\\
+ &\mid&t.f&\text{字段访问}\\
+ &\mid&t.m(\overline t)&\text{方法调用}\\
+ &\mid&\mathsf{new}\ C(\overline t)&\text{对象创建}\\
+ &\mid&(C)t&\text{类型转换}\\
 v&::=&\mathsf{new}\ C(\overline v)&\text{值}
 \end{array}
 \]
-\end{minipage}\hfill
-\begin{minipage}[t]{0.40\linewidth}
-\textit{子类型关系}
+}{
+\tapltranslateditalic{子类型关系}\hfill\fbox{\(C\subtype D\)}
 \[
 \inferrule*[right=\textsc{S-Refl}]{ }{C\subtype C}
 \]
@@ -298,7 +346,7 @@ v&::=&\mathsf{new}\ C(\overline v)&\text{值}
  {C\subtype D}
 $}
 \]
-\end{minipage}
+}
 \end{minipage}
 \caption{Featherweight Java：语法与子类型关系}
 \label{fig:19-1}
@@ -310,6 +358,18 @@ $}
 \(\overline C\ \overline f\) 表示
 \(C_1 f_1,\ldots,C_n f_n\)。字段声明序列、形参名序列和方法声明序列都不
 含重名项。
+
+带分号的字段声明序列和构造函数中的赋值序列分别展开为
+\[
+\begin{aligned}
+\overline C\ \overline f;
+  &{}= C_1f_1;\ \cdots\ C_nf_n;\\
+\mathsf{this}.\overline f=\overline f;
+  &{}= \mathsf{this}.f_1=f_1;\ \cdots\
+       \mathsf{this}.f_n=f_n;
+\end{aligned}
+\]
+这里每一项之后都保留分号，包括序列的最后一项。
 
 类声明
 \[
@@ -323,7 +383,15 @@ $}
 并让新声明在当前类及其子类中遮蔽旧声明；FJ 省略这项特性。}方法则可以覆盖 \(D\) 中已有
 同名方法，也可以增加 \(C\) 特有的新功能。
 
-构造函数的形式完全由 \(C\) 及其超类的字段声明决定：形参数量必须恰好等于
+构造函数声明具有固定形式
+\[
+C(\overline D\ \overline g,\overline C\ \overline f)
+\{\mathsf{super}(\overline g);\
+  \mathsf{this}.\overline f=\overline f;\}
+\]
+其中 \(\overline D\ \overline g\) 是继承字段，
+\(\overline C\ \overline f\) 是当前类新声明的字段。构造函数的形式完全由
+\(C\) 及其超类的字段声明决定：形参数量必须恰好等于
 全部实例变量的数量；函数体先把对应形参传给超类构造函数以初始化继承字段，再
 把其余形参赋给本类声明的同名字段。\cref{fig:19-4}的类类型规则负责检查这些约束。
 完整 Java 要求子类构造函数在超类构造函数有参数时调用它；FJ 保留这项要求，
@@ -386,9 +454,12 @@ D\ m(\overline C\ \overline x)\{\mathsf{return}\ t;\}
 
 \begin{figure}[!ht]
 \centering
-\begin{minipage}{0.96\linewidth}
-\small
-\textit{字段查找}
+\begin{minipage}{0.98\linewidth}
+\scriptsize
+\taplfigureheaderplain{FJ}{\tapltranslateditalic{辅助定义}}
+\taplformalsystemcolumns[0.48]{
+\tapltranslateditalic{字段查找}\hfill
+\fbox{\(\mathit{fields}(C)=\overline C\ \overline f\)}
 \[
 \mathit{fields}(\mathsf{Object})=\bullet
 \]
@@ -401,8 +472,8 @@ D\ m(\overline C\ \overline x)\{\mathsf{return}\ t;\}
    \overline D\ \overline g,\overline C\ \overline f}
 \]
 
-\begin{minipage}[t]{0.48\linewidth}
-\textit{方法类型查找}
+\tapltranslateditalic{方法类型查找}\hfill
+\fbox{\(\mathit{mtype}(m,C)=\overline B\to B\)}
 \[
 \inferrule
  {CT(C)=\mathsf{class}\ C\ \mathsf{extends}\ D\
@@ -417,9 +488,9 @@ D\ m(\overline C\ \overline x)\{\mathsf{return}\ t;\}
   m\text{ 未在 }C\text{ 中声明}}
  {\mathit{mtype}(m,C)=\mathit{mtype}(m,D)}
 \]
-\end{minipage}\hfill
-\begin{minipage}[t]{0.48\linewidth}
-\textit{方法体查找}
+}{
+\tapltranslateditalic{方法体查找}\hfill
+\fbox{\(\mathit{mbody}(m,C)=(\overline x,t)\)}
 \[
 \inferrule
  {CT(C)=\mathsf{class}\ C\ \mathsf{extends}\ D\
@@ -434,9 +505,9 @@ D\ m(\overline C\ \overline x)\{\mathsf{return}\ t;\}
   m\text{ 未在 }C\text{ 中声明}}
  {\mathit{mbody}(m,C)=\mathit{mbody}(m,D)}
 \]
-\end{minipage}
 
-\textit{有效的方法覆盖}
+\tapltranslateditalic{有效的方法覆盖}\hfill
+\fbox{\(\mathit{override}(m,D,\overline C\to C_0)\)}
 \[
 \inferrule
  {\mathit{mtype}(m,D)=\overline D\to D_0
@@ -444,6 +515,7 @@ D\ m(\overline C\ \overline x)\{\mathsf{return}\ t;\}
   \overline C=\overline D\ \text{且}\ C_0=D_0}
  {\mathit{override}(m,D,\overline C\to C_0)}
 \]
+}
 \end{minipage}
 \caption{Featherweight Java：辅助定义}
 \label{fig:19-2}
@@ -458,9 +530,11 @@ FJ 使用标准的按值调用操作语义，见\cref{fig:19-3}。字段访问�
 
 \begin{figure}[!ht]
 \centering
-\begin{minipage}{0.97\linewidth}
+\begin{minipage}{0.98\linewidth}
 \scriptsize
-\begin{minipage}[t]{0.54\linewidth}
+\taplfigureheaderplain{FJ}{\tapltranslateditalic{求值}}
+\noindent\hfill\fbox{\(t\trans t'\)}\par
+\taplformalsystemcolumns[0.54]{
 \[
 \inferrule*[right=\textsc{E-ProjNew}]
  {\mathit{fields}(C)=\overline C\ \overline f}
@@ -486,8 +560,7 @@ $}
 \inferrule*[right=\textsc{E-Field}]
  {t_0\trans t_0'}{t_0.f\trans t_0'.f}
 \]
-\end{minipage}\hfill
-\begin{minipage}[t]{0.42\linewidth}
+}{
 \[
 \inferrule*[right=\textsc{E-Invk-Recv}]
  {t_0\trans t_0'}
@@ -511,7 +584,7 @@ $}
 \inferrule*[right=\textsc{E-Cast}]
  {t_0\trans t_0'}{(C)t_0\trans(C)t_0'}
 \]
-\end{minipage}
+}
 \end{minipage}
 \caption{Featherweight Java：求值}
 \label{fig:19-3}
@@ -532,10 +605,12 @@ $}
 
 \begin{figure}[!ht]
 \centering
-\begin{minipage}{0.97\linewidth}
-\small
-\begin{minipage}[t]{0.50\linewidth}
-\textit{项的类型规则}
+\begin{minipage}{0.98\linewidth}
+\scriptsize
+\taplfigureheaderplain{FJ}{\tapltranslateditalic{类型规则}}
+\taplformalsystemcolumns[0.51]{
+\tapltranslateditalic{项的类型规则}\hfill
+\fbox{\(\Gamma\vdash t:C\)}
 \[
 \inferrule*[right=\textsc{T-Var}]{x:C\in\Gamma}{\Gamma\vdash x:C}
 \]
@@ -576,9 +651,9 @@ $}
   \textit{stupid warning}}
  {\Gamma\vdash(C)t_0:C}
 \]
-\end{minipage}\hfill
-\begin{minipage}[t]{0.46\linewidth}
-\textit{方法声明}
+}{
+\tapltranslateditalic{方法声明}\hfill
+\fbox{\(M\ \mathsf{OK\ in}\ C\)}
 \[
 \inferrule
  {\overline x:\overline C,\mathsf{this}:C\vdash t_0:E_0\\
@@ -589,7 +664,8 @@ $}
    \{\mathsf{return}\ t_0;\}\ \mathsf{OK\ in}\ C}
 \]
 
-\textit{类声明}
+\tapltranslateditalic{类声明}\hfill
+\fbox{\(CL\ \mathsf{OK}\)}
 \[
 \inferrule
  {K=C(\overline D\ \overline g,\overline C\ \overline f)
@@ -600,7 +676,7 @@ $}
  {\mathsf{class}\ C\ \mathsf{extends}\ D\
   \{\overline C\ \overline f;K\overline M\}\ \mathsf{OK}}
 \]
-\end{minipage}
+}
 \end{minipage}
 \caption{Featherweight Java：类型规则}
 \label{fig:19-4}
@@ -650,7 +726,7 @@ FJ 的若干设计选择，是为了保证它成为 Java 的子集：FJ 中良�
 
 \begin{exercise}[\(\star\star\star\), \(\nrightarrow\)]
 \label{ex:19.4.4}
-以\chapref{14}对异常的处理为模型，为 FJ 加入 Java 的 \texttt{raise} 与
+以\chapref{14}对异常的处理为模型，为 FJ 加入 Java 的 \texttt{throw} 与
 \texttt{try} 所对应的构造。
 \end{exercise}
 \taplsolutionlink{sol:translator:19.4.4}{19.4.4}
@@ -701,8 +777,8 @@ FJ 满足标准的类型保持性结论；由于算法类型在求值后可能�
 \end{proof}
 \taplauthorsolutionlink{sol:author:19.5.1}{19.5.1}
 
-还可以证明标准进展性定理的一种变体：良类型程序只有在某次向下转换无法执行时
-才可能卡住。为了准确指出失败的转换，使用求值上下文。
+还可以证明标准进展性定理的一种变体：良类型程序只有在某次类型转换无法执行时
+才可能卡住。为了准确指出失败的类型转换，使用求值上下文。
 
 \begin{lemma}
 \label{lem:19.5.2}
@@ -783,7 +859,7 @@ FJ 原始论文还形式化了 GJ 风格的多态类型。请以\cref{ex:19.5.5}
 \end{exercise}
 \taplsolutionlink{sol:translator:19.5.6}{19.5.6}
 
-\section{编码与基本对象构造}
+\section{对象编码与作为基本构造的对象}
 \label{sec:19.6}
 
 至此，我们看到了两种不同的简单面向对象语言语义与类型表述方式。\chapref{18}
@@ -807,8 +883,8 @@ Abadi、Cardelli 与 Viswanathan（1996）等。
 \label{sec:19.7}
 
 本章改编自 Igarashi、Pierce 与 Wadler（1999）的 FJ 原始论文。表述上的主要
-区别是：为与全书一致，本章采用按值调用操作语义，而原论文采用不确定的 beta
-归约关系。
+区别是：为与全书一致，本章采用按值调用操作语义，而原论文采用不确定的归约
+关系。
 
 已有多项工作证明 Java 子集的类型安全性。Drossopoulou、Eisenbach 与
 Khurshid（1999）最早为顺序 Java 的一个较大子集证明安全性，Syme（1997）
@@ -824,12 +900,18 @@ Krishnamurthi 与 Felleisen（1998a, 1998b）使用小步语义，形式化同�
 他们的任务是分析带 Common Lisp 风格 mixin 的 Java 扩展。另两套系统则希望
 覆盖尽可能大的 Java 子集，因为主要目标是证明 Java 本身的安全性。
 
-面向对象语言基础研究中，许多论文形式化了基于类的语言，有的把类作为基本构造，
-有的把类翻译为低层机制。另一条路线以方法覆盖或委托取代类，让单个对象可以从
+面向对象语言基础研究中，许多论文形式化了基于类的语言：有的把类作为基本构造
+（Wand, 1989a；Bruce, 1994；Bono、Patel、Shmatikov 与 Mitchell, 1999b；
+Bono、Patel 与 Shmatikov, 1999a），有的把类翻译为低层机制（Fisher 与
+Mitchell, 1998；Bono 与 Fisher, 1998；Abadi 与 Cardelli, 1996；Pierce 与
+Turner, 1994）。
+
+另一条路线以方法覆盖或委托（Ungar 与 Smith, 1987）取代类，让单个对象可以从
 其他对象继承行为；由于概念更少，所得演算通常比基于类的演算简单。Abadi 与
 Cardelli（1996）的对象演算是其中发展最成熟、最著名的一种；Fisher、Honsell
 与 Mitchell（1994）还发展了另一种常用演算。Castagna、Ghelli 与 Longo
-（1995）则形式化了称为多方法的另一套对象、类与继承方法。
+（1995）则形式化了称为多方法的另一套对象、类与继承方法；更多相关引文见
+\taplnamedref{sec:18.1}{第18.1节关于封装的脚注}。
 
 \bilingualepigraph[0.75\textwidth]
   {每一门大型语言内部，都有一门小语言在奋力挣脱。}

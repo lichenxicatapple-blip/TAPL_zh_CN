@@ -11,21 +11,52 @@
 假设，再应用 \textsc{S-Arrow}；记录类型的情形同理，分别对每个字段使用
 归纳假设，再应用 \textsc{S-Rcd}。
 
-第二项对不含 \textsc{S-Refl} 的 \(S\subtype U\) 与
-\(U\subtype T\) 两棵推导的总大小作归纳，并按两棵推导的末条规则分类。
-若第二棵以 \textsc{S-Top} 结束，直接得到 \(S\subtype T\)。若第一棵
-以 \textsc{S-Top} 结束，则 \(U=\tapltype{Top}\)；对子类型规则作反演可知
-第二棵也只能推出 \(T=\tapltype{Top}\)，仍由 \textsc{S-Top} 得证。
+第二项先使用第一项：只要 \(S\subtype T\) 有推导，就能把其中每次
+\textsc{S-Refl} 换成第一项构造出的无反身规则推导。因此，只需从一棵不含
+\textsc{S-Refl} 的 \(S\subtype T\) 推导中消去 \textsc{S-Trans}。
 
-若两棵都以 \textsc{S-Arrow} 结束，写
-\(S=S_1\to S_2\)、\(U=U_1\to U_2\)、\(T=T_1\to T_2\)。前提给出
-\(U_1\subtype S_1\)、\(S_2\subtype U_2\)、
-\(T_1\subtype U_1\)、\(U_2\subtype T_2\)。对子推导应用归纳假设，得到
-\(T_1\subtype S_1\) 和 \(S_2\subtype T_2\)，再应用
-\textsc{S-Arrow}。两棵都以 \textsc{S-Rcd} 结束时，对目标记录中的每个
-字段作同样处理，再应用 \textsc{S-Rcd}。一棵以箭头规则、另一棵以记录
-规则结束的组合不可能发生，因为它们会对中间类型 \(U\) 的外层结构提出互不
-相容的要求。
+对这棵推导的大小作归纳。这里不能像往常一样对推导结构归纳，因为在箭头与记录
+情形中，稍后会构造一些并非原推导子树的新推导；只要这些新推导比原推导小，
+按大小归纳仍允许对它们使用归纳假设。
+
+若末条规则不是 \textsc{S-Trans}，则对它的每棵直接子推导使用归纳假设，
+把其中的传递规则消去；末条规则本身也不是传递规则，于是整棵推导已经不含
+\textsc{S-Trans}。
+
+下面设末条规则为 \textsc{S-Trans}，两棵直接子推导的结论分别是
+\(S\subtype U\) 与 \(U\subtype T\)，再按它们的末条规则分类。
+
+\emph{情形 任意规则／\textsc{S-Top}。}右侧推导以 \textsc{S-Top}
+结束，所以 \(T=\tapltype{Top}\)。无论 \(S\) 是什么，直接使用
+\textsc{S-Top} 就得到 \(S\subtype T\)。
+
+\emph{情形 \textsc{S-Top}／任意规则。}左侧推导以 \textsc{S-Top}
+结束，所以 \(U=\tapltype{Top}\)。先对右侧子推导使用归纳假设，设它已经
+不含传递规则。检查其末条规则：反身规则已经消去，箭头规则和记录规则又都要求
+左侧类型分别是箭头或记录，因此只有 \textsc{S-Top} 可能适用。于是
+\(T=\tapltype{Top}\)，结论仍由 \textsc{S-Top} 得到。
+
+\emph{情形 \textsc{S-Arrow}／\textsc{S-Arrow}。}写
+\(S=S_1\to S_2\)、\(U=U_1\to U_2\)、\(T=T_1\to T_2\)。两棵子推导
+给出
+\[
+ U_1\subtype S_1,\quad S_2\subtype U_2,\quad
+ T_1\subtype U_1,\quad U_2\subtype T_2
+\]
+分别使用 \textsc{S-Trans}，先构造 \(T_1\subtype S_1\) 和
+\(S_2\subtype T_2\) 的推导。这两棵新推导都严格小于原来以传递规则结束的
+整棵推导，故归纳假设可把它们改造成无传递规则的推导。最后应用
+\textsc{S-Arrow}，得到无传递规则的
+\(S_1\to S_2\subtype T_1\to T_2\) 推导。
+
+\emph{情形 \textsc{S-Rcd}／\textsc{S-Rcd}。}证明相同：对目标记录中的
+每个字段，先用 \textsc{S-Trans} 连接左右两棵子推导给出的字段关系；所得
+新推导都严格小于原推导，再用归纳假设消去其中的传递规则，最后应用
+\textsc{S-Rcd}。
+
+其余组合只有 \textsc{S-Arrow}／\textsc{S-Rcd} 和
+\textsc{S-Rcd}／\textsc{S-Arrow}；它们会要求中间类型 \(U\) 同时是箭头
+类型与记录类型，因此不可能发生。
 
 \taplsolutionbacklink{lem:16.1.2}{返回引理16.1.2}
 \end{taplauthorsolutionentrybox}
@@ -124,19 +155,121 @@ S\sqcap\tapltype{Top}&=&S\\
 调用失败时，整次交计算失败。递归调用时两种输入类型的总大小严格减小，因此
 算法不会发散。
 
-若 \(L\subtype S\) 且 \(L\subtype T\)，对 \(S,T\) 的结构作归纳，并
-使用子类型反演，可证明交算法不会失败。箭头情形中，\(L\) 的结果类型为
-\(S_2,T_2\) 的共同下界；记录情形中，\(L\) 包含两条记录全部字段，而且
-公共字段在 \(L\) 中的类型是两侧字段类型的共同子类型。这正好保证所有递归
-求交都成功。
+并算法的箭头分支会调用交算法计算参数类型的交；若这次调用失败，并算法就继续
+落入最后的默认分支，返回 \(\tapltype{Top}\)。例如，
+\[
+ (\tapltype{Bool}\to\tapltype{Top})\sqcup
+ (\{\}\to\tapltype{Top})=\tapltype{Top}
+\]
+两种算法都不会发散，因为每次递归调用都会减小输入 \(S,T\) 的总大小。交算法
+虽然可能失败，但只要两个输入存在共同下界，它就一定成功。
 
-接着对算法的递归调用结构作归纳，可证明：若 \(S\sqcup T=J\)，则
-\(S\subtype J\) 且 \(T\subtype J\)；若 \(S\sqcap T=M\)，则
-\(M\subtype S\) 且 \(M\subtype T\)。最后同时对 \(S,T\) 的结构作归纳，
-得到最小性与最大性：每个公共超类型 \(U\) 都满足 \(J\subtype U\)，每个
-公共子类型 \(L\) 都满足 \(L\subtype M\)。因此算法算出的确实是并与交。
+\medskip
+\textbf{引理 A.10。}
+若 \(L\subtype S\) 且 \(L\subtype T\)，则存在某个 \(M\)，使
+\(S\sqcap T=M\)。
 
-\taplsolutionbacklink{ex:16.3.2}{返回练习16.3.2}
+\begin{proof}
+对 \(S\) 的大小归纳（等价地，也可对 \(T\) 的大小归纳），并按 \(S,T\)
+的外层形式分类。若其中一个是 \(\tapltype{Top}\)，交算法的前两个分支之一
+适用，结果分别为另一个输入。若 \(S,T\) 的外层形式不同，则子类型反演引理
+会对共同下界 \(L\) 的形式提出互不相容的要求。例如，\(S\) 是箭头类型时，
+\(L\) 也必须是箭头类型；\(T\) 是记录类型时，\(L\) 又必须是记录类型。\footnote{
+严格地说，\cref{lem:15.3.2}没有讨论 \(\tapltype{Bool}\)。补上的布尔情形只需
+说明：\(\tapltype{Bool}\) 的子类型只有它自身。}因此只剩三种情形。
+
+若 \(S=T=\tapltype{Bool}\)，交算法的第三个分支立即返回
+\(\tapltype{Bool}\)。
+
+若 \(S=S_1\to S_2\) 且 \(T=T_1\to T_2\)，并算法的全定义性保证第一次
+递归调用 \(S_1\sqcup T_1\) 返回某个 \(J_1\)。子类型反演又说明
+\(L=L_1\to L_2\)，并且 \(L_2\subtype S_2\)、\(L_2\subtype T_2\)。
+于是 \(L_2\) 是 \(S_2,T_2\) 的共同下界，归纳假设保证
+\(S_2\sqcap T_2\) 成功并返回某个 \(M_2\)。所以
+\(S\sqcap T=J_1\to M_2\)。
+
+最后，设 \(S=\{k_j:S_j\}^{j\in1..m}\)，
+\(T=\{l_i:T_i\}^{i\in1..n}\)。由子类型反演，\(L\) 必是记录类型，而且
+包含 \(S,T\) 中出现的全部标签。对同时出现在 \(S,T\) 中的每个标签，
+\(L\) 中对应字段类型都是两侧字段类型的共同子类型；归纳假设因此保证交算法
+对所有公共字段的递归调用都成功。只出现在一侧的字段无需递归求交，故整次记录
+求交成功。
+\end{proof}
+
+下面验证这些定义确实计算出并与交。论证分成两部分：命题 A.11 说明求得的交
+是 \(S,T\) 的下界、求得的并是它们的上界；命题 A.12 说明求得的交大于每个
+共同下界，求得的并小于每个共同上界。
+
+\medskip
+\textbf{命题 A.11。}
+\begin{enumerate}
+\item 若 \(S\sqcup T=J\)，则 \(S\subtype J\) 且 \(T\subtype J\)。
+\item 若 \(S\sqcap T=M\)，则 \(M\subtype S\) 且 \(M\subtype T\)。
+\end{enumerate}
+
+\begin{proof}
+对 \(S\sqcup T=J\) 或 \(S\sqcap T=M\) 的“推导”大小作直接归纳；这里的
+大小就是为了算出 \(J\) 或 \(M\) 而对两个定义进行的递归调用次数。
+\end{proof}
+
+\medskip
+\textbf{命题 A.12。}
+\begin{enumerate}
+\item 设 \(S\sqcup T=J\)，且对某个 \(U\) 有
+  \(S\subtype U\) 与 \(T\subtype U\)。则 \(J\subtype U\)。
+\item 设 \(S\sqcap T=M\)，且对某个 \(L\) 有
+  \(L\subtype S\) 与 \(L\subtype T\)。则 \(L\subtype M\)。
+\end{enumerate}
+
+\begin{proof}
+两部分同时对 \(S,T\) 的大小归纳；给定 \(S,T\) 后，依次证明两部分。
+
+先证第一项，并按 \(U\) 的形式分类。若 \(U=\tapltype{Top}\)，则任何 \(J\)
+都满足 \(J\subtype U\)。若 \(U=\tapltype{Bool}\)，子类型反演说明
+\(S=T=\tapltype{Bool}\)，所以 \(J=\tapltype{Bool}\)。
+
+若 \(U=U_1\to U_2\)，子类型反演给出
+\(S=S_1\to S_2\)、\(T=T_1\to T_2\)，并且
+\[
+ U_1\subtype S_1,\quad U_1\subtype T_1,\quad
+ S_2\subtype U_2,\quad T_2\subtype U_2
+\]
+由归纳假设，\(S_1,T_1\) 的交 \(M_1\) 位于 \(U_1\) 之上，即
+\(U_1\subtype M_1\)；\(S_2,T_2\) 的并 \(J_2\) 位于 \(U_2\) 之下，
+即 \(J_2\subtype U_2\)。应用 \textsc{S-Arrow}，得到
+\(M_1\to J_2\subtype U_1\to U_2\)。
+
+若 \(U\) 是记录类型，子类型反演说明 \(S,T\) 也都是记录类型；\(S,T\)
+的标签集合都包含 \(U\) 的标签集合，而且 \(U\) 每个字段的类型都是两侧对应
+字段类型的超类型。因此，\(S,T\) 的并至少包含 \(U\) 的全部标签；对每个
+公共字段，归纳假设说明并中的字段类型是 \(U\) 对应字段类型的子类型。
+由 \textsc{S-Rcd} 得 \(J\subtype U\)。
+
+再证第二项，并按 \(S,T\) 的形式分类。若其中一个是 \(\tapltype{Top}\)，
+交就是另一个输入，结论立即成立。两个非最大类型具有不同外层形式的情形，由
+引理 A.10 的论证可知不可能发生。若二者都是 \(\tapltype{Bool}\)，结论同样
+立即成立。
+
+若 \(S=S_1\to S_2\)、\(T=T_1\to T_2\)，子类型反演给出
+\(L=L_1\to L_2\)，并且
+\[
+ S_1\subtype L_1,\quad T_1\subtype L_1,\quad
+ L_2\subtype S_2,\quad L_2\subtype T_2
+\]
+由归纳假设，\(S_1,T_1\) 的并 \(J_1\) 满足 \(J_1\subtype L_1\)，
+\(S_2,T_2\) 的交 \(M_2\) 满足 \(L_2\subtype M_2\)。再由
+\textsc{S-Arrow} 得 \(L_1\to L_2\subtype J_1\to M_2\)。
+
+若 \(S,T\) 都是记录类型，子类型反演说明 \(L\) 也是记录类型，并包含
+\(S,T\) 的全部标签（还可能更多），对应字段类型满足所需子类型关系。对交
+\(M\) 中的每个标签 \(m_l\)，分三种情况。若它同时出现在 \(S,T\) 中，
+其在 \(M\) 中的类型是两侧字段类型的交，归纳假设说明 \(L\) 中对应字段类型
+是它的子类型。若 \(m_l\) 只出现在 \(S\) 中，则它在 \(M\) 中沿用 \(S\)
+中的类型，而我们已知 \(L\) 中对应字段类型更小。只出现在 \(T\) 中的情况
+相同。于是由 \textsc{S-Rcd} 得 \(L\subtype M\)。
+\end{proof}
+
+\taplsolutionbacklink{prop:16.3.2}{返回命题16.3.2}
 \end{taplauthorsolutionentrybox}
 
 \begin{taplauthorsolutionentrybox}
@@ -159,8 +292,18 @@ S\sqcap\tapltype{Top}&=&S\\
 \label{sol:author:16.3.4}
 \textbf{16.3.4 解答}
 
-处理不变的 \(\tapltype{Ref}\) 很直接：只有两个引用的元素类型彼此相等时，
-并与交才仍是相同元素类型的引用。
+处理不变的 \(\tapltype{Ref}\) 很直接，只需在并、交算法中分别加入一条分支：
+\[
+\begin{array}{rcl}
+\tapltype{Ref}\ S_1\sqcup\tapltype{Ref}\ T_1
+ &=&\tapltype{Ref}\ T_1
+ \quad\text{若 }S_1\subtype T_1\text{ 且 }T_1\subtype S_1\\[2pt]
+\tapltype{Ref}\ S_1\sqcap\tapltype{Ref}\ T_1
+ &=&\tapltype{Ref}\ T_1
+ \quad\text{若 }S_1\subtype T_1\text{ 且 }T_1\subtype S_1
+\end{array}
+\]
+条件是两个元素类型在子类型关系下彼此等价；它们不必在句法上完全相同。
 
 把 \(\tapltype{Ref}\) 分解为 \(\tapltype{Source}\) 和
 \(\tapltype{Sink}\) 后会遇到严重困难：子类型关系不再总有并或交。例如，
@@ -173,8 +316,47 @@ S\sqcap\tapltype{Top}&=&S\\
 最简单的解决方式之一，是只加入 \(\tapltype{Source}\) 或只加入
 \(\tapltype{Sink}\)。许多应用只需其中一个。例如，
 \taplsecref{18.12}{sec:18.12}中的类实现只需 \(\tapltype{Source}\)；并发
-语言中的通道则可能只需要传递发送能力，即 \(\tapltype{Sink}\)。另一种方案
-是让引用类型接受两个参数：\(\tapltype{Ref}\ S\ T\) 允许写入 \(S\) 型值、
+语言中的服务器进程则可能只需要向外传递发送能力，即 \(\tapltype{Sink}\)；
+接收能力只由服务器自身持有。
+
+若系统只加入 \(\tapltype{Source}\)，并算法在加入上面的 \(\tapltype{Ref}\)
+分支后，再加入以下四种组合，仍然是完备的。前面的引用等价分支优先于这里的
+第一种组合：
+\[
+\begin{array}{rcl}
+\tapltype{Ref}\ S_1\sqcup\tapltype{Ref}\ T_1
+ &=&\tapltype{Source}\ J_1
+ \quad\text{若 }S_1\sqcup T_1=J_1\\
+\tapltype{Source}\ S_1\sqcup\tapltype{Source}\ T_1
+ &=&\tapltype{Source}\ J_1
+ \quad\text{若 }S_1\sqcup T_1=J_1\\
+\tapltype{Ref}\ S_1\sqcup\tapltype{Source}\ T_1
+ &=&\tapltype{Source}\ J_1
+ \quad\text{若 }S_1\sqcup T_1=J_1\\
+\tapltype{Source}\ S_1\sqcup\tapltype{Ref}\ T_1
+ &=&\tapltype{Source}\ J_1
+ \quad\text{若 }S_1\sqcup T_1=J_1
+\end{array}
+\]
+交算法加入相应分支：
+\[
+\begin{array}{rcl}
+\tapltype{Source}\ S_1\sqcap\tapltype{Source}\ T_1
+ &=&\tapltype{Source}\ M_1
+ \quad\text{若 }S_1\sqcap T_1=M_1\\
+\tapltype{Ref}\ S_1\sqcap\tapltype{Source}\ T_1
+ &=&\tapltype{Ref}\ S_1
+ \quad\text{若 }S_1\subtype T_1\\
+\tapltype{Source}\ S_1\sqcap\tapltype{Ref}\ T_1
+ &=&\tapltype{Ref}\ T_1
+ \quad\text{若 }T_1\subtype S_1
+\end{array}
+\]
+两个 \(\tapltype{Ref}\) 的组合仍由上面的双向子类型分支处理；条件不满足时，
+求交失败。
+
+另一种方案由 Hennessy 与 Riely（1998）提出：让引用类型接受两个参数。
+\(\tapltype{Ref}\ S\ T\) 允许写入 \(S\) 型值、
 读出 \(T\) 型值；它对第一个参数逆变，对第二个参数协变。此时可把
 \(\tapltype{Sink}\ S\) 定义为
 \(\tapltype{Ref}\ S\ \tapltype{Top}\)，把

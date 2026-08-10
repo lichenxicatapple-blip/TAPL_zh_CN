@@ -100,6 +100,8 @@ objects[0] = new Object();
 \textbf{练习15.6.3}
 
 先为源语言中的每个记录类型规定一种固定的字段顺序，例如按标签的字典序排列。
+这里约定空记录翻译为空元组，一字段记录翻译为保留元组外壳的一元元组；不会
+把一元元组直接缩并成其中的元素。
 设记录类型 \(R=\{l_i:T_i\}^{i\in1..n}\) 按该顺序写成
 \(l_1,\ldots,l_n\)，把它翻译为元组类型
 \[
@@ -114,7 +116,7 @@ objects[0] = new Object();
 \begin{itemize}
 \item 反身规则生成恒等函数；传递规则生成函数复合；
 \item 宽度规则生成一个元组投影函数，只保留目标记录所需的分量；
-\item 排列规则生成一个重排函数，按目标记录的字段顺序重新组成元组；
+\item 排列规则两端采用同一规范字段顺序，因此生成恒等函数；
 \item 深度规则对每个分量分别应用相应字段类型的强制转换，再组成目标元组；
 \item 箭头规则和最大类型规则与正文相同。
 \end{itemize}
@@ -122,16 +124,18 @@ objects[0] = new Object();
 \(R=\{a:\tapltype{Nat},b:\tapltype{Bool}\}\)，则宽度推导
 \(R\subtype\{a:\tapltype{Nat}\}\) 生成的转换是
 \[
-  \lambda p:\tapltype{Nat}\times\tapltype{Bool}.\,p.1
+  \lambda p:\tapltype{Nat}\times\tapltype{Bool}.\,(p.1)
 \]
-若目标记录要求相反的字段顺序，排列转换便构造 \((p.2,p.1)\)。
+这里的 \((p.1)\) 是一元元组，类型为只含一个分量的
+\(\tapltype{Nat}\) 元组；括号不能省略。互为排列的记录类型经过规范化后
+翻译成同一元组类型，所以相应强制转换不需要重排运行时值。
 
 最后，对类型推导作结构归纳，证明
 \(\llbracket\Gamma\rrbracket\vdash
 \llbracket\mathcal D\rrbracket:\llbracket T\rrbracket\)。普通类型规则直接
 使用归纳假设；\textsc{T-Sub} 情形还需证明每条子类型推导生成的转换具有
 类型 \(\llbracket S\rrbracket\to\llbracket T\rrbracket\)。对该子类型
-推导再作结构归纳即可；上面逐条给出的元组投影、重排和分量转换恰好覆盖所有
+推导再作结构归纳即可；上面逐条给出的元组投影和分量转换恰好覆盖所有
 新增情形。因此，\cref{thm:15.6.2}在元组目标语言中仍然成立。
 
 \taplsolutionbacklink{ex:15.6.3}{返回练习15.6.3}

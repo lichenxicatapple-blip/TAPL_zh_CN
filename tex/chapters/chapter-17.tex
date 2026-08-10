@@ -1,7 +1,7 @@
 % 第 17 章：子类型化的 ML 实现
 % Source: source/split/chapters/ch17-ml-subtyping_p212-p215.pdf
 % Original print pages: 221--224
-% Status: 待独立初审
+% Status: 独立复核
 
 \chapter{子类型化的 ML 实现}
 \label{chap:17}
@@ -28,6 +28,7 @@ type term =
   | TmApp of info * term * term
 \end{taplocamlcode}
 \taplrustcounterpart{ch17-syntax}
+\taplrustsupport{ch17-support}
 
 与纯粹的简单类型 lambda 演算相比，这里新增了类型
 \texttt{TyTop}、类型构造子 \texttt{TyRecord}，以及项构造子
@@ -37,7 +38,8 @@ type term =
 \section{子类型关系}
 \label{sec:17.2}
 
-原书第 212 页给出的算法子类型关系伪代码可以直接写成下面的 OCaml 函数。
+\taplsecref{16.1}{sec:16.1}给出的算法子类型关系伪代码可以直接写成下面的
+OCaml 函数。
 
 \begin{taplocamlcode}
 let rec subtype tyS tyT =
