@@ -251,7 +251,7 @@ T-Sub 提升为 \(D_i\)，即可满足这些规则。
 \taplrustsupportchunk{ch19-fj-class-table}{61}{90}
 \taplrustsupportchunk{ch19-fj-class-table}{91}{120}
 \taplrustsupportchunk{ch19-fj-class-table}{121}{150}
-\taplrustsupportchunk{ch19-fj-class-table}{151}{164}
+\taplrustsupportchunk{ch19-fj-class-table}{151}{186}
 
 \textbf{二、辅助查询。}
 实现以下四个函数：
@@ -306,7 +306,8 @@ T-Sub 提升为 \(D_i\)，即可满足这些规则。
 
 配套测试覆盖正文的 \texttt{Pair.setfst}、字段访问、合法向上与向下转换、
 运行时失败的向下转换、荒谬转换警告、方法参数数量错误、构造函数错误、覆盖类型
-错误及继承环。源码与测试共同参与整书构建，因而书内片段与实际验证的实现保持一致。
+错误、继承环、未定义的类名、重复方法形参及保留名称 \texttt{this}。源码与测试
+共同参与整书构建，因而书内片段与实际验证的实现保持一致。
 
 \taplsolutionbacklink{ex:19.5.5}{返回练习19.5.5}
 \end{taplsolutionentrybox}
@@ -365,14 +366,21 @@ F-有界约束，例如 \(X\subtype\mathit{Comparable}\langle X\rangle\)。
 类型参数不参与字段选择和方法体替换，可以在执行前擦除；但证明擦除正确，需要
 先证明类型替换保持良构与赋型，再证明项替换保持赋型。
 
+这里采用完整的擦除执行路径。建立泛型类表时先检查类型形参、上界、继承、字段、
+方法签名和方法体；字段或方法的接收者是类型变量时，沿 \(\Delta\) 中的上界查询
+成员。执行程序前，把泛型类声明、字段、方法签名和方法体全部擦除为 FJ 类表，
+为每个类生成 FJ 的标准构造函数，再擦除待求值项并交给上一题的 FJ 解释器。这样
+书中的泛型实现不只检查擦除后的语法结构，还会实际执行擦除结果。
+
 \textbf{验证顺序。}
 先测试无泛型 FJ 程序在扩展后行为不变；再测试单一泛型容器、带界类型变量、泛型
 方法、继承时改变类型实参、递归上界，以及违反上界的拒绝案例。最后比较擦除前后
 的求值结果。这样既覆盖 GJ 扩展新增的静态机制，也验证它没有改变 FJ 原有程序的
 可观察行为。
 
-下面给出参与编译和测试的泛型语法、带界类型检查及擦除实现。配套测试覆盖泛型
-容器、泛型方法、上界违反和擦除后的项结构。
+下面给出参与编译和测试的泛型语法、类表检查、带界类型检查及擦除执行实现。配套
+测试覆盖无泛型程序回归、泛型容器、泛型方法、通过上界查询成员、继承时改变类型
+实参、递归上界、上界违反、方法体类型错误，以及擦除结果的实际求值。
 
 \taplrustsupportchunkfirst{ch19-gj}{1}{30}
 \taplrustsupportchunk{ch19-gj}{31}{60}
@@ -385,7 +393,16 @@ F-有界约束，例如 \(X\subtype\mathit{Comparable}\langle X\rangle\)。
 \taplrustsupportchunk{ch19-gj}{241}{270}
 \taplrustsupportchunk{ch19-gj}{271}{300}
 \taplrustsupportchunk{ch19-gj}{301}{330}
-\taplrustsupportchunk{ch19-gj}{331}{351}
+\taplrustsupportchunk{ch19-gj}{331}{360}
+\taplrustsupportchunk{ch19-gj}{361}{390}
+\taplrustsupportchunk{ch19-gj}{391}{420}
+\taplrustsupportchunk{ch19-gj}{421}{450}
+\taplrustsupportchunk{ch19-gj}{451}{480}
+\taplrustsupportchunk{ch19-gj}{481}{510}
+\taplrustsupportchunk{ch19-gj}{511}{540}
+\taplrustsupportchunk{ch19-gj}{541}{570}
+\taplrustsupportchunk{ch19-gj}{571}{600}
+\taplrustsupportchunk{ch19-gj}{601}{619}
 
 \taplsolutionbacklink{ex:19.5.6}{返回练习19.5.6}
 \end{taplsolutionentrybox}

@@ -611,7 +611,15 @@ T::=\cdots\mid\tapltype{Bot}
 
 向上类型转换把项指定为其自然类型的某个超类型。类型检查器先推导
 \(\Gamma\vdash t:S\)，再由 \(S\subtype T\) 和 \textsc{T-Sub} 得到
-\(\Gamma\vdash t:T\)，最后应用类型断言规则：
+\(\Gamma\vdash t:T\)，最后应用类型断言规则。完整推导为：
+\[
+\inferrule*[right=\textsc{T-Ascribe}]
+ {\inferrule*[right=\textsc{T-Sub}]
+   {\Gamma\vdash t:S\\S\subtype T}
+   {\Gamma\vdash t:T}}
+ {\Gamma\vdash t\ \mathsf{as}\ T:T}
+\]
+其中类型断言规则本身是：
 \[
 \inferrule*[right=\textsc{T-Ascribe}]
  {\Gamma\vdash t:T}{\Gamma\vdash t\ \mathsf{as}\ T:T}
@@ -637,7 +645,8 @@ f=\lambda x:\tapltype{Top}.\,(x\ \mathsf{as}\
 编译期接受断言的类型，运行时再检查实际值是否确实属于所声称的类型。因此，
 原本直接丢掉断言的规则
 \[
-v\ \mathsf{as}\ T\trans v
+\inferrule*[right=\textsc{E-Ascribe}]
+ { }{v\ \mathsf{as}\ T\trans v}
 \]
 改成带运行时类型前提的规则：
 \[
@@ -656,7 +665,28 @@ v\ \mathsf{as}\ T\trans v
 进展性则会失效，因为错误的向下类型转换可以让良类型程序卡住。真实语言通常
 把失败的转换变成可捕获的动态异常，或改用动态类型测试：
 \[
-\mathsf{if}\ t\ \mathsf{is}\ T\ \mathsf{then}\ t_1\ \mathsf{else}\ t_2
+\inferrule*[right=\textsc{T-TypeTest}]
+ {\Gamma\vdash t_1:S\\
+  \Gamma,x:T\vdash t_2:U\\
+  \Gamma\vdash t_3:U}
+ {\Gamma\vdash
+  \mathsf{if}\ t_1\ \mathsf{in}\ T\ \mathsf{then}\ x\mapsto t_2\
+  \mathsf{else}\ t_3:U}
+\]
+成功与失败两种求值情形分别是：
+\[
+\inferrule*[right=\textsc{E-TypeTest1}]
+ {\vdash v_1:T}
+ {\mathsf{if}\ v_1\ \mathsf{in}\ T\ \mathsf{then}\ x\mapsto t_2\
+  \mathsf{else}\ t_3
+  \trans [x\mapsto v_1]t_2}
+\]
+\[
+\inferrule*[right=\textsc{E-TypeTest2}]
+ {\nvdash v_1:T}
+ {\mathsf{if}\ v_1\ \mathsf{in}\ T\ \mathsf{then}\ x\mapsto t_2\
+  \mathsf{else}\ t_3
+  \trans t_3}
 \]
 
 Java 一类语言经常使用向下类型转换。一个重要用途，是用它实现一种简陋的
@@ -847,6 +877,8 @@ Pict 等并发语言中的信道类型采用完全相同的思路。从类型角
 是要求信道上传递的所有值属于同一类型。只把写能力交给别人时，接收者再把它
 交给承诺只写更小类型值的人是安全的，所以输出信道构造子逆变；只交出读能力
 时，可以把它降为读取任意更大类型值的能力，所以输入信道构造子协变。
+关于这种信道类型的进一步讨论，见 Pierce 与 Turner（2000）以及 Pierce 与
+Sangiorgi（1993）。
 
 \subsection*{基本类型}
 
@@ -999,7 +1031,7 @@ Pict 等并发语言中的信道类型采用完全相同的思路。从类型角
 \end{array}
 \]
 这项翻译常称为\termfirst{Penn 翻译}{Penn translation}，名称来自最早研究它的
-宾夕法尼亚大学团队。
+宾夕法尼亚大学团队（Breazu-Tannen、Coquand、Gunter 与 Scedrov，1991）。
 
 \begin{theorem}
 \label{thm:15.6.2}
@@ -1017,7 +1049,8 @@ Pict 等并发语言中的信道类型采用完全相同的思路。从类型角
 
 有了这些翻译，可以不再给高层语言直接定义求值规则。求值一个项时，先用高层
 类型规则和子类型规则检查它，再把类型推导翻译到低层目标语言，最后使用目标
-语言的求值关系。某些高性能子类型语言实现确实采用这种策略。
+语言的求值关系。某些高性能子类型语言实现确实采用这种策略（League、Shao 与
+Trifonov，1999；League、Trifonov 与 Shao，2001）。
 
 \begin{exercise}[\(\star\star\star\), \(\nrightarrow\)]
 \label{ex:15.6.3}
@@ -1071,7 +1104,9 @@ Pict 等并发语言中的信道类型采用完全相同的思路。从类型角
 \qquad
 \mathit{floatToString}(1.0)=\texttt{"1"}
 \]
-即可恢复这个例子中的一致性。对复杂语言证明一致性可能相当困难。
+即可恢复这个例子中的一致性。对复杂语言证明一致性可能相当困难；相关研究见
+Reynolds（1980、1991）、Breazu-Tannen 等（1991）以及 Curien 与
+Ghelli（1992）。
 
 \section{交类型与并类型}
 \label{sec:15.7}
@@ -1113,8 +1148,8 @@ T_1\wedge T_2\subtype T_2
 (\tapltype{Float}\to\tapltype{Float}\to\tapltype{Float})
 \]
 赋给既能做自然数加法又能做浮点加法的运算符；运行时可按参数标签选择指令。
-交类型的能力也带来棘手的语言设计问题。Forsythe 是少数完整采用一般交类型的
-语言 Forsythe（Reynolds，1988）；受限的\termfirst{精化类型}{refinement
+交类型的能力也带来棘手的语言设计问题。迄今只有一种完整规模语言全面采用一般
+交类型，即 Forsythe（Reynolds，1988）；受限的\termfirst{精化类型}{refinement
 type}可能更易管理（Freeman 与 Pfenning，1991；Pfenning，1993b；
 Davies，1997）。
 
@@ -1127,7 +1162,8 @@ Algol 68（参见 van Wijngaarden 等，1975）。近来，它还被用于 XML �
 半结构化数据库格式的类型系统（Buneman 与 Pierce，1998；Hosoya、Vouillon
 与 Pierce，2001）。
 
-不交并与普通并在形式上的主要区别是：后者没有 \(\mathsf{case}\) 构造。若只
+互不相交的并类型与非互斥并类型在形式上的主要区别是：后者没有
+\(\mathsf{case}\) 构造。若只
 知道 \(v:T_1\vee T_2\)，唯一安全的操作是对 \(T_1\) 和 \(T_2\) 都适用的
 操作。例如，若二者都是记录，只能投影共有字段。C 的无标签 union 允许执行只
 适用于任一分支的操作，正因忽略这项限制而成为类型安全漏洞的来源。
@@ -1135,8 +1171,8 @@ Algol 68（参见 van Wijngaarden 等，1975）。近来，它还被用于 XML �
 \section{说明}
 \label{sec:15.8}
 
-程序语言中的子类型化思想可追溯到 20 世纪 60 年代的 Simula 及其相关语言
-（Birtwistle、Dahl、Myhrhaug 与 Nygaard，1979）。
+程序语言中的子类型化思想可追溯到 20 世纪 60 年代的 Simula 及其相关语言。
+相关介绍见 Birtwistle、Dahl、Myhrhaug 与 Nygaard（1979）。
 最早的形式化处理来自 Reynolds（1980）和 Cardelli（1984）。
 
 记录的类型规则，尤其是子类型规则，比此前多数规则都重：它们或含有数目可变

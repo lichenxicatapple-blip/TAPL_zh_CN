@@ -106,7 +106,7 @@ objects[0] = new Object();
 \(l_1,\ldots,l_n\)，把它翻译为元组类型
 \[
   \llbracket R\rrbracket
-  =\llbracket T_1\rrbracket\times\cdots\times\llbracket T_n\rrbracket
+  =\{\llbracket T_i\rrbracket\}^{i\in1..n}
 \]
 记录项相应翻译为同一顺序的元组，投影 \(t.l_i\) 翻译为对
 \(\llbracket t\rrbracket\) 的第 \(i\) 个元组投影。其余类型和项沿用正文的
@@ -124,10 +124,10 @@ objects[0] = new Object();
 \(R=\{a:\tapltype{Nat},b:\tapltype{Bool}\}\)，则宽度推导
 \(R\subtype\{a:\tapltype{Nat}\}\) 生成的转换是
 \[
-  \lambda p:\tapltype{Nat}\times\tapltype{Bool}.\,(p.1)
+  \lambda p:\{\tapltype{Nat},\tapltype{Bool}\}.\,\{p.1\}
 \]
-这里的 \((p.1)\) 是一元元组，类型为只含一个分量的
-\(\tapltype{Nat}\) 元组；括号不能省略。互为排列的记录类型经过规范化后
+这里的 \(\{p.1\}\) 是一元元组，类型为 \(\{\tapltype{Nat}\}\)；花括号是
+元组构造的一部分。互为排列的记录类型经过规范化后
 翻译成同一元组类型，所以相应强制转换不需要重排运行时值。
 
 最后，对类型推导作结构归纳，证明

@@ -11,13 +11,14 @@ type term =
   | TmApp of term * term
 
 type subtype_error =
-  | MissingField of string list * string
+  | MissingField of string list * string * ty * ty
   | ShapeMismatch of string list * ty * ty
 
 exception Subtype_error of subtype_error
 
 type type_error =
   | UnboundVariable of int * int
+  | MissingProjectionField of string * ty
   | ProjectionFromNonRecord of ty
   | SubtypingFailed of subtype_error
   | ExpectedFunction of ty
@@ -37,7 +38,9 @@ let rec check_subtype path ty_s ty_t =
           (fun (label, ty_ti) ->
             match List.assoc_opt label fields_s with
             | None ->
-                raise (Subtype_error (MissingField (List.rev path, label)))
+                raise
+                  (Subtype_error
+                     (MissingField (List.rev path, label, ty_s, ty_t)))
             | Some ty_si -> check_subtype (label :: path) ty_si ty_ti)
           fields_t
     | _ ->
@@ -55,9 +58,7 @@ let rec typeof context term =
           match List.assoc_opt label fields with
           | Some field_type -> field_type
           | None ->
-              raise
-                (Type_error
-                   (SubtypingFailed (MissingField ([], label)))))
+              raise (Type_error (MissingProjectionField (label, TyRecord fields))))
       | other -> raise (Type_error (ProjectionFromNonRecord other)))
   | TmVar index -> (
       match List.nth_opt context index with
@@ -80,16 +81,33 @@ let rec typeof context term =
 let string_of_path path =
   match path with [] -> "<root>" | labels -> String.concat "." labels
 
+let rec string_of_ty = function
+  | TyTop -> "Top"
+  | TyArr (input, output) ->
+      Printf.sprintf "(%s -> %s)" (string_of_ty input) (string_of_ty output)
+  | TyRecord fields ->
+      let field (label, ty) = Printf.sprintf "%s: %s" label (string_of_ty ty) in
+      Printf.sprintf "{%s}" (String.concat ", " (List.map field fields))
+
 let string_of_type_error = function
   | UnboundVariable (index, length) ->
       Printf.sprintf "variable %d is outside a context of length %d" index length
-  | ProjectionFromNonRecord _ -> "projection expected a record"
-  | ExpectedFunction _ -> "application expected a function"
-  | SubtypingFailed (MissingField (path, label)) ->
-      Printf.sprintf "field %s is missing below %s" label (string_of_path path)
-  | SubtypingFailed (ShapeMismatch (path, _, _)) ->
-      Printf.sprintf "types have incompatible forms below %s"
-        (string_of_path path)
+  | MissingProjectionField (label, record) ->
+      Printf.sprintf "record type %s has no field %s" (string_of_ty record) label
+  | ProjectionFromNonRecord actual ->
+      Printf.sprintf "projection expected a record, but found %s"
+        (string_of_ty actual)
+  | ExpectedFunction actual ->
+      Printf.sprintf "application expected a function, but found %s"
+        (string_of_ty actual)
+  | SubtypingFailed (MissingField (path, label, actual, expected)) ->
+      Printf.sprintf
+        "below %s: actual type %s lacks field %s required by %s"
+        (string_of_path path) (string_of_ty actual) label (string_of_ty expected)
+  | SubtypingFailed (ShapeMismatch (path, actual, expected)) ->
+      Printf.sprintf
+        "below %s: actual type %s is incompatible with expected type %s"
+        (string_of_path path) (string_of_ty actual) (string_of_ty expected)
 
 let expect_type_error predicate thunk =
   try
@@ -105,7 +123,7 @@ let () =
   check_subtype [] nested_source nested_target;
   expect_type_error
     (function
-      | SubtypingFailed (MissingField ([ "payload" ], "missing")) -> true
+      | SubtypingFailed (MissingField ([ "payload" ], "missing", _, _)) -> true
       | _ -> false)
     (fun () ->
       typeof []
@@ -132,4 +150,26 @@ let () =
   expect_type_error
     (function UnboundVariable (2, 0) -> true | _ -> false)
     (fun () -> typeof [] (TmVar 2));
+  expect_type_error
+    (fun error ->
+      string_of_type_error error = "record type {} has no field missing")
+    (fun () -> typeof [] (TmProj (TmRecord [], "missing")));
+  expect_type_error
+    (fun error ->
+      string_of_type_error error
+      = "projection expected a record, but found (Top -> Top)")
+    (fun () -> typeof [] (TmProj (TmAbs (TyTop, TmVar 0), "x")));
+  expect_type_error
+    (fun error ->
+      string_of_type_error error = "application expected a function, but found {}")
+    (fun () -> typeof [] (TmApp (TmRecord [], TmRecord [])));
+  let formatted_mismatch =
+    try
+      check_subtype [ "payload" ] (TyRecord []) (TyArr (TyTop, TyTop));
+      assert false
+    with Subtype_error detail -> string_of_type_error (SubtypingFailed detail)
+  in
+  assert
+    (formatted_mismatch
+    = "below payload: actual type {} is incompatible with expected type (Top -> Top)");
   print_endline "chapter17 diagnostics: ok"

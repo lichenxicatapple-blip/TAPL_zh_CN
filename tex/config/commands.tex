@@ -218,6 +218,26 @@
   \endgroup
   \par\medskip
 }
+% Re-display a snippet that is already referenced and extracted elsewhere in
+% the book. This keeps a distant appendix fragment self-contained without
+% registering a second extraction owner for the same compiled source region.
+\newcommand{\taplrustsupportreuse}[2][]{%
+  \ifstrequal{#1}{break}{\tcbbreak}{}%
+  \ifstrequal{#1}{implementation-break}{\tcbbreak}{}%
+  \par\Needspace{8\baselineskip}\smallskip
+  \begingroup
+    \noindent
+    {\footnotesize\bfseries
+      \ifboolexpr{
+        test {\ifstrequal{#1}{implementation}}
+        or test {\ifstrequal{#1}{implementation-break}}
+      }{Rust 实现（译者增补）}{Rust 辅助实现（译者增补）}%
+      \par}
+    \nobreak\smallskip
+    \inputminted{rust}{../build/code-snippets/#2.rs}%
+  \endgroup
+  \par\medskip
+}
 \newcommand{\taplrustsupportchunk}[3]{%
   \tcbbreak
   \par\smallskip
@@ -228,12 +248,31 @@
 }
 \newcommand{\taplrustsupportchunkfirst}[3]{%
   \tcbbreak
-  \par\smallskip
+  \par\Needspace{8\baselineskip}\smallskip
   \begingroup
     \noindent
     {\footnotesize\bfseries Rust 实现（译者增补）\par}
     \nobreak\smallskip
     \inputminted[firstline=#2,lastline=#3]{rust}{../build/code-snippets/#1.rs}%
+  \endgroup
+  \par\medskip
+}
+\newcommand{\taplocamlfilechunk}[3]{%
+  \tcbbreak
+  \par\smallskip
+  \begingroup
+    \inputminted[firstline=#2,lastline=#3]{ocaml}{#1}%
+  \endgroup
+  \par\medskip
+}
+\newcommand{\taplocamlfilechunkfirst}[3]{%
+  \tcbbreak
+  \par\Needspace{8\baselineskip}\smallskip
+  \begingroup
+    \noindent
+    {\footnotesize\bfseries OCaml 实现\par}
+    \nobreak\smallskip
+    \inputminted[firstline=#2,lastline=#3]{ocaml}{#1}%
   \endgroup
   \par\medskip
 }
@@ -319,6 +358,13 @@
 \newtheorem{proposition}[definition]{命题}
 \newtheorem{corollary}[definition]{推论}
 
+% Numbered technical results that retain the original Appendix A numbering.
+% The counter is positioned at the corresponding source number where these
+% environments are used in the translated author solutions.
+\newtheorem{taplappendixlemma}{引理}
+\newtheorem{taplappendixproposition}[taplappendixlemma]{命题}
+\renewcommand{\thetaplappendixlemma}{A.\arabic{taplappendixlemma}}
+
 \theoremstyle{remark}
 \newtheorem{remark}[definition]{注}
 \renewcommand{\proofname}{证明}
@@ -372,6 +418,8 @@
 \taplsettightcref{lemma}{引理}
 \taplsettightcref{proposition}{命题}
 \taplsettightcref{corollary}{推论}
+\taplsettightcref{taplappendixlemma}{引理}
+\taplsettightcref{taplappendixproposition}{命题}
 \taplsettightcref{remark}{注}
 \taplsettightcref{figure}{图}
 \taplsettightcref{table}{表}

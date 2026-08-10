@@ -46,6 +46,8 @@ pub enum FjError {
     DuplicateField(String),
     FieldShadowing(String),
     DuplicateMethod(String),
+    DuplicateParameter(String),
+    ReservedParameter(String),
     BadConstructor(String),
     BadOverride(String),
     UnknownVariable(String),
@@ -143,6 +145,11 @@ impl ClassTable {
             }
 
             let inherited = self.fields(&class.superclass)?;
+            for (field_type, _) in inherited.iter().chain(class.fields.iter()) {
+                if field_type != "Object" && !self.classes.contains_key(field_type) {
+                    return Err(FjError::UnknownClass(field_type.clone()));
+                }
+            }
             let mut field_names: HashSet<String> =
                 inherited.iter().map(|(_, name)| name.clone()).collect();
             for (_, name) in &class.fields {
@@ -173,6 +180,21 @@ impl ClassTable {
             for method in &class.methods {
                 if !method_names.insert(method.name.clone()) {
                     return Err(FjError::DuplicateMethod(method.name.clone()));
+                }
+                if method.result != "Object" && !self.classes.contains_key(&method.result) {
+                    return Err(FjError::UnknownClass(method.result.clone()));
+                }
+                let mut parameter_names = HashSet::new();
+                for (parameter_type, parameter_name) in &method.parameters {
+                    if parameter_type != "Object" && !self.classes.contains_key(parameter_type) {
+                        return Err(FjError::UnknownClass(parameter_type.clone()));
+                    }
+                    if parameter_name == "this" {
+                        return Err(FjError::ReservedParameter(method.name.clone()));
+                    }
+                    if !parameter_names.insert(parameter_name.clone()) {
+                        return Err(FjError::DuplicateParameter(method.name.clone()));
+                    }
                 }
                 if let Ok(super_method) = self.method(&method.name, &class.superclass)
                     && (method.result != super_method.result
@@ -530,6 +552,13 @@ pub struct GClass {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum GjError {
+    DuplicateClass(String),
+    DuplicateTypeParameter(String),
+    DuplicateField(String),
+    DuplicateMethod(String),
+    DuplicateParameter(String),
+    ReservedParameter(String),
+    InheritanceCycle(String),
     UnknownType(String),
     UnknownVariable(String),
     UnknownField(String),
@@ -538,6 +567,8 @@ pub enum GjError {
     WrongTermArity { expected: usize, actual: usize },
     BoundViolation { argument: GType, bound: GType },
     TypeMismatch { expected: GType, actual: GType },
+    BadOverride(String),
+    ErasedProgram(FjError),
 }
 
 #[derive(Clone, Debug)]
@@ -562,13 +593,34 @@ fn substitute_type(ty: &GType, substitution: &HashMap<String, GType>) -> GType {
 }
 
 impl GenericTable {
-    pub fn new(classes: Vec<GClass>) -> Self {
-        Self {
-            classes: classes
-                .into_iter()
-                .map(|class| (class.name.clone(), class))
-                .collect(),
+    fn erased_fields(&self, class_name: &str) -> Result<Vec<(String, String)>, GjError> {
+        if class_name == "Object" {
+            return Ok(Vec::new());
         }
+        let class = self.class(class_name)?;
+        let bounds = self.extend_bounds(&HashMap::new(), &class.type_parameters)?;
+        let superclass = erase_type(&class.superclass, &bounds);
+        let mut fields = self.erased_fields(&superclass)?;
+        fields.extend(
+            class
+                .fields
+                .iter()
+                .map(|(ty, name)| (erase_type(ty, &bounds), name.clone())),
+        );
+        Ok(fields)
+    }
+
+    pub fn new(classes: Vec<GClass>) -> Result<Self, GjError> {
+        let mut table = HashMap::new();
+        for class in classes {
+            let name = class.name.clone();
+            if table.insert(name.clone(), class).is_some() {
+                return Err(GjError::DuplicateClass(name));
+            }
+        }
+        let result = Self { classes: table };
+        result.check_classes()?;
+        Ok(result)
     }
 
     fn class(&self, name: &str) -> Result<&GClass, GjError> {
@@ -583,13 +635,26 @@ impl GenericTable {
         target: &GType,
         bounds: &HashMap<String, GType>,
     ) -> bool {
+        self.is_subtype_avoiding_cycles(source, target, bounds, &mut HashSet::new())
+    }
+
+    fn is_subtype_avoiding_cycles(
+        &self,
+        source: &GType,
+        target: &GType,
+        bounds: &HashMap<String, GType>,
+        visited: &mut HashSet<GType>,
+    ) -> bool {
         if source == target {
             return true;
         }
+        if !visited.insert(source.clone()) {
+            return false;
+        }
         match source {
-            GType::Variable(name) => bounds
-                .get(name)
-                .is_some_and(|bound| self.is_subtype(bound, target, bounds)),
+            GType::Variable(name) => bounds.get(name).is_some_and(|bound| {
+                self.is_subtype_avoiding_cycles(bound, target, bounds, visited)
+            }),
             GType::Class(name, arguments) if name != "Object" => {
                 let Ok(class) = self.class(name) else {
                     return false;
@@ -600,10 +665,11 @@ impl GenericTable {
                     .map(|parameter| parameter.name.clone())
                     .zip(arguments.iter().cloned())
                     .collect();
-                self.is_subtype(
+                self.is_subtype_avoiding_cycles(
                     &substitute_type(&class.superclass, &substitution),
                     target,
                     bounds,
+                    visited,
                 )
             }
             GType::Class(_, _) => false,
@@ -648,9 +714,139 @@ impl GenericTable {
         }
     }
 
-    fn fields(&self, ty: &GType) -> Result<Vec<(GType, String)>, GjError> {
+    fn extend_bounds(
+        &self,
+        outer: &HashMap<String, GType>,
+        parameters: &[TypeParameter],
+    ) -> Result<HashMap<String, GType>, GjError> {
+        let mut result = outer.clone();
+        for parameter in parameters {
+            if result
+                .insert(parameter.name.clone(), parameter.bound.clone())
+                .is_some()
+            {
+                return Err(GjError::DuplicateTypeParameter(parameter.name.clone()));
+            }
+        }
+        for parameter in parameters {
+            self.check_type(&parameter.bound, &result)?;
+        }
+        Ok(result)
+    }
+
+    fn check_classes(&self) -> Result<(), GjError> {
+        for class in self.classes.values() {
+            let bounds = self.extend_bounds(&HashMap::new(), &class.type_parameters)?;
+            self.check_type(&class.superclass, &bounds)?;
+
+            let mut current = GType::Class(
+                class.name.clone(),
+                class
+                    .type_parameters
+                    .iter()
+                    .map(|parameter| GType::Variable(parameter.name.clone()))
+                    .collect(),
+            );
+            let mut visited = HashSet::new();
+            loop {
+                let GType::Class(name, arguments) = current else {
+                    return Err(GjError::UnknownType(format!("{:?}", class.superclass)));
+                };
+                if name == "Object" {
+                    break;
+                }
+                if !visited.insert(name.clone()) {
+                    return Err(GjError::InheritanceCycle(class.name.clone()));
+                }
+                let current_class = self.class(&name)?;
+                let substitution: HashMap<_, _> = current_class
+                    .type_parameters
+                    .iter()
+                    .map(|parameter| parameter.name.clone())
+                    .zip(arguments)
+                    .collect();
+                current = substitute_type(&current_class.superclass, &substitution);
+            }
+
+            let inherited = self.fields(&class.superclass, &bounds)?;
+            let mut field_names: HashSet<_> =
+                inherited.iter().map(|(_, name)| name.clone()).collect();
+            for (field_type, field_name) in &class.fields {
+                self.check_type(field_type, &bounds)?;
+                if !field_names.insert(field_name.clone()) {
+                    return Err(GjError::DuplicateField(field_name.clone()));
+                }
+            }
+
+            let this_type = GType::Class(
+                class.name.clone(),
+                class
+                    .type_parameters
+                    .iter()
+                    .map(|parameter| GType::Variable(parameter.name.clone()))
+                    .collect(),
+            );
+            let mut method_names = HashSet::new();
+            for method in &class.methods {
+                if !method_names.insert(method.name.clone()) {
+                    return Err(GjError::DuplicateMethod(method.name.clone()));
+                }
+                let method_bounds = self.extend_bounds(&bounds, &method.type_parameters)?;
+                self.check_type(&method.result, &method_bounds)?;
+                let mut parameter_names = HashSet::new();
+                let mut context = HashMap::new();
+                for (parameter_type, parameter_name) in &method.parameters {
+                    self.check_type(parameter_type, &method_bounds)?;
+                    if parameter_name == "this" {
+                        return Err(GjError::ReservedParameter(method.name.clone()));
+                    }
+                    if !parameter_names.insert(parameter_name.clone()) {
+                        return Err(GjError::DuplicateParameter(method.name.clone()));
+                    }
+                    context.insert(parameter_name.clone(), parameter_type.clone());
+                }
+                context.insert("this".to_owned(), this_type.clone());
+                let body_type = self.type_of(&method_bounds, &context, &method.body)?;
+                if !self.is_subtype(&body_type, &method.result, &method_bounds) {
+                    return Err(GjError::TypeMismatch {
+                        expected: method.result.clone(),
+                        actual: body_type,
+                    });
+                }
+
+                match self.method(&method.name, &class.superclass, &bounds) {
+                    Ok(super_method)
+                        if method.type_parameters.len() != super_method.type_parameters.len()
+                            || method.result != super_method.result
+                            || method
+                                .parameters
+                                .iter()
+                                .map(|(ty, _)| ty)
+                                .ne(super_method.parameters.iter().map(|(ty, _)| ty)) =>
+                    {
+                        return Err(GjError::BadOverride(method.name.clone()));
+                    }
+                    Ok(_) | Err(GjError::UnknownMethod(_)) => {}
+                    Err(error) => return Err(error),
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn fields(
+        &self,
+        ty: &GType,
+        bounds: &HashMap<String, GType>,
+    ) -> Result<Vec<(GType, String)>, GjError> {
+        if let GType::Variable(name) = ty {
+            let bound = bounds
+                .get(name)
+                .ok_or_else(|| GjError::UnknownType(name.clone()))?;
+            return self.fields(bound, bounds);
+        }
         let GType::Class(name, arguments) = ty else {
-            return Err(GjError::UnknownType(format!("{ty:?}")));
+            unreachable!("all GType variants handled")
         };
         if name == "Object" {
             return Ok(Vec::new());
@@ -663,7 +859,7 @@ impl GenericTable {
             .zip(arguments.iter().cloned())
             .collect();
         let superclass = substitute_type(&class.superclass, &substitution);
-        let mut fields = self.fields(&superclass)?;
+        let mut fields = self.fields(&superclass, bounds)?;
         fields.extend(class.fields.iter().map(|(field_type, field_name)| {
             (
                 substitute_type(field_type, &substitution),
@@ -673,10 +869,24 @@ impl GenericTable {
         Ok(fields)
     }
 
-    fn method(&self, name: &str, receiver: &GType) -> Result<GMethod, GjError> {
+    fn method(
+        &self,
+        name: &str,
+        receiver: &GType,
+        bounds: &HashMap<String, GType>,
+    ) -> Result<GMethod, GjError> {
+        if let GType::Variable(variable) = receiver {
+            let bound = bounds
+                .get(variable)
+                .ok_or_else(|| GjError::UnknownType(variable.clone()))?;
+            return self.method(name, bound, bounds);
+        }
         let GType::Class(class_name, arguments) = receiver else {
-            return Err(GjError::UnknownMethod(name.to_owned()));
+            unreachable!("all GType variants handled")
         };
+        if class_name == "Object" {
+            return Err(GjError::UnknownMethod(name.to_owned()));
+        }
         let class = self.class(class_name)?;
         let substitution: HashMap<_, _> = class
             .type_parameters
@@ -702,7 +912,11 @@ impl GenericTable {
                 .collect();
             Ok(result)
         } else {
-            self.method(name, &substitute_type(&class.superclass, &substitution))
+            self.method(
+                name,
+                &substitute_type(&class.superclass, &substitution),
+                bounds,
+            )
         }
     }
 
@@ -719,7 +933,7 @@ impl GenericTable {
                 .ok_or_else(|| GjError::UnknownVariable(name.clone())),
             GTerm::Field(receiver, field) => {
                 let receiver_type = self.type_of(bounds, context, receiver)?;
-                self.fields(&receiver_type)?
+                self.fields(&receiver_type, bounds)?
                     .into_iter()
                     .find(|(_, name)| name == field)
                     .map(|(ty, _)| ty)
@@ -727,7 +941,7 @@ impl GenericTable {
             }
             GTerm::New(class_type, arguments) => {
                 self.check_type(class_type, bounds)?;
-                let fields = self.fields(class_type)?;
+                let fields = self.fields(class_type, bounds)?;
                 self.check_arguments(bounds, context, &fields, arguments)?;
                 Ok(class_type.clone())
             }
@@ -738,7 +952,7 @@ impl GenericTable {
             }
             GTerm::Invoke(receiver, name, type_arguments, arguments) => {
                 let receiver_type = self.type_of(bounds, context, receiver)?;
-                let method = self.method(name, &receiver_type)?;
+                let method = self.method(name, &receiver_type, bounds)?;
                 if method.type_parameters.len() != type_arguments.len() {
                     return Err(GjError::WrongTypeArity {
                         expected: method.type_parameters.len(),
@@ -838,6 +1052,82 @@ pub fn erase_term<S: std::hash::BuildHasher>(
             erase_type(ty, bounds),
             Box::new(erase_term(subject, bounds)),
         ),
+    }
+}
+
+impl GenericTable {
+    fn erase_method(
+        &self,
+        method: &GMethod,
+        class_bounds: &HashMap<String, GType>,
+    ) -> Result<Method, GjError> {
+        let bounds = self.extend_bounds(class_bounds, &method.type_parameters)?;
+        Ok(Method {
+            result: erase_type(&method.result, &bounds),
+            name: method.name.clone(),
+            parameters: method
+                .parameters
+                .iter()
+                .map(|(ty, name)| (erase_type(ty, &bounds), name.clone()))
+                .collect(),
+            body: erase_term(&method.body, &bounds),
+        })
+    }
+
+    /// Erases every generic declaration, including method bodies, into the FJ
+    /// class table consumed by the executable evaluator above.
+    pub fn erase_table(&self) -> Result<ClassTable, GjError> {
+        let mut erased = Vec::new();
+        for class in self.classes.values() {
+            let bounds = self.extend_bounds(&HashMap::new(), &class.type_parameters)?;
+            let superclass = erase_type(&class.superclass, &bounds);
+            let inherited_fields = self.erased_fields(&superclass)?;
+            let own_fields: Vec<_> = class
+                .fields
+                .iter()
+                .map(|(ty, name)| (erase_type(ty, &bounds), name.clone()))
+                .collect();
+            let parameters = inherited_fields
+                .iter()
+                .chain(own_fields.iter())
+                .cloned()
+                .collect();
+            erased.push(Class {
+                name: class.name.clone(),
+                superclass,
+                fields: own_fields.clone(),
+                constructor: Constructor {
+                    parameters,
+                    super_arguments: inherited_fields
+                        .iter()
+                        .map(|(_, name)| name.clone())
+                        .collect(),
+                    assignments: own_fields.iter().map(|(_, name)| name.clone()).collect(),
+                },
+                methods: class
+                    .methods
+                    .iter()
+                    .map(|method| self.erase_method(method, &bounds))
+                    .collect::<Result<_, _>>()?,
+            });
+        }
+        ClassTable::new(erased).map_err(GjError::ErasedProgram)
+    }
+
+    /// Type-checks the generic term, erases it, and executes the result with
+    /// the FJ evaluator. This is the runtime implementation of the GJ layer.
+    pub fn eval_erased(
+        &self,
+        bounds: &HashMap<String, GType>,
+        context: &HashMap<String, GType>,
+        term: &GTerm,
+        limit: usize,
+    ) -> Result<Term, GjError> {
+        let _ = self.type_of(bounds, context, term)?;
+        let table = self.erase_table()?;
+        table
+            .eval(erase_term(term, bounds), limit)
+            .map_err(GjError::ErasedProgram)
     }
 }
 // TAPL-SNIPPET-END: ch19-gj
@@ -967,7 +1257,81 @@ mod tests {
                 body: GTerm::Variable("value".to_owned()),
             }],
         };
-        GenericTable::new(vec![a, b, box_class, holder, utility])
+        let mut classes = vec![a, b, box_class, holder, utility];
+        classes.extend(generic_auxiliary_classes());
+        GenericTable::new(classes).expect("valid generic class table")
+    }
+
+    fn generic_auxiliary_classes() -> Vec<GClass> {
+        let a_box = GClass {
+            name: "ABox".to_owned(),
+            type_parameters: Vec::new(),
+            superclass: GType::Class(
+                "Box".to_owned(),
+                vec![GType::Class("A".to_owned(), Vec::new())],
+            ),
+            fields: Vec::new(),
+            methods: Vec::new(),
+        };
+        let comparable = GClass {
+            name: "Comparable".to_owned(),
+            type_parameters: vec![TypeParameter {
+                name: "X".to_owned(),
+                bound: object_type(),
+            }],
+            superclass: object_type(),
+            fields: Vec::new(),
+            methods: vec![GMethod {
+                type_parameters: Vec::new(),
+                result: GType::Variable("X".to_owned()),
+                name: "same".to_owned(),
+                parameters: vec![(GType::Variable("X".to_owned()), "other".to_owned())],
+                body: GTerm::Variable("other".to_owned()),
+            }],
+        };
+        let score = GClass {
+            name: "Score".to_owned(),
+            type_parameters: Vec::new(),
+            superclass: GType::Class(
+                "Comparable".to_owned(),
+                vec![GType::Class("Score".to_owned(), Vec::new())],
+            ),
+            fields: Vec::new(),
+            methods: Vec::new(),
+        };
+        let ranked = GClass {
+            name: "Ranked".to_owned(),
+            type_parameters: vec![TypeParameter {
+                name: "X".to_owned(),
+                bound: GType::Class(
+                    "Comparable".to_owned(),
+                    vec![GType::Variable("X".to_owned())],
+                ),
+            }],
+            superclass: object_type(),
+            fields: Vec::new(),
+            methods: Vec::new(),
+        };
+        let plain_pair = GClass {
+            name: "PlainPair".to_owned(),
+            type_parameters: Vec::new(),
+            superclass: object_type(),
+            fields: vec![
+                (object_type(), "left".to_owned()),
+                (object_type(), "right".to_owned()),
+            ],
+            methods: vec![GMethod {
+                type_parameters: Vec::new(),
+                result: object_type(),
+                name: "first".to_owned(),
+                parameters: Vec::new(),
+                body: GTerm::Field(
+                    Box::new(GTerm::Variable("this".to_owned())),
+                    "left".to_owned(),
+                ),
+            }],
+        };
+        vec![a_box, comparable, score, ranked, plain_pair]
     }
 
     #[test]
@@ -1102,6 +1466,62 @@ mod tests {
     }
 
     #[test]
+    fn class_table_rejects_unknown_types_and_bad_parameter_names() {
+        let bad_field = Class {
+            name: "BadField".to_owned(),
+            superclass: "Object".to_owned(),
+            fields: vec![("Missing".to_owned(), "value".to_owned())],
+            constructor: Constructor {
+                parameters: vec![("Missing".to_owned(), "value".to_owned())],
+                super_arguments: Vec::new(),
+                assignments: vec!["value".to_owned()],
+            },
+            methods: Vec::new(),
+        };
+        assert!(matches!(
+            ClassTable::new(vec![bad_field]),
+            Err(FjError::UnknownClass(name)) if name == "Missing"
+        ));
+
+        let bad_parameters = Class {
+            name: "BadParameters".to_owned(),
+            superclass: "Object".to_owned(),
+            fields: Vec::new(),
+            constructor: empty_constructor(),
+            methods: vec![Method {
+                result: "Object".to_owned(),
+                name: "choose".to_owned(),
+                parameters: vec![
+                    ("Object".to_owned(), "x".to_owned()),
+                    ("Object".to_owned(), "x".to_owned()),
+                ],
+                body: Term::Variable("x".to_owned()),
+            }],
+        };
+        assert!(matches!(
+            ClassTable::new(vec![bad_parameters]),
+            Err(FjError::DuplicateParameter(method)) if method == "choose"
+        ));
+
+        let reserved_parameter = Class {
+            name: "ReservedParameter".to_owned(),
+            superclass: "Object".to_owned(),
+            fields: Vec::new(),
+            constructor: empty_constructor(),
+            methods: vec![Method {
+                result: "Object".to_owned(),
+                name: "bad".to_owned(),
+                parameters: vec![("Object".to_owned(), "this".to_owned())],
+                body: Term::Variable("this".to_owned()),
+            }],
+        };
+        assert!(matches!(
+            ClassTable::new(vec![reserved_parameter]),
+            Err(FjError::ReservedParameter(method)) if method == "bad"
+        ));
+    }
+
+    #[test]
     fn typechecker_rejects_wrong_method_arity() {
         let table = pair_table();
         let call = Term::Invoke(
@@ -1185,9 +1605,126 @@ mod tests {
             table.type_of(&HashMap::new(), &HashMap::new(), &generic_identity),
             Ok(GType::Class("A".to_owned(), Vec::new()))
         );
+        assert_eq!(
+            table.eval_erased(&HashMap::new(), &HashMap::new(), &term, 20),
+            Ok(Term::New("A".to_owned(), Vec::new()))
+        );
+        assert_eq!(
+            table.eval_erased(&HashMap::new(), &HashMap::new(), &generic_identity, 20),
+            Ok(Term::New("A".to_owned(), Vec::new()))
+        );
+    }
+
+    #[test]
+    fn generic_inheritance_recursive_bounds_and_bound_lookup_work() {
+        let table = generic_table();
+        let inherited = GTerm::Invoke(
+            Box::new(GTerm::New(
+                GType::Class("ABox".to_owned(), Vec::new()),
+                vec![GTerm::New(
+                    GType::Class("A".to_owned(), Vec::new()),
+                    Vec::new(),
+                )],
+            )),
+            "get".to_owned(),
+            Vec::new(),
+            Vec::new(),
+        );
+        assert_eq!(
+            table.type_of(&HashMap::new(), &HashMap::new(), &inherited),
+            Ok(GType::Class("A".to_owned(), Vec::new()))
+        );
+        assert_eq!(
+            table.eval_erased(&HashMap::new(), &HashMap::new(), &inherited, 20),
+            Ok(Term::New("A".to_owned(), Vec::new()))
+        );
+
+        let recursive_bound = GType::Class(
+            "Ranked".to_owned(),
+            vec![GType::Class("Score".to_owned(), Vec::new())],
+        );
+        assert_eq!(table.check_type(&recursive_bound, &HashMap::new()), Ok(()));
+
+        let variable = GType::Variable("X".to_owned());
+        let bounds = HashMap::from([(
+            "X".to_owned(),
+            GType::Class("Comparable".to_owned(), vec![variable.clone()]),
+        )]);
+        assert_eq!(
+            table.method("same", &variable, &bounds).unwrap().result,
+            variable
+        );
+        let variable_field = GTerm::Field(
+            Box::new(GTerm::Variable("box".to_owned())),
+            "value".to_owned(),
+        );
+        let field_bounds = HashMap::from([(
+            "X".to_owned(),
+            GType::Class(
+                "Box".to_owned(),
+                vec![GType::Class("A".to_owned(), Vec::new())],
+            ),
+        )]);
+        let field_context = HashMap::from([("box".to_owned(), GType::Variable("X".to_owned()))]);
+        assert_eq!(
+            table.type_of(&field_bounds, &field_context, &variable_field),
+            Ok(GType::Class("A".to_owned(), Vec::new()))
+        );
+    }
+
+    #[test]
+    fn erased_nongeneric_program_preserves_its_result() {
+        let table = generic_table();
+        let nongeneric = GTerm::Invoke(
+            Box::new(GTerm::New(
+                GType::Class("PlainPair".to_owned(), Vec::new()),
+                vec![
+                    GTerm::New(GType::Class("A".to_owned(), Vec::new()), Vec::new()),
+                    GTerm::New(GType::Class("B".to_owned(), Vec::new()), Vec::new()),
+                ],
+            )),
+            "first".to_owned(),
+            Vec::new(),
+            Vec::new(),
+        );
+        assert_eq!(
+            table.eval_erased(&HashMap::new(), &HashMap::new(), &nongeneric, 20),
+            Ok(Term::New("A".to_owned(), Vec::new()))
+        );
+    }
+
+    #[test]
+    fn generic_table_rejects_an_ill_typed_method_body() {
+        let bad = GClass {
+            name: "Bad".to_owned(),
+            type_parameters: Vec::new(),
+            superclass: object_type(),
+            fields: Vec::new(),
+            methods: vec![GMethod {
+                type_parameters: Vec::new(),
+                result: GType::Class("A".to_owned(), Vec::new()),
+                name: "bad".to_owned(),
+                parameters: Vec::new(),
+                body: GTerm::New(GType::Class("B".to_owned(), Vec::new()), Vec::new()),
+            }],
+        };
+        let a = GClass {
+            name: "A".to_owned(),
+            type_parameters: Vec::new(),
+            superclass: object_type(),
+            fields: Vec::new(),
+            methods: Vec::new(),
+        };
+        let b = GClass {
+            name: "B".to_owned(),
+            type_parameters: Vec::new(),
+            superclass: object_type(),
+            fields: Vec::new(),
+            methods: Vec::new(),
+        };
         assert!(matches!(
-            erase_term(&term, &HashMap::new()),
-            Term::Invoke(..)
+            GenericTable::new(vec![a, b, bad]),
+            Err(GjError::TypeMismatch { .. })
         ));
     }
 }

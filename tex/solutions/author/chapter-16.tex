@@ -164,10 +164,12 @@ S\sqcap\tapltype{Top}&=&S\\
 两种算法都不会发散，因为每次递归调用都会减小输入 \(S,T\) 的总大小。交算法
 虽然可能失败，但只要两个输入存在共同下界，它就一定成功。
 
-\medskip
-\textbf{引理 A.10。}
+\setcounter{taplappendixlemma}{9}
+\begin{taplappendixlemma}
+\label{lem:appendix-a10}
 若 \(L\subtype S\) 且 \(L\subtype T\)，则存在某个 \(M\)，使
 \(S\sqcap T=M\)。
+\end{taplappendixlemma}
 
 \begin{proof}
 对 \(S\) 的大小归纳（等价地，也可对 \(T\) 的大小归纳），并按 \(S,T\)
@@ -196,30 +198,33 @@ S\sqcap\tapltype{Top}&=&S\\
 求交成功。
 \end{proof}
 
-下面验证这些定义确实计算出并与交。论证分成两部分：命题 A.11 说明求得的交
-是 \(S,T\) 的下界、求得的并是它们的上界；命题 A.12 说明求得的交大于每个
+下面验证这些定义确实计算出并与交。论证分成两部分：
+\taplnamedref{prop:appendix-a11}{命题}说明求得的交是 \(S,T\) 的下界、求得的
+并是它们的上界；\taplnamedref{prop:appendix-a12}{命题}说明求得的交大于每个
 共同下界，求得的并小于每个共同上界。
 
-\medskip
-\textbf{命题 A.11。}
+\begin{taplappendixproposition}
+\label{prop:appendix-a11}
 \begin{enumerate}
 \item 若 \(S\sqcup T=J\)，则 \(S\subtype J\) 且 \(T\subtype J\)。
 \item 若 \(S\sqcap T=M\)，则 \(M\subtype S\) 且 \(M\subtype T\)。
 \end{enumerate}
+\end{taplappendixproposition}
 
 \begin{proof}
 对 \(S\sqcup T=J\) 或 \(S\sqcap T=M\) 的“推导”大小作直接归纳；这里的
 大小就是为了算出 \(J\) 或 \(M\) 而对两个定义进行的递归调用次数。
 \end{proof}
 
-\medskip
-\textbf{命题 A.12。}
+\begin{taplappendixproposition}
+\label{prop:appendix-a12}
 \begin{enumerate}
 \item 设 \(S\sqcup T=J\)，且对某个 \(U\) 有
   \(S\subtype U\) 与 \(T\subtype U\)。则 \(J\subtype U\)。
 \item 设 \(S\sqcap T=M\)，且对某个 \(L\) 有
   \(L\subtype S\) 与 \(L\subtype T\)。则 \(L\subtype M\)。
 \end{enumerate}
+\end{taplappendixproposition}
 
 \begin{proof}
 两部分同时对 \(S,T\) 的大小归纳；给定 \(S,T\) 后，依次证明两部分。
@@ -247,7 +252,8 @@ S\sqcap\tapltype{Top}&=&S\\
 
 再证第二项，并按 \(S,T\) 的形式分类。若其中一个是 \(\tapltype{Top}\)，
 交就是另一个输入，结论立即成立。两个非最大类型具有不同外层形式的情形，由
-引理 A.10 的论证可知不可能发生。若二者都是 \(\tapltype{Bool}\)，结论同样
+\taplnamedref{lem:appendix-a10}{引理}的论证可知不可能发生。若二者都是
+\(\tapltype{Bool}\)，结论同样
 立即成立。
 
 若 \(S=S_1\to S_2\)、\(T=T_1\to T_2\)，子类型反演给出
@@ -320,8 +326,7 @@ S\sqcap\tapltype{Top}&=&S\\
 接收能力只由服务器自身持有。
 
 若系统只加入 \(\tapltype{Source}\)，并算法在加入上面的 \(\tapltype{Ref}\)
-分支后，再加入以下四种组合，仍然是完备的。前面的引用等价分支优先于这里的
-第一种组合：
+分支后，再加入以下四种组合，仍然是完备的：
 \[
 \begin{array}{rcl}
 \tapltype{Ref}\ S_1\sqcup\tapltype{Ref}\ T_1
@@ -338,22 +343,7 @@ S\sqcap\tapltype{Top}&=&S\\
  \quad\text{若 }S_1\sqcup T_1=J_1
 \end{array}
 \]
-交算法加入相应分支：
-\[
-\begin{array}{rcl}
-\tapltype{Source}\ S_1\sqcap\tapltype{Source}\ T_1
- &=&\tapltype{Source}\ M_1
- \quad\text{若 }S_1\sqcap T_1=M_1\\
-\tapltype{Ref}\ S_1\sqcap\tapltype{Source}\ T_1
- &=&\tapltype{Ref}\ S_1
- \quad\text{若 }S_1\subtype T_1\\
-\tapltype{Source}\ S_1\sqcap\tapltype{Ref}\ T_1
- &=&\tapltype{Ref}\ T_1
- \quad\text{若 }T_1\subtype S_1
-\end{array}
-\]
-两个 \(\tapltype{Ref}\) 的组合仍由上面的双向子类型分支处理；条件不满足时，
-求交失败。
+交算法也加入类似分支。
 
 另一种方案由 Hennessy 与 Riely（1998）提出：让引用类型接受两个参数。
 \(\tapltype{Ref}\ S\ T\) 允许写入 \(S\) 型值、

@@ -16,6 +16,25 @@ pub enum Term {
     Abstraction(String, Type, Box<Term>),
     Application(Box<Term>, Box<Term>),
 }
+
+impl std::fmt::Display for Type {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Type::Top => write!(formatter, "Top"),
+            Type::Arrow(input, output) => write!(formatter, "({input} -> {output})"),
+            Type::Record(fields) => {
+                write!(formatter, "{{")?;
+                for (index, (label, ty)) in fields.iter().enumerate() {
+                    if index > 0 {
+                        write!(formatter, ", ")?;
+                    }
+                    write!(formatter, "{label}: {ty}")?;
+                }
+                write!(formatter, "}}")
+            }
+        }
+    }
+}
 // TAPL-SNIPPET-END: ch17-syntax
 
 // TAPL-SNIPPET-BEGIN: ch17-support
@@ -65,9 +84,9 @@ pub fn type_of(context: &Context, term: &Term) -> Result<Type, TypeError> {
             .map(Type::Record),
         Term::Projection(record, label) => match type_of(context, record)? {
             Type::Record(fields) => fields
-                .into_iter()
+                .iter()
                 .find(|(field_label, _)| field_label == label)
-                .map(|(_, field_type)| field_type)
+                .map(|(_, field_type)| field_type.clone())
                 .ok_or_else(|| TypeError::MissingField(label.clone())),
             other => Err(TypeError::ExpectedRecord(other)),
         },
@@ -209,6 +228,8 @@ pub enum DiagnosticError {
     MissingSubtypeField {
         path: Vec<String>,
         label: String,
+        source: Type,
+        target: Type,
     },
     ShapeMismatch {
         path: Vec<String>,
@@ -219,7 +240,10 @@ pub enum DiagnosticError {
         index: usize,
         context_len: usize,
     },
-    MissingProjectionField(String),
+    MissingProjectionField {
+        label: String,
+        record: Type,
+    },
     ExpectedRecord(Type),
     ExpectedFunction(Type),
     ParameterMismatch(Box<DiagnosticError>),
@@ -229,6 +253,62 @@ fn extend_path(path: &[String], part: impl Into<String>) -> Vec<String> {
     let mut extended = path.to_vec();
     extended.push(part.into());
     extended
+}
+
+fn diagnostic_path(path: &[String]) -> String {
+    if path.is_empty() {
+        "<root>".to_owned()
+    } else {
+        path.join(".")
+    }
+}
+
+impl std::fmt::Display for DiagnosticError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DiagnosticError::MissingSubtypeField {
+                path,
+                label,
+                source,
+                target,
+            } => write!(
+                formatter,
+                "below {}: actual type {source} lacks field {label} required by {target}",
+                diagnostic_path(path)
+            ),
+            DiagnosticError::ShapeMismatch {
+                path,
+                source,
+                target,
+            } => write!(
+                formatter,
+                "below {}: actual type {source} is incompatible with expected type {target}",
+                diagnostic_path(path)
+            ),
+            DiagnosticError::UnboundVariable { index, context_len } => write!(
+                formatter,
+                "variable {index} is outside a context of length {context_len}"
+            ),
+            DiagnosticError::MissingProjectionField { label, record } => {
+                write!(formatter, "record type {record} has no field {label}")
+            }
+            DiagnosticError::ExpectedRecord(actual) => {
+                write!(
+                    formatter,
+                    "projection expected a record, but found {actual}"
+                )
+            }
+            DiagnosticError::ExpectedFunction(actual) => {
+                write!(
+                    formatter,
+                    "application expected a function, but found {actual}"
+                )
+            }
+            DiagnosticError::ParameterMismatch(error) => {
+                write!(formatter, "argument type mismatch: {error}")
+            }
+        }
+    }
 }
 
 pub fn check_subtype(path: &[String], source: &Type, target: &Type) -> Result<(), DiagnosticError> {
@@ -249,6 +329,8 @@ pub fn check_subtype(path: &[String], source: &Type, target: &Type) -> Result<()
                     .ok_or_else(|| DiagnosticError::MissingSubtypeField {
                         path: path.to_vec(),
                         label: label.clone(),
+                        source: source.clone(),
+                        target: target.clone(),
                     })?;
                 check_subtype(&extend_path(path, label.clone()), source_type, target_type)?;
             }
@@ -271,10 +353,13 @@ pub fn diagnostic_type_of(context: &Context, term: &Term) -> Result<Type, Diagno
             .map(Type::Record),
         Term::Projection(record, label) => match diagnostic_type_of(context, record)? {
             Type::Record(fields) => fields
-                .into_iter()
+                .iter()
                 .find(|(field_label, _)| field_label == label)
-                .map(|(_, field_type)| field_type)
-                .ok_or_else(|| DiagnosticError::MissingProjectionField(label.clone())),
+                .map(|(_, field_type)| field_type.clone())
+                .ok_or_else(|| DiagnosticError::MissingProjectionField {
+                    label: label.clone(),
+                    record: Type::Record(fields.clone()),
+                }),
             other => Err(DiagnosticError::ExpectedRecord(other)),
         },
         Term::Variable(index) => {
@@ -514,6 +599,7 @@ pub fn translate_term(
 }
 // TAPL-SNIPPET-END: sol-translator-17-translate
 
+// TAPL-SNIPPET-BEGIN: sol-translator-17-target-eval-support
 fn target_shift_walk(distance: isize, cutoff: usize, term: &TargetTerm) -> TargetTerm {
     match term {
         TargetTerm::Unit => TargetTerm::Unit,
@@ -620,6 +706,7 @@ fn target_is_value(term: &TargetTerm) -> bool {
         _ => false,
     }
 }
+// TAPL-SNIPPET-END: sol-translator-17-target-eval-support
 
 // TAPL-SNIPPET-BEGIN: sol-translator-17-target-eval
 pub fn target_eval1(term: &TargetTerm) -> Option<TargetTerm> {
@@ -823,6 +910,8 @@ mod tests {
             Err(DiagnosticError::MissingSubtypeField {
                 path: vec!["outer".into()],
                 label: "x".into(),
+                source: empty_record(),
+                target: x_top_record(),
             })
         );
         assert_eq!(
@@ -831,6 +920,58 @@ mod tests {
                 index: 0,
                 context_len: 0,
             })
+        );
+    }
+
+    #[test]
+    fn diagnostics_render_actual_expected_types_and_projection_failures() {
+        let mismatch = check_subtype(
+            &["payload".into()],
+            &empty_record(),
+            &Type::Arrow(Box::new(Type::Top), Box::new(Type::Top)),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(mismatch.contains("below payload"));
+        assert!(mismatch.contains("actual type {}"));
+        assert!(mismatch.contains("expected type (Top -> Top)"));
+
+        let missing = diagnostic_type_of(
+            &Vec::new(),
+            &Term::Projection(Box::new(Term::Record(Vec::new())), "x".into()),
+        )
+        .unwrap_err();
+        assert_eq!(missing.to_string(), "record type {} has no field x");
+
+        let non_record = diagnostic_type_of(
+            &Vec::new(),
+            &Term::Projection(
+                Box::new(Term::Abstraction(
+                    "x".into(),
+                    Type::Top,
+                    Box::new(Term::Variable(0)),
+                )),
+                "x".into(),
+            ),
+        )
+        .unwrap_err();
+        assert!(
+            non_record
+                .to_string()
+                .contains("projection expected a record, but found (Top -> Top)")
+        );
+
+        let non_function = diagnostic_type_of(
+            &Vec::new(),
+            &Term::Application(
+                Box::new(Term::Record(Vec::new())),
+                Box::new(Term::Record(Vec::new())),
+            ),
+        )
+        .unwrap_err();
+        assert_eq!(
+            non_function.to_string(),
+            "application expected a function, but found {}"
         );
     }
 
