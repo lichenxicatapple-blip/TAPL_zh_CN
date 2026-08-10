@@ -1,5 +1,185 @@
-% Chapter 17 — An ML Implementation of Subtyping
-% Source: ../source/split/chapters/ch17-ml-subtyping_p212-p215.pdf
+% 第 17 章：子类型化的 ML 实现
+% Source: source/split/chapters/ch17-ml-subtyping_p212-p215.pdf
 % Original print pages: 221--224
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:17}
+% Status: 待独立初审
+
+\chapter{子类型化的 ML 实现}
+\label{chap:17}
+
+本章扩展\chapref{10}实现的简单类型 lambda 演算，加入支持子类型化所需的机制，
+其中最重要的是检查子类型关系的函数。
+
+\section{语法}
+\label{sec:17.1}
+
+类型和项的数据类型定义遵循\cref{fig:15-1,fig:15-3}中的抽象语法。
+
+\begin{taplocamlcode}
+type ty =
+    TyRecord of (string * ty) list
+  | TyTop
+  | TyArr of ty * ty
+
+type term =
+    TmRecord of info * (string * term) list
+  | TmProj of info * term * string
+  | TmVar of info * int * int
+  | TmAbs of info * string * ty * term
+  | TmApp of info * term * term
+\end{taplocamlcode}
+\taplrustcounterpart{ch17-syntax}
+
+与纯粹的简单类型 lambda 演算相比，这里新增了类型
+\texttt{TyTop}、类型构造子 \texttt{TyRecord}，以及项构造子
+\texttt{TmRecord} 和 \texttt{TmProj}。记录及其类型采用最直接的表示：
+字段名与对应的项或类型所组成的列表。
+
+\section{子类型关系}
+\label{sec:17.2}
+
+原书第 212 页给出的算法子类型关系伪代码可以直接写成下面的 OCaml 函数。
+
+\begin{taplocamlcode}
+let rec subtype tyS tyT =
+  (=) tyS tyT ||
+  match (tyS,tyT) with
+    (TyRecord(fS), TyRecord(fT)) ->
+      List.for_all
+        (fun (li,tyTi) ->
+          try let tySi = List.assoc li fS in
+              subtype tySi tyTi
+          with Not_found -> false)
+        fT
+  | (_,TyTop) ->
+      true
+  | (TyArr(tyS1,tyS2),TyArr(tyT1,tyT2)) ->
+      (subtype tyT1 tyS1) && (subtype tyS2 tyT2)
+  | (_,_) ->
+      false
+\end{taplocamlcode}
+\taplrustcounterpart{ch17-subtype}
+
+这里对伪代码稍作修改，在函数开头增加了反身性检查。运算符 \texttt{(=)}
+是普通的相等比较；这里把它写在前缀位置，是因为在另外一些子类型实现中，
+它会被替换成对其他比较函数的调用。\texttt{||} 是短路布尔“或”：若第一个
+分支得到 \texttt{true}，第二个分支便不会执行。严格说来，这项检查并非必需，
+但在真实编译器中却是一项重要优化。现实程序很少实际利用子类型化；换言之，
+子类型检查器收到的大多数类型对本来就相等。进一步说，若类型表示能保证结构
+同构的类型也具有相同的物理表示——例如在构造类型时使用
+\termfirst{哈希合并}{hash consing}（Goto, 1974；Appel 与 Gonçalves,
+1993）——这项检查只需一条指令。
+
+记录子类型规则自然需要对列表作一些处理。\texttt{List.for\_all} 把谓词
+（第一个参数）应用于列表的每个元素，只有所有应用都返回 \texttt{true} 时
+才返回 \texttt{true}。\texttt{List.assoc li fS} 在字段列表 \texttt{fS}
+中查找标签 \texttt{li}，并返回相应的字段类型 \texttt{tySi}；若
+\texttt{fS} 中不存在该标签，它就抛出 \texttt{Not\_found}，这里捕获该
+异常并把结果改为 \texttt{false}。
+
+\section{类型检查}
+\label{sec:17.3}
+
+类型检查函数是在先前实现的 \texttt{typeof} 函数上直接扩展而成的。主要
+变化出现在应用项的分支：这里要检查实参类型是否为函数所要求参数类型的子类型。
+此外，还增加了构造记录和投影字段的两个分支。
+
+\begin{taplocamlcode}
+let rec typeof ctx t =
+  match t with
+    TmRecord(fi, fields) ->
+      let fieldtys =
+        List.map (fun (li,ti) -> (li, typeof ctx ti)) fields in
+      TyRecord(fieldtys)
+  | TmProj(fi, t1, l) ->
+      (match (typeof ctx t1) with
+         TyRecord(fieldtys) ->
+           (try List.assoc l fieldtys
+            with Not_found -> error fi ("label " ^ l ^ " not found"))
+       | _ -> error fi "Expected record type")
+  | TmVar(fi,i,_) -> getTypeFromContext fi ctx i
+  | TmAbs(fi,x,tyT1,t2) ->
+      let ctx' = addbinding ctx x (VarBind(tyT1)) in
+      let tyT2 = typeof ctx' t2 in
+      TyArr(tyT1, tyT2)
+  | TmApp(fi,t1,t2) ->
+      let tyT1 = typeof ctx t1 in
+      let tyT2 = typeof ctx t2 in
+      (match tyT1 with
+         TyArr(tyT11,tyT12) ->
+           if subtype tyT2 tyT11 then tyT12
+           else error fi "parameter type mismatch"
+       | _ -> error fi "arrow type expected")
+\end{taplocamlcode}
+\taplrustcounterpart{ch17-type-of}
+
+记录分支引入了几个此前没有见过的 OCaml 特性。在 \texttt{TmRecord} 分支
+中，程序用 \texttt{List.map} 把下面的函数依次应用于每个“字段名／字段项”
+二元对，由此把 \texttt{fields} 转换成“字段名／字段类型”列表
+\texttt{fieldtys}：
+
+\begin{taplocamlcode}
+fun (li,ti) -> (li, typeof ctx ti)
+\end{taplocamlcode}
+\taplocamlsyntaxonly
+
+在 \texttt{TmProj} 分支中，程序再次使用 \texttt{List.assoc} 查找所选字段
+的类型。若查找抛出 \texttt{Not\_found}，程序便报告自己的错误消息。
+运算符 \texttt{\^{}} 用于连接字符串。
+
+\begin{exercise}[
+  \(\star\star\star\)]
+\label{ex:17.3.1}
+\taplsecref{16.3}{sec:16.3}说明，在带子类型化的语言中加入布尔值和条件式时，
+还需要计算给定类型对之最小公共超类型的辅助函数。命题 16.3.2 的证明给出了
+这些算法的数学描述。
+
+\texttt{joinexercise} 类型检查器是不完整的“带子类型化、记录与条件式的
+简单类型 lambda 演算”实现。它已经提供基本的解析与打印函数，但
+\texttt{typeof} 中缺少 \texttt{TmIf} 分支，也缺少该分支所需的
+\texttt{join} 函数。请为该实现加入布尔值、条件式、并与交。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:17.3.1}{17.3.1}
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:17.3.2}
+按照\taplsecref{16.4}{sec:16.4}的说明，为 \texttt{rcdsub} 实现加入最小
+类型 \(\tapltype{Bot}\)。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:17.3.2}{17.3.2}
+
+\begin{exercise}[\(\star\star\), \(\nrightarrow\)]
+\label{ex:17.3.3}
+若应用规则中的子类型检查失败，类型检查器给出的错误消息可能并不能帮助用户
+找到问题。即使同时打印预期参数类型与实际实参类型，也可能难以看出差别。例如，
+预期类型为
+\[
+\{x:\{\},y:\{\},z:\{\},a:\{\},b:\{\},c:\{\},d:\{\},
+  e:\{\},f:\{\},g:\{\}\}
+\]
+而实际类型为
+\[
+\{y:\{\},z:\{\},f:\{\},a:\{\},x:\{\},i:\{\},b:\{\},
+  e:\{\},g:\{\},c:\{\},h:\{\}\}
+\]
+时，很难一眼看出后者缺少字段 \texttt{d}。
+
+可以把 \texttt{subtype} 从“返回 \texttt{true} 或 \texttt{false}”改成
+“成功时返回 unit 值 \texttt{()}，失败时抛出异常”。异常会在两个类型真正
+无法匹配的位置抛出，因而能够更准确地说明原因。这不会改变类型检查器最终是
+接受还是拒绝程序：原来的子类型检查只要返回 \texttt{false}，类型检查器随后
+本来就会调用 \texttt{error} 抛出异常。
+
+请重新实现 \texttt{typeof} 和 \texttt{subtype}，使所有错误消息尽可能
+提供有用信息。
+\end{exercise}
+\taplsolutionlink{sol:translator:17.3.3}{17.3.3}
+
+\begin{exercise}[\(\star\star\star\), \(\nrightarrow\)]
+\label{ex:17.3.4}
+\taplsecref{15.6}{sec:15.6}用从类型推导与子类型推导到纯简单类型 lambda
+演算项的翻译，为带记录和子类型化的语言定义了强制转换语义。请实现这些翻译：
+修改上面的 \texttt{subtype}，让它构造并返回以项表示的强制转换函数；相应地
+修改 \texttt{typeof}，让它同时返回类型与翻译后的项。随后应当求值并打印
+翻译后的项，而不是原始输入项。
+\end{exercise}
+\taplsolutionlink{sol:translator:17.3.4}{17.3.4}

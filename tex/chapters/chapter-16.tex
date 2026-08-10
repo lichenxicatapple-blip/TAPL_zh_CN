@@ -1,5 +1,567 @@
-% Chapter 16 — Metatheory of Subtyping
-% Source: ../source/split/chapters/ch16-metatheory-of-subtyping_p200-p211.pdf
+% 第 16 章：子类型化的元理论
+% Source: source/split/chapters/ch16-metatheory-of-subtyping_p200-p211.pdf
 % Original print pages: 209--220
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:16}
+% Status: 待独立初审
+
+\chapter{子类型化的元理论}
+\label{chap:16}
+
+\section*{概述}
+
+上一章定义的带子类型化简单类型 lambda 演算还不适合直接实现。与此前的演算
+不同，这套规则不是\termfirst{语法导向的}{syntax directed}：不能简单地从
+结论向前提读取规则，直接得到类型检查算法。主要问题来自类型关系中的包容规则
+\textsc{T-Sub} 和子类型关系中的传递规则 \textsc{S-Trans}。
+
+\textsc{T-Sub} 的结论只把项写成不带任何结构限制的元变量 \(t\)：
+\[
+\inferrule*[right=\textsc{T-Sub}]
+ {\Gamma\vdash t:S\\S\subtype T}
+ {\Gamma\vdash t:T}
+\]
+其他类型规则都要求项具有某种具体形式：\textsc{T-Abs} 只适用于 lambda
+抽象，\textsc{T-Var} 只适用于变量，等等。\textsc{T-Sub} 却能用于任何项。
+因此，给定一个待计算类型的项 \(t\) 时，既可能选择 \textsc{T-Sub}，也可能
+选择结论与 \(t\) 的句法形式相符的那条规则。
+
+\textsc{S-Trans} 也有同样的问题：它的结论与所有其他子类型规则的结论重叠。
+\[
+\inferrule*[right=\textsc{S-Trans}]
+ {S\subtype U\\U\subtype T}
+ {S\subtype T}
+\]
+\(S\) 与 \(T\) 都是不带结构限制的元变量，所以任何子类型判断都可能以
+\textsc{S-Trans} 收尾。若把规则机械地从结论向前提执行，算法无法知道应该
+尝试传递规则，还是应该尝试另一条与输入类型结构相符的规则。
+
+\textsc{S-Trans} 还有第二个问题：两个前提都出现了结论中没有的 \(U\)。
+从结论反推前提时，必须先猜一个 \(U\)，再检查 \(S\subtype U\) 和
+\(U\subtype T\)。可供猜测的类型有无穷多个，这种搜索方式无法成为实用算法。
+
+\textsc{S-Refl} 的结论也与其他子类型规则重叠，不过问题较轻：它没有前提；
+输入两端相同时可以立即成功。即便如此，它仍使规则不是语法导向的。
+
+解决方法是用两套语法导向的关系替换普通的、也称
+\termfirst{声明式}{declarative}的子类型关系和类型关系：新关系分别称为
+\termfirst{算法子类型关系}{algorithmic subtyping relation}和
+\termfirst{算法类型关系}{algorithmic typing relation}。随后证明两种表述
+实际上等价：算法规则可导出的子类型判断恰好也是声明式规则可导出的判断；
+一个项能由算法规则赋型，当且仅当它能由声明式规则赋型。
+
+\taplsecref{16.1}{sec:16.1}构造算法子类型关系，
+\taplsecref{16.2}{sec:16.2}构造算法类型关系。
+\taplsecref{16.3}{sec:16.3}处理条件式等多分支构造；它们还需要子类型关系
+具有最小公共超类型，即并。\taplsecref{16.4}{sec:16.4}讨论最小类型
+\(\tapltype{Bot}\)。\footnote{本章研究\cref{fig:15-1,fig:15-3}中的演算。
+原书相应 OCaml 实现为 \texttt{rcdsub}；\taplsecref{16.3}{sec:16.3}
+加入布尔值与条件式，相应实现为 \texttt{joinsub}；
+\taplsecref{16.4}{sec:16.4}加入 \(\tapltype{Bot}\)，相应实现为
+\texttt{bot}。}
+
+\section{算法子类型关系}
+\label{sec:16.1}
+
+带子类型化语言的实现必须能够检查一个类型是否为另一个类型的子类型。例如，
+类型检查器遇到应用 \(t_1\,t_2\)，并算出
+\(t_1:T\to U\)、\(t_2:S\) 时，需要判断 \(S\subtype T\) 能否由
+\cref{fig:15-1,fig:15-3}中的规则导出。
+
+子类型检查器实际判断的是另一个关系
+\[
+  \algturnstile S\subtype T
+\]
+读作“\(S\) 在算法关系下是 \(T\) 的子类型”。该关系按类型结构即可判定，
+而且包含的类型对与声明式子类型关系完全相同。两者最明显的区别是：算法关系
+没有 \textsc{S-Trans} 和 \textsc{S-Refl}。
+
+不过，在删去传递规则之前，先要重组记录子类型规则。上一章中，宽度、深度和
+排列推导必须借助传递性拼接。将三条规则合并为一条宏规则：
+\[
+\inferrule*[right=\textsc{S-Rcd}]
+ {\{l_i\mid i\in1..n\}\subseteq\{k_j\mid j\in1..m\}\\
+  k_j=l_i\Longrightarrow S_j\subtype T_i}
+ {\{k_j:S_j\}^{j\in1..m}\subtype
+  \{l_i:T_i\}^{i\in1..n}}
+\]
+第二个前提表示：对目标类型中的每个标签 \(l_i\)，都在源类型中找到同名字段
+\(k_j\)，并检查对应字段类型 \(S_j\subtype T_i\)。
+
+\begin{lemma}
+\label{lem:16.1.1}
+若 \(S\subtype T\) 能由包含 \textsc{S-RcdDepth}、
+\textsc{S-RcdWidth} 和 \textsc{S-RcdPerm}、但不含 \textsc{S-Rcd} 的
+规则导出，那么也能由使用 \textsc{S-Rcd}、但不使用前三条规则的系统导出；
+反之亦然。
+\end{lemma}
+\begin{proof}
+对推导作直接归纳。
+\end{proof}
+
+\cref{lem:16.1.1}允许用 \textsc{S-Rcd} 取代三条分散的记录规则。
+\cref{fig:16-1}汇总重组后的系统。
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.98\linewidth}
+\small
+\taplfigureheader{\(<:\)}
+  {扩展\cref{fig:15-1,fig:15-3}}
+\[
+\begin{array}{c@{\qquad}c}
+\inferrule*[right=\textsc{S-Refl}]{ }{S\subtype S}
+&
+\inferrule*[right=\textsc{S-Top}]{ }{S\subtype\tapltype{Top}}
+\\[14pt]
+\inferrule*[right=\textsc{S-Trans}]
+ {S\subtype U\\U\subtype T}{S\subtype T}
+&
+\inferrule*[right=\textsc{S-Arrow}]
+ {T_1\subtype S_1\\S_2\subtype T_2}
+ {S_1\to S_2\subtype T_1\to T_2}
+\end{array}
+\]
+\[
+\inferrule*[right=\textsc{S-Rcd}]
+ {\{l_i\mid i\in1..n\}\subseteq\{k_j\mid j\in1..m\}\\
+  k_j=l_i\Longrightarrow S_j\subtype T_i}
+ {\{k_j:S_j\}^{j\in1..m}\subtype
+  \{l_i:T_i\}^{i\in1..n}}
+\]
+\end{minipage}
+\caption{带记录的子类型关系（紧凑版本）}
+\label{fig:16-1}
+\end{figure}
+\FloatBarrier
+
+下面证明，在\cref{fig:16-1}的系统中，反身和传递规则并非必需。
+
+\begin{lemma}
+\label{lem:16.1.2}
+\begin{enumerate}
+\item 对每个类型 \(S\)，不用 \textsc{S-Refl} 也能导出
+  \(S\subtype S\)。
+\item 若 \(S\subtype T\) 可导出，则不用 \textsc{S-Trans} 也能导出它。
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+练习（推荐，\(\star\star\star\)）。
+\end{proof}
+\taplauthorsolutionlink{sol:author:16.1.2}{16.1.2}
+
+\begin{exercise}[\(\star\)]
+\label{ex:16.1.3}
+若加入类型 \(\tapltype{Bool}\)，这两项性质需要怎样修改？
+\end{exercise}
+\taplauthorsolutionlink{sol:author:16.1.3}{16.1.3}
+
+\begin{definition}
+\label{def:16.1.4}
+算法子类型关系是由
+\cref{fig:16-2}中的规则闭合生成的最小类型关系。
+\end{definition}
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.98\linewidth}
+\small
+\taplfigureheader{\(\algturnstile S\subtype T\)}
+  {算法子类型关系}
+\[
+\begin{array}{c@{\qquad}c}
+\inferrule*[right=\textsc{SA-Top}]
+ { }{\algturnstile S\subtype\tapltype{Top}}
+&
+\inferrule*[right=\textsc{SA-Arrow}]
+ {\algturnstile T_1\subtype S_1\\
+  \algturnstile S_2\subtype T_2}
+ {\algturnstile S_1\to S_2\subtype T_1\to T_2}
+\end{array}
+\]
+\[
+\inferrule*[right=\textsc{SA-Rcd}]
+ {\{l_i\mid i\in1..n\}\subseteq\{k_j\mid j\in1..m\}\\
+  k_j=l_i\Longrightarrow\algturnstile S_j\subtype T_i}
+ {\algturnstile\{k_j:S_j\}^{j\in1..m}\subtype
+  \{l_i:T_i\}^{i\in1..n}}
+\]
+\end{minipage}
+\caption{算法子类型关系}
+\label{fig:16-2}
+\end{figure}
+\FloatBarrier
+
+算法规则称为\emph{可靠的}，因为它导出的每个判断也能由声明式规则导出，
+不会证明任何新增判断；称为\emph{完备的}，因为声明式规则能导出的每个判断，
+算法规则也能导出。
+
+\begin{proposition}[可靠性与完备性]
+\label{prop:16.1.5}
+\[
+  S\subtype T
+  \quad\Longleftrightarrow\quad
+  \algturnstile S\subtype T
+\]
+\end{proposition}
+\begin{proof}
+两个方向都对推导作归纳，分别使用\cref{lem:16.1.1,lem:16.1.2}。
+\end{proof}
+
+算法规则已经可以直接读成子类型检查算法：
+\begin{lstlisting}
+subtype(S, T) =
+  if T = Top then true
+  else if S = S1 -> S2 and T = T1 -> T2 then
+    subtype(T1, S1) and subtype(S2, T2)
+  else if S = {kj:Sj} and T = {li:Ti} then
+    every target label li occurs as some kj
+    and subtype(Sj, Ti) for every matching field
+  else false
+\end{lstlisting}
+具体的 OCaml 实现见\chapref{17}。
+
+最后还要证明算法对每一对输入都在有限时间内返回 \texttt{true} 或
+\texttt{false}，即它是全函数。
+
+\begin{proposition}[终止性]
+\label{prop:16.1.6}
+若 \(\algturnstile S\subtype T\) 可导出，则
+\(\mathsf{subtype}(S,T)\) 返回 \texttt{true}；否则返回 \texttt{false}。
+\end{proposition}
+\begin{proof}
+若算法返回 \texttt{true}，按算法分支作直接归纳即可构造
+\(\algturnstile S\subtype T\) 的推导；反方向同理。因此只需排除算法发散。
+每次递归调用都会让两个输入类型的大小之和严格减小，而该和始终为正，所以
+不可能产生无限递归调用序列。
+\end{proof}
+
+\cref{prop:16.1.5,prop:16.1.6}共同说明
+\(\mathsf{subtype}\) 是声明式子类型关系的
+\termfirst{判定过程}{decision procedure}。
+
+也可以一开始就把算法关系当作子类型关系的正式定义，完全不提声明式版本。
+不过，这并不能省去多少工作：为了证明依赖子类型关系的类型系统具有良好性质，
+仍需证明算法子类型关系具有反身性和传递性，工作量与本节相近。实际语言定义
+有时确实直接采用算法式类型规则；\chapref{19}就是一个例子。
+
+\section{算法类型关系}
+\label{sec:16.2}
+
+处理好子类型关系后，还要以同样方式处理类型关系。唯一不语法导向的类型规则是
+\textsc{T-Sub}。它不能简单删掉；必须先找出包容规则在类型推导中不可替代的
+用途，再把这种用途嵌入其他类型规则。
+
+在函数应用中，包容规则负责连接函数期望的参数类型与实参的实际类型。例如
+\[
+  (\lambda r:\{x:\tapltype{Nat}\}.\,r.x)\,
+  \{x=0,y=1\}
+\]
+离开包容规则便无法赋型。
+
+稍微出人意料的是，这也是包容规则唯一不可替代的用途。在其他位置，可以重排
+类型推导，把 \textsc{T-Sub} 沿推导树向结论方向下移。
+
+先看以 \textsc{T-Abs} 结束、而其直接子推导以 \textsc{T-Sub} 结束的推导：
+\[
+\inferrule*[right=\textsc{T-Abs}]
+ {\inferrule*[right=\textsc{T-Sub}]
+   {\Gamma,x:S_1\vdash s_2:S_2\\S_2\subtype T_2}
+   {\Gamma,x:S_1\vdash s_2:T_2}}
+ {\Gamma\vdash\lambda x:S_1.\,s_2:S_1\to T_2}
+\]
+可以把包容规则移到抽象规则之后：
+\[
+\inferrule*[right=\textsc{T-Sub}]
+ {\inferrule*[right=\textsc{T-Abs}]
+   {\Gamma,x:S_1\vdash s_2:S_2}
+   {\Gamma\vdash\lambda x:S_1.\,s_2:S_1\to S_2}
+  \\
+  \inferrule*[right=\textsc{S-Arrow}]
+   {S_1\subtype S_1\\S_2\subtype T_2}
+   {S_1\to S_2\subtype S_1\to T_2}}
+ {\Gamma\vdash\lambda x:S_1.\,s_2:S_1\to T_2}
+\]
+
+应用规则有两棵直接子推导。若左侧函数子推导最后使用包容规则，把
+\(S_{11}\to S_{12}\) 提升为 \(T_{11}\to T_{12}\)，则子类型反演给出
+\(T_{11}\subtype S_{11}\) 和 \(S_{12}\subtype T_{12}\)。重排后，前一项
+用来把实参类型提升到 \(S_{11}\)，后一项则在应用完成后把结果从
+\(S_{12}\) 提升到 \(T_{12}\)：
+\[
+\inferrule*[right=\textsc{T-Sub}]
+ {\inferrule*[right=\textsc{T-App}]
+   {\Gamma\vdash s_1:S_{11}\to S_{12}
+    \\
+    \inferrule*[right=\textsc{T-Sub}]
+     {\Gamma\vdash s_2:T_{11}\\T_{11}\subtype S_{11}}
+     {\Gamma\vdash s_2:S_{11}}}
+   {\Gamma\vdash s_1\,s_2:S_{12}}
+  \\
+  S_{12}\subtype T_{12}}
+ {\Gamma\vdash s_1\,s_2:T_{12}}
+\]
+原书勘误所说的“右侧子推导”，指的正是产生结果类型关系
+\(S_{12}\subtype T_{12}\) 的那棵子推导。
+
+若包容规则出现在 \textsc{T-App} 的右侧实参子推导末尾，只能把它移入左侧：
+把函数的参数类型从 \(T_{11}\) 逆变为实参原有的 \(T_2\)。这部分包容无法
+彻底消除：要么把实参类型提升到函数的参数类型，要么把函数类型调整为可接收
+实参的类型。两种写法都在弥合相同的类型差距。
+
+若一条 \textsc{T-Sub} 的直接子推导也以 \textsc{T-Sub} 结束，则两次使用
+可以合并。由 \(S\subtype U\) 和 \(U\subtype T\) 先以
+\textsc{S-Trans} 得到 \(S\subtype T\)，再只使用一次 \textsc{T-Sub}。
+
+\begin{exercise}[\(\star\star\), \(\nrightarrow\)]
+\label{ex:16.2.1}
+完成上述实验：说明当 \textsc{T-Sub} 出现在 \textsc{T-Rcd} 或
+\textsc{T-Proj} 之前时，怎样作类似重排。
+\end{exercise}
+\taplsolutionlink{sol:translator:16.2.1}{16.2.1}
+
+反复应用这些变换，可以把任意类型推导改写成一种特殊形式：
+\textsc{T-Sub} 只会出现在应用的右侧子推导末尾，以及整棵推导的最末端。
+删掉最末端那次包容仍会为同一项留下一个类型，只是这个类型可能更小，也就是
+携带更多信息。现在只有应用中的包容无法消除。把它吸收到应用规则中：
+\[
+\inferrule
+ {\Gamma\vdash t_1:T_{11}\to T_{12}\\
+  \Gamma\vdash t_2:T_2\\
+  T_2\subtype T_{11}}
+ {\Gamma\vdash t_1\,t_2:T_{12}}
+\]
+便能替换“应用之前先包容”的每棵子推导，并完全删去 \textsc{T-Sub}。这条
+增强后的应用规则仍然语法导向，因为结论中的项明确是一项应用。
+
+\begin{definition}
+\label{def:16.2.2}
+算法类型关系是由
+\cref{fig:16-3}中的规则闭合生成的最小关系。写作
+\(\Gamma\algturnstile t:T\)，以区别于声明式判断 \(\Gamma\vdash t:T\)。
+\end{definition}
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.98\linewidth}
+\small
+\taplfigureheader{\(\Gamma\algturnstile t:T\)}
+  {算法类型关系}
+\[
+\begin{array}{c@{\qquad}c}
+\inferrule*[right=\textsc{TA-Var}]
+ {x:T\in\Gamma}{\Gamma\algturnstile x:T}
+&
+\inferrule*[right=\textsc{TA-Abs}]
+ {\Gamma,x:T_1\algturnstile t_2:T_2}
+ {\Gamma\algturnstile\lambda x:T_1.\,t_2:T_1\to T_2}
+\\[18pt]
+\multicolumn{2}{c}{
+\inferrule*[right=\textsc{TA-App}]
+ {\Gamma\algturnstile t_1:T_1\\T_1=T_{11}\to T_{12}\\
+  \Gamma\algturnstile t_2:T_2\\
+  \algturnstile T_2\subtype T_{11}}
+ {\Gamma\algturnstile t_1\,t_2:T_{12}}}
+\end{array}
+\]
+\[
+\begin{array}{c@{\qquad}c}
+\inferrule*[right=\textsc{TA-Rcd}]
+ {\Gamma\algturnstile t_i:T_i\quad(\text{对每个 }i)}
+ {\Gamma\algturnstile\{l_i=t_i\}^{i\in1..n}:
+  \{l_i:T_i\}^{i\in1..n}}
+&
+\inferrule*[right=\textsc{TA-Proj}]
+ {\Gamma\algturnstile t_1:R_1\\
+  R_1=\{l_i:T_i\}^{i\in1..n}}
+ {\Gamma\algturnstile t_1.l_j:T_j}
+\end{array}
+\]
+\end{minipage}
+\caption{算法类型关系}
+\label{fig:16-3}
+\end{figure}
+\FloatBarrier
+
+\textsc{TA-App} 中的等式 \(T_1=T_{11}\to T_{12}\) 只是显式记录类型检查的
+执行顺序：先计算 \(t_1\) 的类型 \(T_1\)，再检查它是否为箭头类型。也可以
+删掉该等式，直接把第一项前提写成
+\(\Gamma\algturnstile t_1:T_{11}\to T_{12}\)。\textsc{TA-Proj} 中的
+记录类型等式作用相同。应用规则的子类型前提使用算法关系；由
+\cref{prop:16.1.5}，改写为声明式关系也没有区别。
+
+\begin{exercise}[\(\star\star\), \(\nrightarrow\)]
+\label{ex:16.2.3}
+找出项 \(s,t\) 和类型 \(S,T\)，使
+\(\algturnstile s:S\)、\(\algturnstile t:T\)、
+\(s\transmulti t\)、\(T\subtype S\)，但 \(S\not\subtype T\)。这说明项在
+求值后由算法规则算出的类型可能变得更小。
+\end{exercise}
+\taplsolutionlink{sol:translator:16.2.3}{16.2.3}
+
+下面正式证明算法规则与声明式规则对应。上面的推导重排只用于说明思路；把它
+发展成完整证明会很冗长，直接对推导作归纳更简单。
+
+\begin{theorem}[可靠性]
+\label{thm:16.2.4}
+若 \(\Gamma\algturnstile t:T\)，则 \(\Gamma\vdash t:T\)。
+\end{theorem}
+\begin{proof}
+对算法类型推导作直接归纳。
+\end{proof}
+
+完备性的陈述稍有不同。声明式关系可为同一项赋予许多类型，算法关系至多赋予
+一个类型，所以不能简单把\cref{thm:16.2.4}倒过来。可以证明：若声明式规则
+赋予 \(t\) 类型 \(T\)，算法规则会赋予它一个更小的类型 \(S\)，且
+\(S\subtype T\)。也就是说，算法规则会为每个可赋型项给出其
+\termfirst{最小类型}{minimal type}。
+
+\begin{theorem}[完备性，也称最小类型定理]
+\label{thm:16.2.5}
+若 \(\Gamma\vdash t:T\)，则存在 \(S\subtype T\)，使
+\(\Gamma\algturnstile t:S\)。
+\end{theorem}
+\begin{proof}
+练习（推荐，\(\star\star\)）。
+\end{proof}
+\taplauthorsolutionlink{sol:author:16.2.5}{16.2.5}
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:16.2.6}
+若删去箭头子类型规则 \textsc{S-Arrow}，但保留其余声明式子类型规则和类型
+规则，系统是否仍具有最小类型性质？若有，请证明该性质；若没有，给出一个可赋型却
+没有最小类型的项。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:16.2.6}{16.2.6}
+
+\section{并与交}
+\label{sec:16.3}
+
+带子类型化的语言在检查条件式、case 表达式等多分支构造时，还需要额外机制。
+声明式条件类型规则要求两个结果分支具有相同类型：
+\[
+\inferrule*[right=\textsc{T-If}]
+ {\Gamma\vdash t_1:\tapltype{Bool}\\
+  \Gamma\vdash t_2:T\\
+  \Gamma\vdash t_3:T}
+ {\Gamma\vdash
+  \mathsf{if}\ t_1\ \mathsf{then}\ t_2\ \mathsf{else}\ t_3:T}
+\]
+有包容规则时，让两个分支取得相同类型的方法可能很多。例如
+\[
+\mathsf{if}\ \tapltrue\
+\mathsf{then}\ \{x=\tapltrue,y=\taplfalse\}\
+\mathsf{else}\ \{x=\taplfalse,z=\tapltrue\}
+\]
+具有类型 \(\{x:\tapltype{Bool}\}\)。then 分支的最小类型为
+\(\{x:\tapltype{Bool},y:\tapltype{Bool}\}\)，else 分支的最小类型为
+\(\{x:\tapltype{Bool},z:\tapltype{Bool}\}\)，二者都能由包容规则提升到
+\(\{x:\tapltype{Bool}\}\)。整项也能具有
+\(\{x:\tapltype{Top}\}\)、\(\{\}\) 等任意公共超类型；其中最小的公共超类型
+是 \(\{x:\tapltype{Bool}\}\)。
+
+因此，计算条件式的最小类型时，应先计算两个分支的最小类型，再计算二者的
+最小公共超类型。偏序论通常把它称为两种类型的
+并。
+
+\begin{definition}
+\label{def:16.3.1}
+若 \(S\subtype J\)、\(T\subtype J\)，并且对每个 \(U\)，从
+\(S\subtype U\) 和 \(T\subtype U\) 都能推出 \(J\subtype U\)，则称
+\(J\) 为 \(S,T\) 的\emph{并}，写作 \(S\sqcup T=J\)。
+
+对偶地，若 \(M\subtype S\)、\(M\subtype T\)，并且对每个 \(L\)，从
+\(L\subtype S\) 和 \(L\subtype T\) 都能推出 \(L\subtype M\)，则称
+\(M\) 为 \(S,T\) 的交，写作 \(S\sqcap T=M\)。
+\end{definition}
+
+一种子类型关系不一定为每对类型都提供并或交。若每对 \(S,T\) 都有某个并，
+就说该关系\emph{具有并}；若每对类型都有某个交，就说它\emph{具有交}。
+
+本节的子类型关系\footnote{即\cref{fig:15-1,fig:15-3}定义的关系，再加入
+\(\tapltype{Bool}\)。没有为 \(\tapltype{Bool}\) 增加声明式子类型规则，
+所以它唯一的严格超类型是 \(\tapltype{Top}\)。}具有并，却不具有交。例如，\(\{\}\) 与
+\(\tapltype{Top}\to\tapltype{Top}\) 连公共子类型都没有，自然也没有最大
+公共子类型。不过，更弱的性质成立。若存在 \(L\)，使
+\(L\subtype S\) 且 \(L\subtype T\)，就称 \(S,T\)
+\termfirst{有共同下界}{bounded below}。若每对有共同下界的类型都有交，
+就说子类型关系具有\termfirst{有界交}{bounded meets}。
+
+并和交不一定在语法上唯一。例如，
+\(\{x:\tapltype{Top},y:\tapltype{Top}\}\) 与
+\(\{y:\tapltype{Top},x:\tapltype{Top}\}\) 都是
+\(\{x:\tapltype{Top},y:\tapltype{Top},z:\tapltype{Top}\}\) 和
+\(\{x:\tapltype{Top},y:\tapltype{Top},w:\tapltype{Top}\}\) 的并。
+不过，同一对类型的任意两个并必然互为子类型；交也一样。
+
+\begin{proposition}[并与有界交的存在性]
+\label{prop:16.3.2}
+\begin{enumerate}
+\item 对每对类型 \(S,T\)，都存在 \(J\)，使 \(S\sqcup T=J\)。
+\item 对每对具有公共子类型的 \(S,T\)，都存在 \(M\)，使
+  \(S\sqcap T=M\)。
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+练习（推荐，\(\star\star\star\)）。
+\end{proof}
+\taplauthorsolutionlink{sol:author:16.3.2}{16.3.2}
+
+利用并运算，可以给条件式写出算法类型规则：
+\[
+\inferrule*[right=\textsc{TA-If}]
+ {\Gamma\algturnstile t_1:T_1\\T_1=\tapltype{Bool}\\
+  \Gamma\algturnstile t_2:T_2\\
+  \Gamma\algturnstile t_3:T_3\\
+  T_2\sqcup T_3=T}
+ {\Gamma\algturnstile
+  \mathsf{if}\ t_1\ \mathsf{then}\ t_2\ \mathsf{else}\ t_3:T}
+\]
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:16.3.3}
+\(\mathsf{if}\ \tapltrue\ \mathsf{then}\ \taplfalse\
+\mathsf{else}\ \{\}\) 的最小类型是什么？这是我们想要的结果吗？
+\end{exercise}
+\taplauthorsolutionlink{sol:author:16.3.3}{16.3.3}
+
+\begin{exercise}[\(\star\star\star\)]
+\label{ex:16.3.4}
+把计算并与交的算法扩展到\taplsecref{15.5}{sec:15.5}中的命令式引用是否
+容易？若再把不变的 \(\tapltype{Ref}\) 分解为协变的
+\(\tapltype{Source}\) 与逆变的 \(\tapltype{Sink}\)，情况如何？
+\end{exercise}
+\taplauthorsolutionlink{sol:author:16.3.4}{16.3.4}
+
+\section{算法类型关系与 \(\tapltype{Bot}\) 类型}
+\label{sec:16.4}
+
+若子类型关系加入最小类型 \(\tapltype{Bot}\)，子类型算法和类型算法也要稍作
+扩展。算法子类型关系直接加入以下规则：
+\[
+\inferrule*[right=\textsc{SA-Bot}]
+ { }{\algturnstile\tapltype{Bot}\subtype T}
+\]
+算法类型关系还要加入两条稍微特殊的规则：
+\[
+\inferrule*[right=\textsc{TA-AppBot}]
+ {\Gamma\algturnstile t_1:T_1\\T_1=\tapltype{Bot}\\
+  \Gamma\algturnstile t_2:T_2}
+ {\Gamma\algturnstile t_1\,t_2:\tapltype{Bot}}
+\]
+\[
+\inferrule*[right=\textsc{TA-ProjBot}]
+ {\Gamma\algturnstile t_1:R_1\\R_1=\tapltype{Bot}}
+ {\Gamma\algturnstile t_1.l_i:\tapltype{Bot}}
+\]
+在声明式系统中，包容规则可以把 \(\tapltype{Bot}\) 提升为任意函数类型，
+所以一个 \(\tapltype{Bot}\) 型项可以应用于任意类型的实参，结果又能被看作
+任意类型。投影的情形相同。上面两条算法规则把这种行为直接写了出来。
+
+\begin{exercise}[\(\star\)]
+\label{ex:16.4.1}
+若语言还包含条件式，是否需要再为 \(\mathsf{if}\) 加一条算法类型规则？
+\end{exercise}
+\taplauthorsolutionlink{sol:author:16.4.1}{16.4.1}
+
+在当前语言中，为 \(\tapltype{Bot}\) 增加这些支持并不复杂。不过，
+\taplsecref{28.8}{sec:28.8}会看到，\(\tapltype{Bot}\) 与有界量化结合时
+会产生更严重的困难。

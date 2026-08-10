@@ -1,5 +1,848 @@
-% Chapter 19 — Case Study: Featherweight Java
-% Source: ../source/split/chapters/ch19-featherweight-java_p239-p253.pdf
-% Original print pages: 247--264
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:19}
+% 第 19 章：案例研究——Featherweight Java
+% Source: source/split/chapters/ch19-featherweight-java_p239-p253.pdf
+% Original print pages: 247--263
+% Status: 待独立初审
+
+\chapter{案例研究：Featherweight Java}
+\label{chap:19}
+
+\chapref{18}展示了如何用带子类型化、记录和引用的 lambda 演算模拟面向对象
+程序设计的若干核心特性；其目的，是把这些特性编码成更基本的机制，以加深理解。
+本章改用另一种方式：以前几章的方法为基础，直接定义一门以 Java 为原型的核心
+面向对象语言。这里假定读者已经熟悉 Java。
+
+\section{引言}
+\label{sec:19.1}
+
+形式模型可以显著帮助程序语言等复杂实际产物的设计：它能精确描述设计的某个
+方面，陈述并证明相关性质，还能把注意力引向原本容易忽略的问题。建立模型时，
+完整性与紧凑性之间却必须取舍；同时覆盖的方面越多，模型就越臃肿。很多时候，
+选用不那么完整却更紧凑的模型更为明智，以较小投入获得较大洞见。近期不少研究
+Java 形式性质的论文都采用这种策略：省略并发、反射等高级特性，把注意力集中
+在理论已经较成熟的语言片段上。
+
+Igarashi、Pierce 与 Wadler（1999）提出
+\termfirst{Featherweight Java}{Featherweight Java}（FJ），把它作为模拟
+Java 类型系统的最小核心演算。FJ 几乎偏执地追求紧凑，只有五种项：创建对象、
+调用方法、访问字段、类型转换和变量。它的语法、类型规则与操作语义可以舒适地
+排在一张 letter 大小的纸上。设计目标是尽可能删去特性——甚至删去赋值——同时
+保留 Java 类型系统的核心。FJ 与 Java 的纯函数式核心直接对应：每个 FJ 程序
+从字面上看也是可以执行的 Java 程序。\footnote{本章示例都是 Featherweight
+Java 的项，语法与规则见\cref{fig:19-1,fig:19-2,fig:19-3,fig:19-4}。
+本章没有配套 OCaml 实现；FJ 被设计为 Java 的严格子集，所以任何 Java 实现
+都可以执行这些示例。}
+
+FJ 只比 lambda 演算或 Abadi 与 Cardelli（1996）的对象演算大一点，却明显
+小于其他基于类的 Java 形式模型，包括 Drossopoulou、Eisenbach 与
+Khurshid（1999）、Syme（1997）、Nipkow 与 Oheimb（1998），以及 Flatt、
+Krishnamurthi 与 Felleisen（1998a, 1998b）的系统。由于规模小，FJ 可以集中
+研究少数关键问题。例如，我们会看到，要用小步操作语义准确刻画 Java 的类型
+转换，比预想中更棘手。
+
+FJ 主要用于研究 Java 的扩展。由于 FJ 本身十分紧凑，扩展中的本质部分会更
+醒目；同时，纯 FJ 的类型安全性证明很短，所以即使加入重要扩展，严格的安全性
+证明仍可能保持在可管理范围内。FJ 原始论文以 GJ 风格的泛型类和泛型方法说明
+这种用途；后续工作还用它形式化原始类型、研究 Java 内部类、保类型编译以及
+Java 的语义基础。
+
+设计 FJ 时，希望在保留完整版 Java 核心特性之安全性论证的同时，让类型安全性
+证明尽量简短。若某项语言特性只会把证明拉长，却不会使论证发生实质变化，就
+可以考虑省略。因此，FJ 不含并发、反射、赋值、接口、重载、发送给
+\texttt{super} 的消息、\texttt{null} 指针、\texttt{int} 与
+\texttt{bool} 等基本类型、抽象方法声明、内部类、子类字段遮蔽超类字段、访问
+控制以及异常。它保留的 Java 特性包括：相互递归的类定义、对象创建、字段访问、
+方法调用、方法覆盖、通过 \texttt{this} 进行方法递归、子类型化与类型转换。
+
+省略赋值是关键的简化。对象字段由构造函数初始化，此后不再改变。FJ 因而只
+覆盖 Java 的“函数式”片段，许多常见 Java 惯用法无法表示。尽管如此，这个
+片段仍然计算完备——把 lambda 演算编码进去并不困难——也足以容纳有实际意义
+的程序；例如 Felleisen 与 Friedman（1998）的 Java 教材中，许多程序采用
+纯函数式风格。
+
+\section{概览}
+\label{sec:19.2}
+
+FJ 程序由一组类定义和一个待求值项组成；后者对应完整 Java 程序中
+\texttt{main} 方法的函数体。下面是几个典型类定义。
+
+\begin{lstlisting}
+class A extends Object { A() { super(); } }
+
+class B extends Object { B() { super(); } }
+
+class Pair extends Object {
+  Object fst;
+  Object snd;
+  Pair(Object fst, Object snd) {
+    super(); this.fst=fst; this.snd=snd;
+  }
+  Pair setfst(Object newfst) {
+    return new Pair(newfst, this.snd);
+  }
+}
+\end{lstlisting}
+
+为了让语法保持规则，即使超类是 \texttt{Object} 也总会写出
+\texttt{extends}；即使 \texttt{A}、\texttt{B} 的构造函数毫无内容，也
+总会显式写出；访问字段或调用方法时也总会写明接收者，例如
+\texttt{this.snd}，即使接收者就是 \texttt{this}。构造函数始终采用固定
+形式：每个字段对应一个同名形参；先调用超类构造函数初始化继承字段，再用其余
+形参初始化本类字段。上例三个类的超类都是没有字段的 \texttt{Object}，所以
+\texttt{super} 不带参数。\texttt{super} 和等号只会出现在 FJ 构造函数中。
+由于 FJ 没有产生副作用的操作，方法体总是 \texttt{return} 后接一项。
+
+FJ 有五种项。\texttt{new A()}、\texttt{new B()} 与
+\texttt{new Pair(...)} 是对象创建；\texttt{.setfst(...)} 是方法调用；
+方法体中的 \texttt{this.snd} 是字段访问；\texttt{newfst} 与
+\texttt{this} 是变量。\footnote{FJ 与 Java 略有不同，把 \texttt{this}
+视为变量，而不是关键字。}在上述类定义下，
+
+\begin{lstlisting}
+new Pair(new A(), new B()).setfst(new B())
+\end{lstlisting}
+
+求值为 \texttt{new Pair(new B(), new B())}。
+
+剩下的一种项是类型转换（见\taplsecref{15.5}{sec:15.5}）。表达式
+
+\begin{lstlisting}
+((Pair)new Pair(new Pair(new A(), new B()), new A()).fst).snd
+\end{lstlisting}
+
+求值为 \texttt{new B()}。其中 \texttt{(Pair)t} 是类型转换，\(t\) 为
+\texttt{new Pair(...).fst}。字段 \texttt{fst} 的声明类型是
+\texttt{Object}，而继续访问 \texttt{snd} 只对 \texttt{Pair} 合法，所以
+转换不可省略。运行期规则会检查 \texttt{fst} 中保存的 \texttt{Object}
+实际是否为 \texttt{Pair}；本例检查成功。
+
+删去副作用还有一个好处：FJ 的求值可以完全在其句法内部形式化，无需像
+\chapref{13}那样另设堆模型。它只有三条基本计算规则，分别处理字段访问、方法
+调用与类型转换。lambda 演算的应用规则要求先把函数化简为 lambda 抽象；类似
+地，FJ 的计算规则要求先把被操作的对象化简为 \texttt{new} 项。lambda 演算
+常说“一切皆函数”，这里则是“一切皆对象”。
+
+字段访问规则 \textsc{E-ProjNew} 的一个实例是
+
+\[
+\mathsf{new}\ \mathit{Pair}(\mathsf{new}\ A(),\mathsf{new}\ B()).snd
+\trans \mathsf{new}\ B()
+\]
+
+对象构造函数的固定语法保证：每个字段都有一个形参，次序与字段声明相同。
+\texttt{Pair} 的字段依次为 \texttt{fst}、\texttt{snd}，所以访问
+\texttt{snd} 会选出第二个实参。
+
+方法调用规则 \textsc{E-InvkNew} 在本章第一个示例中的作用如下。接收者是
+\texttt{new Pair(new A(),new B())}，因此在 \texttt{Pair} 类中查找
+\texttt{setfst}，得到形参 \texttt{newfst} 和下面的方法体：
+\begin{lstlisting}
+new Pair(newfst,this.snd)
+\end{lstlisting}
+规约时用实参替换形参，并用接收者对象替换特殊变量 \texttt{this}。这类似
+lambda 演算的 beta 归约规则
+\textsc{E-AppAbs}，但有两个重要区别：接收者的类决定到哪里查找方法体，从而
+支持方法覆盖；接收者替换 \texttt{this}，从而支持通过 \texttt{self} 进行
+开放递归。\footnote{熟悉 Abadi 与 Cardelli（1996）对象演算的读者会发现，
+这与其 \(\zeta\) 归约规则很相似。}
+
+若形参在方法体中出现多次，替换会复制实参值；不过 FJ 没有副作用，所以无法
+观察到这与标准 Java 语义的差异。
+
+类型转换规则 \textsc{E-CastNew} 的一个实例是
+\[
+(\mathit{Pair})\,\mathsf{new}\ \mathit{Pair}
+  (\mathsf{new}\ A(),\mathsf{new}\ B())
+\trans
+\mathsf{new}\ \mathit{Pair}(\mathsf{new}\ A(),\mathsf{new}\ B())
+\]
+转换对象化简为 \texttt{new} 项后，只需检查构造函数的类是否为目标类型的
+子类。若是，规约会删去转换；若不是，例如 \texttt{(A)new B()}，则没有规则
+可用，计算卡住，表示运行时错误。
+
+计算可能以三种方式卡住：访问该类没有声明的字段；调用该类没有声明的方法，
+即“无法理解消息”；或者试图把对象转换为其运行时类的非超类。后文会证明：良
+类型程序绝不会出现前两种情况；不含向下类型转换和下文所谓“荒谬转换”的良类型
+程序也不会出现第三种情况。
+
+FJ 采用标准的按值调用求值策略。
+
+\section{名义类型系统与结构类型系统}
+\label{sec:19.3}
+
+在正式定义 FJ 前，先讨论 FJ（以及 Java）同本书主要研究的带类型 lambda
+演算之间一项根本风格差异：类型名称的地位。
+
+前几章经常为较长的复合类型定义短名，以提高示例可读性：
+\[
+\mathit{NatPair}=\{fst:\tapltype{Nat},snd:\tapltype{Nat}\}
+\]
+这种定义只是排印上的便利；\texttt{NatPair} 纯粹是右侧记录类型的缩写，二者
+在任何上下文中都可以互换。演算的形式定义一直忽略这些缩写。
+
+Java 与许多常用语言不同：类型定义具有更重要的地位。Java 程序中的每种复合
+类型都有名称；声明局部变量、字段或方法参数的类型时，总是写出名称。
+\(\{fst:\tapltype{Nat},snd:\tapltype{Nat}\}\) 这种裸结构类型不能出现在
+这些位置。
+
+类型名称在 Java 子类型关系中也至关重要。引入新名称时，程序员显式声明它扩展
+哪些类和接口；若新名称是类而已有名称是接口，则声明“实现”哪些接口。编译器
+检查新类或接口提供的操作是否确实扩展各个超类或超接口，这对应带类型 lambda
+演算中的记录子类型检查。随后，类型名称之间的子类型关系，被定义为“显式声明
+的直接子类型关系”的反身传递闭包。若一个名称没有被声明为另一个名称的子类型，
+它就不是后者的子类型。
+
+像 Java 这样名称具有语义作用、子类型关系需要显式声明的系统，称为
+\termfirst{名义类型系统}{nominal type system}。本书大多数系统不在意名称，
+而直接按类型结构定义子类型关系，称为\termfirst{结构类型系统}{structural
+type system}。
+
+两种风格各有利弊。名义系统最重要的优点也许是：类型名称不仅用于类型检查，
+还可在运行期使用。多数名义语言会在运行期对象上附加一个含类型名的头字段；
+具体表示通常是指向运行期类型描述结构的指针，结构中还包含指向直接超类型的
+指针。这类类型标签可用于运行期类型测试（例如 Java 的 \texttt{instanceof}
+与向下转换）、打印、把数据结构编组为二进制格式以便保存或传输，以及反射。
+结构系统也能支持运行期类型标签，但它们是额外的独立机制；名义系统则把运行期
+标签与编译期类型统一起来。
+
+名义系统还自然地处理递归类型，也就是定义中提到自身的类型。\chapref{20}将
+详细讨论递归类型。列表、树等常见结构都需要这种类型；在名义系统中，在
+\texttt{List} 的定义体里引用 \texttt{List} 与引用其他类型名没有区别。
+相互递归类型也很直接：从一开始便把全部类型名视为已给定，所以即使 \(A\) 的
+定义提到 \(B\)，而 \(B\) 的定义又提到 \(A\)，也不必争论“先定义哪一个”。
+
+结构类型系统同样能够处理递归类型。ML 等高层结构类型语言通常把递归类型与
+其他特性一起封装，使其对程序员而言同样自然。但在用于类型安全性证明的基础
+演算中，严谨处理递归类型所需的机制可能相当繁重，尤其允许相互递归时更是如此。
+递归类型在名义系统中几乎无需额外代价，这是一项明显优势。
+
+名义系统中，判断一种类型是否为另一种类型的子类型也几乎不费力。编译器仍须
+验证声明的子类型关系是否安全，这本质上会重复结构子类型检查，但每种类型只需
+在定义处检查一次，不必每次子类型判断都重新检查。名义类型检查器因此较容易
+获得良好性能。不过在成熟编译器中，两种风格的实际性能差异未必很大，因为工程
+良好的结构类型检查器会利用表示技术，把大多数子类型检查化为一次比较；参见
+原书第 222 页。
+
+显式子类型声明还常被认为可以防止“偶然包容”：一个值虽与预期类型用途完全
+不同，却因结构相容而被类型检查器接受。这个优点更有争议，因为单构造子数据
+类型或抽象数据类型等办法也能防止偶然包容，而且可能更合适。
+
+鉴于运行期类型标签十分有用，递归类型处理又很简单，主流程序语言普遍采用名义
+类型系统并不意外。程序语言研究文献却几乎完全关注结构类型系统。
+
+一个直接原因是：至少没有递归类型时，结构系统更整洁、优雅。结构类型表达式
+是封闭实体，自身携带理解其含义所需的全部信息；名义系统则始终依赖一组全局
+类型名及其定义，形式定义与证明因而更冗长。
+
+更重要的原因是，研究文献常关注更高级的特性，尤其是强大的类型抽象机制：参数
+多态、抽象数据类型、用户定义的类型算子、函子等，以及实现这些特性的 ML、
+Haskell 等语言。这些机制很难自然纳入纯名义系统。例如 \texttt{List(T)} 无法
+看作原子名称：程序某处只有一份 \texttt{List} 构造子的定义，必须查看它才能
+理解 \texttt{List(T)} 的行为。若干名义语言已经扩展了“泛型”机制，但结果
+不再是纯名义系统，而是两种方法的复杂混合。因此，带高级类型特性的语言设计者
+往往偏好结构方法。
+
+名义类型系统与结构类型系统的完整关系，至今仍是研究课题。
+
+\section{定义}
+\label{sec:19.4}
+
+下面正式定义 FJ。
+
+\subsection*{语法}
+
+FJ 的语法见\cref{fig:19-1}。元变量 \(A,B,C,D,E\) 表示类名；\(f,g\) 表示
+字段名；\(m\) 表示方法名；\(x\) 表示参数名；\(s,t\) 表示项；\(u,v\)
+表示值；\(CL\) 表示类声明；\(K\) 表示构造函数声明；\(M\) 表示方法声明。
+变量集合包含特殊变量 \texttt{this}，但方法形参不得命名为 \texttt{this}。
+它在每项方法声明中隐式受约束。方法调用求值规则 \textsc{E-InvkNew} 除了用
+实参值替换形参，还会用合适的接收者对象替换 \texttt{this}。
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.96\linewidth}
+\scriptsize
+\begin{minipage}[t]{0.56\linewidth}
+\textit{语法}
+\[
+\begin{array}{rcll}
+CL&::=&\mathsf{class}\ C\ \mathsf{extends}\ D\
+       \{\overline{C}\ \overline f;\ K\ \overline M\}
+   &\text{类声明}\\
+K&::=&C(\overline C\ \overline f)
+       \{\mathsf{super}(\overline f);\
+         \mathsf{this}.\overline f=\overline f;\}
+   &\text{构造函数声明}\\
+M&::=&C\ m(\overline C\ \overline x)
+       \{\mathsf{return}\ t;\}
+   &\text{方法声明}\\
+t&::=&x\mid t.f\mid t.m(\overline t)\mid
+       \mathsf{new}\ C(\overline t)\mid(C)t
+   &\text{项}\\
+v&::=&\mathsf{new}\ C(\overline v)&\text{值}
+\end{array}
+\]
+\end{minipage}\hfill
+\begin{minipage}[t]{0.40\linewidth}
+\textit{子类型关系}
+\[
+\inferrule*[right=\textsc{S-Refl}]{ }{C\subtype C}
+\]
+\[
+\inferrule*[right=\textsc{S-Trans}]
+ {C\subtype D\\D\subtype E}{C\subtype E}
+\]
+\[
+\scalebox{0.97}{$
+\inferrule*[right=\textsc{S-Class}]
+ {CT(C)=\mathsf{class}\ C\ \mathsf{extends}\ D\ \{\ldots\}}
+ {C\subtype D}
+$}
+\]
+\end{minipage}
+\end{minipage}
+\caption{Featherweight Java：语法与子类型关系}
+\label{fig:19-1}
+\end{figure}
+
+用 \(\overline f\) 缩写 \(f_1,\ldots,f_n\)；\(\overline v\)、
+\(\overline x\)、\(\overline t\) 等同理。\(\overline M\) 表示不带逗号的
+方法声明序列。成对序列也采用同样的缩写，例如
+\(\overline C\ \overline f\) 表示
+\(C_1 f_1,\ldots,C_n f_n\)。字段声明序列、形参名序列和方法声明序列都不
+含重名项。
+
+类声明
+\[
+\mathsf{class}\ C\ \mathsf{extends}\ D\
+\{\overline C\ \overline f;\ K\ \overline M\}
+\]
+引入名为 \(C\)、超类为 \(D\) 的类。新类包含类型为
+\(\overline C\) 的字段 \(\overline f\)、一个构造函数 \(K\) 和一组方法
+\(\overline M\)。\(C\) 声明的实例变量会追加到 \(D\) 及其各超类声明的
+变量之后，名称不得重复。\footnote{完整 Java 允许子类重新声明超类字段，
+并让新声明在当前类及其子类中遮蔽旧声明；FJ 省略这项特性。}方法则可以覆盖 \(D\) 中已有
+同名方法，也可以增加 \(C\) 特有的新功能。
+
+构造函数的形式完全由 \(C\) 及其超类的字段声明决定：形参数量必须恰好等于
+全部实例变量的数量；函数体先把对应形参传给超类构造函数以初始化继承字段，再
+把其余形参赋给本类声明的同名字段。\cref{fig:19-4}的类类型规则负责检查这些约束。
+完整 Java 要求子类构造函数在超类构造函数有参数时调用它；FJ 保留这项要求，
+是为了成为 Java 的字面子集。若不追求这一点，可以删去 \texttt{super} 调用，
+让每个构造函数直接初始化全部实例变量。
+
+方法声明
+\[
+D\ m(\overline C\ \overline x)\{\mathsf{return}\ t;\}
+\]
+引入结果类型为 \(D\)、形参类型为 \(\overline C\) 的方法 \(m\)。方法体只有
+一项 \(t\)；\(\overline x\) 和特殊变量 \texttt{this} 都在 \(t\) 中受约束。
+
+类表 \(CT\) 是从类名 \(C\) 到类声明 \(CL\) 的映射。程序是一对
+\((CT,t)\)，由类表与待求值项组成。为减轻记号负担，后文始终假定类表固定。
+
+每个类都用 \texttt{extends} 声明超类；那么 \texttt{Object} 的超类是什么？
+本书采用最简单的处理：把 \texttt{Object} 作为特殊类名，它的定义不出现在
+类表中。查找字段的辅助函数为 \texttt{Object} 设有特例，返回空字段序列
+\(\bullet\)；同时假定它没有方法。\footnote{完整 Java 的 \texttt{Object}
+实际包含若干方法，FJ 将其忽略。}
+
+从类表即可读出类之间的子类型关系。\(C\subtype D\) 表示 \(C\) 是 \(D\)
+的子类型；这个关系是 \(CT\) 中 \texttt{extends} 子句所给直接子类关系的
+反身传递闭包，形式定义见\cref{fig:19-1}。
+
+类表须满足几项基本条件：
+\begin{enumerate}
+\item 对每个 \(C\in\operatorname{dom}(CT)\)，\(CT(C)\) 确实是声明类
+  \(C\) 的类声明；
+\item \(\mathsf{Object}\notin\operatorname{dom}(CT)\)；
+\item 除 \texttt{Object} 外，类表中出现的每个类名都属于
+  \(\operatorname{dom}(CT)\)；
+\item \texttt{extends} 关系没有环，并且任何声明
+  \(\mathsf{class}\ C\ \mathsf{extends}\ D\{\ldots\}\) 都满足
+  \(C\ne D\)。因此，类表诱导的 \(\subtype\) 关系是反对称的。
+\end{enumerate}
+最后一项按作者勘误明确补上了 \(C\ne D\) 的要求。
+
+类表允许定义递归类型：类 \(A\) 的方法或实例变量类型可以使用名称 \(A\)。
+类定义之间也可以相互递归。
+
+\begin{exercise}[\(\star\)]
+\label{ex:19.4.1}
+类比带子类型化 lambda 演算中的 \textsc{S-Top}，似乎还应有一条规则声明
+\texttt{Object} 是每个类的超类型。这里为什么不需要？
+\end{exercise}
+\taplauthorsolutionlink{sol:author:19.4.1}{19.4.1}
+
+\subsection*{辅助定义}
+
+类型规则与求值规则需要\cref{fig:19-2}中的几个辅助定义。
+\(\mathit{fields}(C)\) 返回 \(C\) 及其所有超类声明的字段，把每个字段类型与
+字段名配成序列 \(\overline C\ \overline f\)。
+\(\mathit{mtype}(m,C)=\overline B\to B\) 返回 \(C\) 中方法 \(m\) 的形参
+类型序列与结果类型。\(\mathit{mbody}(m,C)=(\overline x,t)\) 返回形参名序列
+与方法体。谓词
+\(\mathit{override}(m,D,\overline C\to C_0)\) 判断是否可以在 \(D\) 的
+子类中声明这个类型的方法 \(m\)：若超类已有同名方法，其类型必须完全相同。
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.96\linewidth}
+\small
+\textit{字段查找}
+\[
+\mathit{fields}(\mathsf{Object})=\bullet
+\]
+\[
+\inferrule
+ {CT(C)=\mathsf{class}\ C\ \mathsf{extends}\ D\
+    \{\overline C\ \overline f;K\overline M\}\\
+  \mathit{fields}(D)=\overline D\ \overline g}
+ {\mathit{fields}(C)=
+   \overline D\ \overline g,\overline C\ \overline f}
+\]
+
+\begin{minipage}[t]{0.48\linewidth}
+\textit{方法类型查找}
+\[
+\inferrule
+ {CT(C)=\mathsf{class}\ C\ \mathsf{extends}\ D\
+    \{\overline C\ \overline f;K\overline M\}\\
+  B\ m(\overline B\ \overline x)
+    \{\mathsf{return}\ t;\}\in\overline M}
+ {\mathit{mtype}(m,C)=\overline B\to B}
+\]
+\[
+\inferrule
+ {CT(C)=\mathsf{class}\ C\ \mathsf{extends}\ D\{\ldots\}\\
+  m\text{ 未在 }C\text{ 中声明}}
+ {\mathit{mtype}(m,C)=\mathit{mtype}(m,D)}
+\]
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\textit{方法体查找}
+\[
+\inferrule
+ {CT(C)=\mathsf{class}\ C\ \mathsf{extends}\ D\
+    \{\overline C\ \overline f;K\overline M\}\\
+  B\ m(\overline B\ \overline x)
+    \{\mathsf{return}\ t;\}\in\overline M}
+ {\mathit{mbody}(m,C)=(\overline x,t)}
+\]
+\[
+\inferrule
+ {CT(C)=\mathsf{class}\ C\ \mathsf{extends}\ D\{\ldots\}\\
+  m\text{ 未在 }C\text{ 中声明}}
+ {\mathit{mbody}(m,C)=\mathit{mbody}(m,D)}
+\]
+\end{minipage}
+
+\textit{有效的方法覆盖}
+\[
+\inferrule
+ {\mathit{mtype}(m,D)=\overline D\to D_0
+  \Longrightarrow
+  \overline C=\overline D\ \text{且}\ C_0=D_0}
+ {\mathit{override}(m,D,\overline C\to C_0)}
+\]
+\end{minipage}
+\caption{Featherweight Java：辅助定义}
+\label{fig:19-2}
+\end{figure}
+
+\subsection*{求值}
+
+FJ 使用标准的按值调用操作语义，见\cref{fig:19-3}。字段访问、方法调用和类型
+转换三条计算规则已在\taplsecref{19.2}{sec:19.2}解释；其余规则规定按值调用
+次序。正常终止时得到的值，都是参数已完全求值的对象创建项
+\(\mathsf{new}\ C(\overline v)\)。
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.97\linewidth}
+\scriptsize
+\begin{minipage}[t]{0.54\linewidth}
+\[
+\inferrule*[right=\textsc{E-ProjNew}]
+ {\mathit{fields}(C)=\overline C\ \overline f}
+ {(\mathsf{new}\ C(\overline v)).f_i\trans v_i}
+\]
+\[
+\scalebox{0.92}{$
+\inferrule*[right=\textsc{E-InvkNew}]
+ {\mathit{mbody}(m,C)=(\overline x,t_0)}
+ {(\mathsf{new}\ C(\overline v)).m(\overline u)
+  \trans
+  [\overline x\mapsto\overline u,
+   \mathsf{this}\mapsto\mathsf{new}\ C(\overline v)]t_0}
+$}
+\]
+\[
+\inferrule*[right=\textsc{E-CastNew}]
+ {C\subtype D}
+ {(D)(\mathsf{new}\ C(\overline v))
+  \trans\mathsf{new}\ C(\overline v)}
+\]
+\[
+\inferrule*[right=\textsc{E-Field}]
+ {t_0\trans t_0'}{t_0.f\trans t_0'.f}
+\]
+\end{minipage}\hfill
+\begin{minipage}[t]{0.42\linewidth}
+\[
+\inferrule*[right=\textsc{E-Invk-Recv}]
+ {t_0\trans t_0'}
+ {t_0.m(\overline t)\trans t_0'.m(\overline t)}
+\]
+\[
+\inferrule*[right=\textsc{E-Invk-Arg}]
+ {t_i\trans t_i'}
+ {v_0.m(\overline v,t_i,\overline t)
+  \trans v_0.m(\overline v,t_i',\overline t)}
+\]
+\[
+\scalebox{0.90}{$
+\inferrule*[right=\textsc{E-New-Arg}]
+ {t_i\trans t_i'}
+ {\mathsf{new}\ C(\overline v,t_i,\overline t)
+  \trans\mathsf{new}\ C(\overline v,t_i',\overline t)}
+$}
+\]
+\[
+\inferrule*[right=\textsc{E-Cast}]
+ {t_0\trans t_0'}{(C)t_0\trans(C)t_0'}
+\]
+\end{minipage}
+\end{minipage}
+\caption{Featherweight Java：求值}
+\label{fig:19-3}
+\end{figure}
+
+运行期类型转换会检查对象的实际类是否为转换目标的子类型。若是，转换被删去，
+结果仍是对象本身；若不是，转换失败。Java 会为失败转换抛出异常；FJ 没有异常
+机制，所以失败转换只是卡住。
+
+\subsection*{类型规则}
+
+项、方法声明与类声明的类型规则见\cref{fig:19-4}。环境 \(\Gamma\) 是从变量
+到类型的有限映射。\(\Gamma\vdash t:C\) 读作“在环境 \(\Gamma\) 中，项
+\(t\) 具有类型 \(C\)”。除类型转换有三条规则外，类型规则按句法导向，每种
+项对应一条。\footnote{这里沿用完整 Java 的做法，以算法形式给出类型关系。
+对完整 Java 而言，这项选择实际上是必需的；见\cref{ex:19.4.6}。}构造函数与方法调用都检查每个实参类型是否为相应形参声明类型的
+子类型。对序列的类型判断与子类型判断采用逐项缩写。
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.97\linewidth}
+\small
+\begin{minipage}[t]{0.50\linewidth}
+\textit{项的类型规则}
+\[
+\inferrule*[right=\textsc{T-Var}]{x:C\in\Gamma}{\Gamma\vdash x:C}
+\]
+\[
+\inferrule*[right=\textsc{T-Field}]
+ {\Gamma\vdash t_0:C_0\\
+  \mathit{fields}(C_0)=\overline C\ \overline f}
+ {\Gamma\vdash t_0.f_i:C_i}
+\]
+\[
+\inferrule*[right=\textsc{T-Invk}]
+ {\Gamma\vdash t_0:C_0\\
+  \mathit{mtype}(m,C_0)=\overline D\to C\\
+  \Gamma\vdash\overline t:\overline C\\
+  \overline C\subtype\overline D}
+ {\Gamma\vdash t_0.m(\overline t):C}
+\]
+\[
+\inferrule*[right=\textsc{T-New}]
+ {\mathit{fields}(C)=\overline D\ \overline f\\
+  \Gamma\vdash\overline t:\overline C\\
+  \overline C\subtype\overline D}
+ {\Gamma\vdash\mathsf{new}\ C(\overline t):C}
+\]
+\[
+\inferrule*[right=\textsc{T-UCast}]
+ {\Gamma\vdash t_0:D\\D\subtype C}
+ {\Gamma\vdash(C)t_0:C}
+\]
+\[
+\inferrule*[right=\textsc{T-DCast}]
+ {\Gamma\vdash t_0:D\\C\subtype D\\C\ne D}
+ {\Gamma\vdash(C)t_0:C}
+\]
+\[
+\inferrule*[right=\textsc{T-SCast}]
+ {\Gamma\vdash t_0:D\\D\nsubtype C\\C\nsubtype D\\
+  \textit{stupid warning}}
+ {\Gamma\vdash(C)t_0:C}
+\]
+\end{minipage}\hfill
+\begin{minipage}[t]{0.46\linewidth}
+\textit{方法声明}
+\[
+\inferrule
+ {\overline x:\overline C,\mathsf{this}:C\vdash t_0:E_0\\
+  E_0\subtype C_0\\
+  CT(C)=\mathsf{class}\ C\ \mathsf{extends}\ D\{\ldots\}\\
+  \mathit{override}(m,D,\overline C\to C_0)}
+ {C_0\ m(\overline C\ \overline x)
+   \{\mathsf{return}\ t_0;\}\ \mathsf{OK\ in}\ C}
+\]
+
+\textit{类声明}
+\[
+\inferrule
+ {K=C(\overline D\ \overline g,\overline C\ \overline f)
+   \{\mathsf{super}(\overline g);\
+     \mathsf{this}.\overline f=\overline f;\}\\
+  \mathit{fields}(D)=\overline D\ \overline g\\
+  \overline M\ \mathsf{OK\ in}\ C}
+ {\mathsf{class}\ C\ \mathsf{extends}\ D\
+  \{\overline C\ \overline f;K\overline M\}\ \mathsf{OK}}
+\]
+\end{minipage}
+\end{minipage}
+\caption{Featherweight Java：类型规则}
+\label{fig:19-4}
+\end{figure}
+
+FJ 的一项小技术处理是引入“荒谬转换”。类型转换有三类：向上转换时，源项的
+类型是目标类型的子类；向下转换时，目标类型是源项类型的子类；荒谬转换中，
+目标与源项类型互不相关。Java 编译器会拒绝包含荒谬转换的项，但若要用小步
+语义下的类型保持性定理表述 FJ 的安全性，就必须在 FJ 的内部类型系统中允许
+它，因为一个合理的项可能单步求值成含荒谬转换的项。例如
+\[
+(A)(\mathsf{Object})\,\mathsf{new}\ B()
+\trans (A)\,\mathsf{new}\ B()
+\]
+其中 \(A,B\) 沿用\taplsecref{19.2}{sec:19.2}的定义。左侧外层向下转换在
+静态上合法；删去内层向上转换后，右侧却变成从互不相关的 \(B\) 到 \(A\) 的
+荒谬转换。
+
+规则 \textsc{T-SCast} 用前提 \textit{stupid warning} 标出这种特殊性。
+只有不使用该规则的 FJ 类型推导，才对应合法的 Java 类型检查结果。
+
+方法声明的判断写作 \(M\ \mathsf{OK\ in}\ C\)，表示“方法声明 \(M\) 出现在
+类 \(C\) 中时是良构的”。检查方法体时，环境包含各形参及其声明类型，并加入
+\(\mathsf{this}:C\)。类声明的判断写作 \(CL\ \mathsf{OK}\)，检查构造函数
+是否把超类字段传给 \texttt{super}、是否初始化本类字段，以及类中的每项方法
+声明是否良构。
+
+项的类型可能依赖它调用的方法类型，而方法类型检查又依赖方法体这项的类型，
+看起来像是循环。不过每项方法的类型都显式声明，循环由此断开。可以先载入整个
+类表，用它检查类型，再逐一验证其中的类声明，只要每个类最终都会被检查即可。
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:19.4.2}
+FJ 的若干设计选择，是为了保证它成为 Java 的子集：FJ 中良类型或非良类型的
+程序，在 Java 中也相应地良类型或非良类型；良类型程序在两门语言中的行为
+相同。若不再要求这一点，只想设计一门类似 Java 的核心演算，可以怎样简化或
+改进 FJ？
+\end{exercise}
+\taplauthorsolutionlink{sol:author:19.4.2}{19.4.2}
+
+\begin{exercise}[推荐，\(\star\star\star\), \(\nrightarrow\)]
+\label{ex:19.4.3}
+为简化表述，FJ 省略了修改对象字段的操作。以\chapref{13}对引用的处理为模型，
+为 FJ 加入字段赋值。
+\end{exercise}
+\taplsolutionlink{sol:translator:19.4.3}{19.4.3}
+
+\begin{exercise}[\(\star\star\star\), \(\nrightarrow\)]
+\label{ex:19.4.4}
+以\chapref{14}对异常的处理为模型，为 FJ 加入 Java 的 \texttt{raise} 与
+\texttt{try} 所对应的构造。
+\end{exercise}
+\taplsolutionlink{sol:translator:19.4.4}{19.4.4}
+
+\begin{exercise}[\(\star\star\), \(\nrightarrow\)]
+\label{ex:19.4.5}
+与完整 Java 相同，FJ 以算法形式给出类型关系：没有统一的包容规则，而是在
+其他若干规则的前提中直接检查子类型关系。能否把系统改写成更偏声明式的形式，
+删去多数或全部这类前提，改用一条包容规则？
+\end{exercise}
+\taplsolutionlink{sol:translator:19.4.5}{19.4.5}
+
+\begin{exercise}[\(\star\star\star\)]
+\label{ex:19.4.6}
+完整 Java 同时提供类与接口；接口只规定方法类型，不给出实现。接口允许更丰富、
+不再呈树状的子类型关系：每个类只有一个超类，从中继承实例变量与方法体，却可
+以实现任意多个接口。接口与 Java 条件表达式 \(t_1?t_2:t_3\) 的相互作用，
+迫使类型关系采用算法表述，使每个可赋型项获得唯一的最小类型。
+\begin{enumerate}
+\item 按 Java 的风格为 FJ 加入接口；
+\item 证明加入接口后，子类型关系未必对并封闭；回顾\taplsecref{16.3}{sec:16.3}，
+  并的存在对条件式的最小类型性质至关重要；
+\item Java 的条件表达式采用什么类型规则？这条规则合理吗？
+\end{enumerate}
+\end{exercise}
+\taplauthorsolutionlink{sol:author:19.4.6}{19.4.6}
+
+\begin{exercise}[\(\star\star\star\)]
+\label{ex:19.4.7}
+FJ 包含 Java 的 \texttt{this}，却省略了 \texttt{super}。说明怎样加入
+\texttt{super}。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:19.4.7}{19.4.7}
+
+\section{性质}
+\label{sec:19.5}
+
+FJ 满足标准的类型保持性结论；由于算法类型在求值后可能变得更精确，结论允许
+新类型是原类型的子类型。
+
+\begin{theorem}[保持性]
+\label{thm:19.5.1}
+若 \(\Gamma\vdash t:C\) 且 \(t\trans t'\)，则存在
+\(C'\subtype C\)，使 \(\Gamma\vdash t':C'\)。
+\end{theorem}
+\begin{proof}
+练习（\(\star\star\star\)）。
+\end{proof}
+\taplauthorsolutionlink{sol:author:19.5.1}{19.5.1}
+
+还可以证明标准进展性定理的一种变体：良类型程序只有在某次向下转换无法执行时
+才可能卡住。为了准确指出失败的转换，使用求值上下文。
+
+\begin{lemma}
+\label{lem:19.5.2}
+设 \(t\) 是良类型项。
+\begin{enumerate}
+\item 若 \(t=(\mathsf{new}\ C_0(\overline t)).f\)，则存在字段序列
+  \(\overline C\ \overline f\)，使
+  \(\mathit{fields}(C_0)=\overline C\ \overline f\)，且
+  \(f\in\overline f\)。
+\item 若
+  \(t=(\mathsf{new}\ C_0(\overline t)).m(\overline s)\)，则存在
+  \(\overline x,t_0\)，使
+  \(\mathit{mbody}(m,C_0)=(\overline x,t_0)\)，且
+  \(|\overline x|=|\overline s|\)。
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+由相应类型规则与辅助定义直接得到。
+\end{proof}
+
+\begin{definition}
+\label{def:19.5.3}
+FJ 的求值上下文定义为
+\[
+\begin{array}{rcll}
+E&::=&[\,]&\text{孔}\\
+ &\mid&E.f&\text{字段访问}\\
+ &\mid&E.m(\overline t)&\text{方法调用：接收者}\\
+ &\mid&v.m(\overline v,E,\overline t)&\text{方法调用：实参}\\
+ &\mid&\mathsf{new}\ C(\overline v,E,\overline t)&\text{对象创建：实参}\\
+ &\mid&(C)E&\text{类型转换}
+\end{array}
+\]
+\end{definition}
+
+每个求值上下文都是内部某处有一个孔 \([\,]\) 的项。\(E[t]\) 表示把孔替换
+为 \(t\) 得到的普通项。求值上下文刻画“下一项应当规约的子项”：若
+\(t\trans t'\)，则存在唯一的 \(E,r,r'\)，使
+\(t=E[r]\)、\(t'=E[r']\)，并且 \(r\trans r'\) 是
+\textsc{E-ProjNew}、\textsc{E-InvkNew} 或 \textsc{E-CastNew} 的实例。
+
+\begin{theorem}[进展性]
+\label{thm:19.5.4}
+设 \(t\) 是闭的良类型范式。则以下两种情况之一成立：
+\begin{enumerate}
+\item \(t\) 是值；
+\item 存在求值上下文 \(E\)、类 \(C,D\) 与值序列 \(\overline v\)，使
+  \[
+  t=E[(C)(\mathsf{new}\ D(\overline v))]
+  \qquad\text{且}\qquad D\nsubtype C
+  \]
+  也就是说，项卡在一次运行时检查失败的类型转换上。
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+对类型推导作直接归纳。
+\end{proof}
+
+还可以稍微加强进展性：若 \(t\) 只包含向上转换，它就不会卡住；若原始程序
+只包含向上转换，求值也不会产生非向上转换。不过，一般程序需要用类型转换降低
+对象的静态类型，所以必须接受转换可能在运行期失败。完整 Java 不会因转换失败
+而让整个程序停止，而是抛出可由外围处理器捕获的异常。
+
+\begin{exercise}[\(\star\star\star\), \(\nrightarrow\)]
+\label{ex:19.5.5}
+以本书某个 lambda 演算类型检查器为起点，实现 Featherweight Java 的类型
+检查器与解释器。
+\end{exercise}
+\taplsolutionlink{sol:translator:19.5.5}{19.5.5}
+
+\begin{exercise}[\(\star\star\star\star\), \(\nrightarrow\)]
+\label{ex:19.5.6}
+FJ 原始论文还形式化了 GJ 风格的多态类型。请以\cref{ex:19.5.5}的类型检查器
+与解释器为基础，加入这些特性。
+
+尝试本题前需要先读\chapref{23}、\chapref{25}、
+\chapref{26}与\chapref{28}。
+\end{exercise}
+\taplsolutionlink{sol:translator:19.5.6}{19.5.6}
+
+\section{编码与基本对象构造}
+\label{sec:19.6}
+
+至此，我们看到了两种不同的简单面向对象语言语义与类型表述方式。\chapref{18}
+组合简单类型 lambda 演算中的记录、引用和子类型化，编码对象、类与继承；本章
+则直接定义一门以对象和类为基本机制的语言。
+
+两种方法各有用途。研究对象编码能揭示封装与复用背后的基本机制，并把它们与
+目标相近的其他机制比较；还可帮助理解编译器如何把对象翻译到更低层的语言，
+以及对象同其他语言特性的相互作用。把对象视为基本构造，则可以直接讨论其操作
+语义与类型行为，更适合高层语言设计和文档说明。
+
+最终当然希望同时拥有两种视角：一门以对象、类等为基本构造，并有自身类型规则
+和操作语义的高层语言；一项把它翻译到只有记录和函数的低层语言——甚至只有
+寄存器、指针与指令序列的更低层语言——的翻译；最后还要证明该翻译正确实现了
+高层语言，也就是保留高层语言的求值与类型性质。许多工作已经完成过不同版本的
+这一任务：对 FJ 本身可参见 League、Trifonov 与 Shao（2001）；对其他面向
+对象核心演算可参见 Hofmann 与 Pierce（1995b）、Bruce（1994, 2002）、
+Abadi、Cardelli 与 Viswanathan（1996）等。
+
+\section{注记}
+\label{sec:19.7}
+
+本章改编自 Igarashi、Pierce 与 Wadler（1999）的 FJ 原始论文。表述上的主要
+区别是：为与全书一致，本章采用按值调用操作语义，而原论文采用不确定的 beta
+归约关系。
+
+已有多项工作证明 Java 子集的类型安全性。Drossopoulou、Eisenbach 与
+Khurshid（1999）最早为顺序 Java 的一个较大子集证明安全性，Syme（1997）
+后来机械检验了所用技术。他们也使用小步操作语义，但完全省略类型转换，避开了
+荒谬转换问题。Nipkow 与 Oheimb（1998）机械检验了一个更大核心语言的安全性
+证明；其语言包含类型转换，却使用大步操作语义，同样绕开该问题。Flatt、
+Krishnamurthi 与 Felleisen（1998a, 1998b）使用小步语义，形式化同时含赋值
+与类型转换的语言，并像 FJ 一样处理荒谬转换。其系统约为 FJ 的三倍大，安全性
+证明相应更长，但复杂度相近。
+
+这三项研究中，Flatt、Krishnamurthi 与 Felleisen 的工作在一项重要意义上最
+接近 FJ：它们都力求选择尽量小的核心演算，只捕捉当前任务所需的 Java 特性。
+他们的任务是分析带 Common Lisp 风格 mixin 的 Java 扩展。另两套系统则希望
+覆盖尽可能大的 Java 子集，因为主要目标是证明 Java 本身的安全性。
+
+面向对象语言基础研究中，许多论文形式化了基于类的语言，有的把类作为基本构造，
+有的把类翻译为低层机制。另一条路线以方法覆盖或委托取代类，让单个对象可以从
+其他对象继承行为；由于概念更少，所得演算通常比基于类的演算简单。Abadi 与
+Cardelli（1996）的对象演算是其中发展最成熟、最著名的一种；Fisher、Honsell
+与 Mitchell（1994）还发展了另一种常用演算。Castagna、Ghelli 与 Longo
+（1995）则形式化了称为多方法的另一套对象、类与继承方法。
+
+\bilingualepigraph[0.75\textwidth]
+  {每一门大型语言内部，都有一门小语言在奋力挣脱。}
+  {Inside every large language is a small language struggling to get out....}
+  {——Igarashi、Pierce 与 Wadler（1999）}
+
+\bilingualepigraph[0.75\textwidth]
+  {每一个大型程序内部，都有一个小程序在奋力挣脱。}
+  {Inside every large program is a small program struggling to get out....}
+  {——Tony Hoare，\textit{Efficient Production of Large Programs}（1970）}
+
+\bilingualepigraph[0.75\textwidth]
+  {我很胖，但内在的我很瘦。\\你是否想过，每个胖子身体里都住着一个瘦子？}
+  {I'm fat, but I'm thin inside.\\
+   Has it ever struck you that there's a thin man inside every fat man?}
+  {——George Orwell，\textit{Coming Up for Air}（1939）}

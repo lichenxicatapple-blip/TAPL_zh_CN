@@ -1,0 +1,88 @@
+\newpage
+\section{第17章：子类型化的 ML 实现}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:17.3.1}
+\textbf{17.3.1 解答}
+
+只需把\cref{prop:16.3.2}中的算法写成程序：
+
+\begin{taplocamlcode}
+let rec join tyS tyT =
+  match (tyS,tyT) with
+    (TyArr(tyS1,tyS2),TyArr(tyT1,tyT2)) ->
+      (try TyArr(meet tyS1 tyT1, join tyS2 tyT2)
+       with Not_found -> TyTop)
+  | (TyBool,TyBool) ->
+      TyBool
+  | (TyRecord(fS), TyRecord(fT)) ->
+      let labelsT = List.map (fun (li,_) -> li) fT in
+      let commonLabels =
+        List.filter (fun l -> List.mem l labelsT)
+          (List.map (fun (li,_) -> li) fS) in
+      TyRecord
+        (List.map
+          (fun li ->
+            (li, join (List.assoc li fS) (List.assoc li fT)))
+          commonLabels)
+  | _ ->
+      TyTop
+\end{taplocamlcode}
+\taplrustcounterpart{sol-author-17-join}
+
+\begin{taplocamlcode}
+and meet tyS tyT =
+  match (tyS,tyT) with
+    (TyTop,tyT) -> tyT
+  | (tyS,TyTop) -> tyS
+  | (TyArr(tyS1,tyS2),TyArr(tyT1,tyT2)) ->
+      TyArr(join tyS1 tyT1, meet tyS2 tyT2)
+  | (TyBool,TyBool) ->
+      TyBool
+  | (TyRecord(fS), TyRecord(fT)) ->
+      let labelsS = List.map (fun (li,_) -> li) fS in
+      let labelsT = List.map (fun (li,_) -> li) fT in
+      let allLabels =
+        labelsS @ List.filter (fun l -> not (List.mem l labelsS)) labelsT in
+      TyRecord
+        (List.map
+          (fun li ->
+            if List.mem li labelsS && List.mem li labelsT then
+              (li, meet (List.assoc li fS) (List.assoc li fT))
+            else if List.mem li labelsS then
+              (li, List.assoc li fS)
+            else
+              (li, List.assoc li fT))
+          allLabels)
+  | _ ->
+      raise Not_found
+\end{taplocamlcode}
+\taplrustcounterpart{sol-author-17-meet}
+
+再为条件式补上类型检查分支：
+
+\begin{taplocamlcode}
+| TmIf(fi,t1,t2,t3) ->
+    if subtype (typeof ctx t1) TyBool then
+      join (typeof ctx t2) (typeof ctx t3)
+    else
+      error fi "guard of conditional not a boolean"
+\end{taplocamlcode}
+\taplrustcounterpart{sol-author-17-conditional-type}
+
+\taplsolutionbacklink{ex:17.3.1}{返回练习17.3.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:17.3.2}
+\textbf{17.3.2 解答}
+
+见原书配套源码中的 \texttt{rcdsubbot} 实现。它在类型语法中加入
+\texttt{TyBot}，在子类型检查器中令 \texttt{TyBot} 成为每种类型的子类型，
+并按照\taplsecref{16.4}{sec:16.4}为应用和投影加入函数项或记录项为
+\texttt{TyBot} 时的分支。
+
+\taplsolutionbacklink{ex:17.3.2}{返回练习17.3.2}
+\end{taplauthorsolutionentrybox}

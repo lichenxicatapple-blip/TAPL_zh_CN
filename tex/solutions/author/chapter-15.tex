@@ -1,0 +1,203 @@
+\newpage
+\section{第15章：子类型化}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:15.2.1}
+\textbf{15.2.1 解答}
+
+先用排列规则把 \(y\) 字段移到最前面，再用宽度规则丢掉其余字段，最后以
+传递规则连接两步：
+\[
+\inferrule*[right=\textsc{S-Trans}]
+ {\inferrule*[right=\textsc{S-RcdPerm}]{ }
+   {\{x:\tapltype{Nat},y:\tapltype{Nat},z:\tapltype{Nat}\}
+    \subtype
+    \{y:\tapltype{Nat},x:\tapltype{Nat},z:\tapltype{Nat}\}}
+  \\
+  \inferrule*[right=\textsc{S-RcdWidth}]{ }
+   {\{y:\tapltype{Nat},x:\tapltype{Nat},z:\tapltype{Nat}\}
+    \subtype\{y:\tapltype{Nat}\}}}
+ {\{x:\tapltype{Nat},y:\tapltype{Nat},z:\tapltype{Nat}\}
+  \subtype\{y:\tapltype{Nat}\}}
+\]
+
+\taplsolutionbacklink{ex:15.2.1}{返回练习15.2.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:15.2.2}
+\textbf{15.2.2 解答}
+
+不是。仍沿用正文中的缩写 \(R_x\) 与 \(R_{xy}\)。例如，可以先用包容规则
+把函数 \(f\) 的类型从 \(R_x\to\tapltype{Nat}\) 改成
+\(R_{xy}\to\tapltype{Nat}\)，再应用它：
+\[
+\inferrule*[right=\textsc{T-App}]
+ {\inferrule*[right=\textsc{T-Sub}]
+   {\vdash f:R_x\to\tapltype{Nat}
+    \\
+    \inferrule*[right=\textsc{S-Arrow}]
+     {\inferrule*[right=\textsc{S-RcdWidth}]{ }{R_{xy}\subtype R_x}
+      \\
+      \inferrule*[right=\textsc{S-Refl}]{ }{\tapltype{Nat}\subtype\tapltype{Nat}}}
+     {R_x\to\tapltype{Nat}\subtype R_{xy}\to\tapltype{Nat}}}
+   {\vdash f:R_{xy}\to\tapltype{Nat}}
+  \\
+  \vdash xy:R_{xy}}
+ {\vdash f\,xy:\tapltype{Nat}}
+\]
+也可以先由 \textsc{S-RcdWidth} 得到 \(R_{xy}\subtype R_x\)，再接一条
+\textsc{S-Refl} 和 \textsc{S-Trans}，然后才用 \textsc{T-Sub} 把
+\(xy\) 赋予 \(R_x\)。第二种做法还能任意插入更多反身和传递步骤。因此，本
+演算中每个可导出的类型判断实际上都有无穷多棵不同的推导树。
+
+\taplsolutionbacklink{ex:15.2.2}{返回练习15.2.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:15.2.3}
+\textbf{15.2.3 解答}
+
+\begin{enumerate}
+\item 共有六个：
+  \[
+  \{a:\tapltype{Top},b:\tapltype{Top}\},\quad
+  \{b:\tapltype{Top},a:\tapltype{Top}\},\quad
+  \{a:\tapltype{Top}\},\quad
+  \{b:\tapltype{Top}\},\quad
+  \{\},\quad
+  \tapltype{Top}
+  \]
+\item 例如，令
+  \[
+  S_0=\{\},\quad S_1=\{a:\tapltype{Top}\},\quad
+  S_2=\{a:\tapltype{Top},b:\tapltype{Top}\},\quad\ldots
+  \]
+  每增加一个字段便得到 \(S_{i+1}\subtype S_i\)。
+\item 例如令 \(T_i=S_i\to\tapltype{Top}\)。箭头类型的参数位置逆变，
+  所以 \(T_i\subtype T_{i+1}\)，形成无限上升链。
+\end{enumerate}
+
+\taplsolutionbacklink{ex:15.2.3}{返回练习15.2.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:15.2.4}
+\textbf{15.2.4 解答}
+
+第一问不存在。若这样的类型存在，它只能是箭头类型或记录类型，不可能是
+\(\tapltype{Top}\)。然而，记录类型不可能成为任意箭头类型的子类型，箭头
+类型也不可能成为任意记录类型的子类型。
+
+第二问同样不存在。若箭头类型 \(T_1\to T_2\) 是所有箭头类型的超类型，
+根据箭头规则的逆变前提，其参数类型 \(T_1\) 必须是每个其他类型 \(S_1\)
+的子类型；第一问已经说明这种类型不存在。
+
+\taplsolutionbacklink{ex:15.2.4}{返回练习15.2.4}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:15.2.5}
+\textbf{15.2.5 解答}
+
+若保留现有求值语义，加入这条规则并不安全。它会给出
+\(\tapltype{Nat}\times\tapltype{Bool}\subtype\tapltype{Nat}\)，于是
+本来会卡住的项
+\[
+  \mathsf{succ}\,(5,\tapltrue)
+\]
+也能通过类型检查，违反进展性定理。在\taplsecref{15.6}{sec:15.6}介绍的
+强制转换语义下，这条规则是安全的；不过，即使采用该语义，它也会给子类型
+检查算法带来一些困难。
+
+\taplsolutionbacklink{ex:15.2.5}{返回练习15.2.5}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:15.3.1}
+\textbf{15.3.1 解答}
+
+向子类型关系加入错误的类型对，既可能破坏保持性，也可能破坏进展性。例如，
+若加入公理
+\[
+  \{x:\{\}\}\subtype\{x:\tapltype{Top}\to\tapltype{Top}\}
+\]
+便可推出 \(t=(\{x=\{\}\}.x)\{\}\) 具有类型 \(\tapltype{Top}\)。但
+\(t\trans\{\}\{\}\)，而结果无法赋型，因而违反保持性。若加入公理
+\[
+  \{\}\subtype\tapltype{Top}\to\tapltype{Top}
+\]
+则项 \(\{\}\{\}\) 可以赋型，却既不是值也不能求值，因而违反进展性。
+
+反过来，从子类型关系中删去类型对并无妨。进展性定理只在前提中提到类型关系；
+限制子类型关系，继而限制类型关系，只会减少需要考虑的良类型项。保持性方面，
+即使删去 \textsc{S-Trans} 也不会有问题，因为 \textsc{T-Sub} 可以恢复它
+在类型推导中的作用：若已有 \(\Gamma\vdash t:S\)、\(S\subtype U\) 和
+\(U\subtype T\)，可以连续使用两次 \textsc{T-Sub}，先得到
+\(\Gamma\vdash t:U\)，再得到 \(\Gamma\vdash t:T\)。
+
+\taplsolutionbacklink{ex:15.3.1}{返回练习15.3.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:15.3.2}
+\textbf{15.3.2 解答}
+
+\begin{enumerate}
+\item 对 \(S\subtype T_1\to T_2\) 的子类型推导作归纳。检查
+  \cref{fig:15-1,fig:15-3}中的规则，末条规则只能是 \textsc{S-Refl}、
+  \textsc{S-Trans} 或 \textsc{S-Arrow}。
+
+  若为 \textsc{S-Refl}，则 \(S=T_1\to T_2\)，结论由反身性立即得到。
+  若为 \textsc{S-Arrow}，其两个前提恰好就是所需结论。
+
+  若为 \textsc{S-Trans}，则存在 \(U\)，使两棵子推导分别以
+  \(S\subtype U\) 和 \(U\subtype T_1\to T_2\) 为结论。对第二棵子推导
+  使用归纳假设，得到 \(U=U_1\to U_2\)、\(T_1\subtype U_1\) 和
+  \(U_2\subtype T_2\)。现在已知 \(U\) 是箭头类型，可以对第一棵子推导
+  使用归纳假设，得到 \(S=S_1\to S_2\)、\(U_1\subtype S_1\) 和
+  \(S_2\subtype U_2\)。最后两次使用传递性，得到
+  \(T_1\subtype S_1\) 与 \(S_2\subtype T_2\)。
+
+\item 对 \(S\subtype\{l_i:T_i\}^{i\in1..n}\) 的子类型推导作归纳。
+  末条规则只能是 \textsc{S-Refl}、\textsc{S-Trans}、
+  \textsc{S-RcdWidth}、\textsc{S-RcdDepth} 或 \textsc{S-RcdPerm}。
+  除传递情形外，结论都可以直接从相应规则的前提读出。
+
+  若末条规则为 \textsc{S-Trans}，则存在记录类型
+  \(U=\{u_a:U_a\}^{a\in1..o}\)，且有 \(S\subtype U\) 和
+  \(U\subtype\{l_i:T_i\}^{i\in1..n}\)。对后一棵子推导使用归纳假设，
+  可知每个 \(l_i\) 都是某个 \(u_a\)，且对应字段满足
+  \(U_a\subtype T_i\)。再对前一棵子推导使用归纳假设，得到
+  \(S=\{k_j:S_j\}^{j\in1..m}\)，每个 \(u_a\) 都是某个 \(k_j\)，且
+  对应字段满足 \(S_j\subtype U_a\)。标签集合的包含关系具有传递性，
+  字段类型的子类型关系也具有传递性，所以每个 \(l_i\) 都出现在 \(S\) 中，
+  相应字段满足 \(S_j\subtype T_i\)。
+\end{enumerate}
+
+\taplsolutionbacklink{lem:15.3.2}{返回引理15.3.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:15.3.6}
+\textbf{15.3.6 解答}
+
+两部分都对类型推导作归纳。这里只写第一部分；第二部分相同。
+
+检查类型规则可知，以 \(\vdash v:T_1\to T_2\) 为结论的推导，末条规则只能
+是 \textsc{T-Abs} 或 \textsc{T-Sub}。若为 \textsc{T-Abs}，结论直接
+成立。若为 \textsc{T-Sub}，从前提得到 \(\vdash v:S\) 和
+\(S\subtype T_1\to T_2\)。由子类型关系的反演引理，\(S\) 必为
+\(S_1\to S_2\)。于是可以对前一条类型前提的推导使用归纳假设，得到
+\(v\) 是 lambda 抽象。
+
+\taplsolutionbacklink{lem:15.3.6}{返回引理15.3.6}
+\end{taplauthorsolutionentrybox}

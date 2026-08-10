@@ -1,0 +1,66 @@
+\section*{第18章：案例研究——命令式对象}
+\addcontentsline{toc}{section}{第18章：案例研究——命令式对象}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:18.6.2}
+\textbf{练习18.6.2}
+
+在项的语法中增加记录扩展构造：
+\[
+ t ::= \cdots \mid
+ t\ \mathsf{with}\ \{l_i=t_i\}^{i\in1..n}
+\]
+右侧列表中的标签互不重复；若某个标签已经出现在基记录中，新字段会替换旧
+字段，否则追加为新字段。
+
+求值采用从左到右的按值次序。先求值基记录；基记录成为值后，再依次求值扩展
+列表中的各字段。所有部分都是值时执行合并：
+\[
+\inferrule*[right=\textsc{E-WithBase}]
+ {t\trans t'}
+ {t\ \mathsf{with}\ F\trans t'\ \mathsf{with}\ F}
+\]
+\[
+\scalebox{0.82}{$
+\inferrule*[right=\textsc{E-WithField}]
+ {t_i\trans t_i'}
+ {v\ \mathsf{with}\
+  \{l_1=v_1,\ldots,l_i=t_i,\ldots,l_n=t_n\}
+  \trans
+  v\ \mathsf{with}\
+  \{l_1=v_1,\ldots,l_i=t_i',\ldots,l_n=t_n\}}
+$}
+\]
+其中最后一条规则只在 \(v,v_1,\ldots,v_{i-1}\) 已经是值时使用。若
+\(v=\{k_j=w_j\}^{j\in1..m}\)，合并规则为
+\[
+\scalebox{0.88}{$
+\inferrule*[right=\textsc{E-With}]{ }
+ {\{k_j=w_j\}^{j\in1..m}\ \mathsf{with}\
+  \{l_i=v_i\}^{i\in1..n}
+  \trans
+  \{k_j=w_j\mid k_j\notin\{l_1,\ldots,l_n\}\},
+  \{l_i=v_i\}^{i\in1..n}}
+$}
+\]
+结论右侧表示先保留未被覆盖的旧字段，再放入全部新字段。
+
+类型规则先推导基记录与每个新字段的类型，再以同样方式合并字段类型：
+\[
+\inferrule*[right=\textsc{T-With}]
+ {\Gamma\vdash t:\{k_j:T_j\}^{j\in1..m}\\
+  \Gamma\vdash t_i:S_i\quad(i\in1..n)}
+ {\Gamma\vdash
+  t\ \mathsf{with}\ \{l_i=t_i\}^{i\in1..n}:
+  \{k_j:T_j\mid k_j\notin\{l_1,\ldots,l_n\}\},
+    \{l_i:S_i\}^{i\in1..n}}
+\]
+它允许覆盖字段时改变字段类型，因为扩展结果是一条新记录，不会修改原记录。
+若希望构造只表达“增加字段而不覆盖”，再加旁条件
+\(\{l_i\}\cap\{k_j\}=\varnothing\) 即可。正文中的例子由此写成
+\(\mathit{super}\ \mathsf{with}\ \{\mathit{reset}=\cdots\}\)，无需重复
+列出 \texttt{get} 与 \texttt{inc}。
+
+\taplsolutionbacklink{ex:18.6.2}{返回练习18.6.2}
+\end{taplsolutionentrybox}

@@ -1,0 +1,315 @@
+\section*{第19章：案例研究——Featherweight Java}
+\addcontentsline{toc}{section}{第19章：案例研究——Featherweight Java}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:19.4.3}
+\textbf{练习19.4.3}
+
+FJ 原本把对象值直接写成
+\(\mathsf{new}\ C(\overline v)\)。这样的值没有独立身份；若要修改字段，
+必须像引用演算那样另设存储。下面给出一种完整扩展。
+
+在项和值中加入位置 \(l\) 和赋值：
+\[
+ t::=\cdots\mid l\mid t.f:=t
+ \qquad
+ v::=l
+\]
+存储 \(\mu\) 把位置映射到已完成初始化的对象
+\(\mathsf{new}\ C(\overline v)\)。求值判断改写为
+\((t,\mu)\trans(t',\mu')\)。对象创建先按从左到右的次序求值全部实参，再分配
+新位置：
+\[
+\inferrule*[right=\textsc{E-NewStore}]
+ {l\notin\operatorname{dom}(\mu)}
+ {(\mathsf{new}\ C(\overline v),\mu)
+  \trans
+  (l,\mu[l\mapsto\mathsf{new}\ C(\overline v)])}
+\]
+字段读取改为从存储取值：
+\[
+\inferrule*[right=\textsc{E-FieldStore}]
+ {\mu(l)=\mathsf{new}\ C(\overline v)\\
+  \mathit{fields}(C)=\overline C\ \overline f}
+ {(l.f_i,\mu)\trans(v_i,\mu)}
+\]
+方法调用仍使用 \(\mathit{mbody}\)，但现在以接收者位置替换
+\texttt{this}：
+\[
+\inferrule*[right=\textsc{E-InvkStore}]
+ {\mu(l)=\mathsf{new}\ C(\overline v)\\
+  \mathit{mbody}(m,C)=(\overline x,t_0)}
+ {(l.m(\overline u),\mu)
+  \trans
+  ([\overline x\mapsto\overline u,\mathsf{this}\mapsto l]t_0,\mu)}
+\]
+赋值先求值接收者，再求值右侧；两者均为值后，更新对应字段并返回写入的值：
+\[
+\inferrule*[right=\textsc{E-Assign}]
+ {\mu(l)=\mathsf{new}\ C(v_1,\ldots,v_i,\ldots,v_n)\\
+  \mathit{fields}(C)=C_1f_1,\ldots,C_nf_n}
+ {(l.f_i:=v,\mu)
+  \trans
+  (v,\mu[l\mapsto\mathsf{new}\ C(v_1,\ldots,v,\ldots,v_n)])}
+\]
+这里返回 \(v\)，与 Java 赋值表达式的行为一致；若希望赋值只是一条命令，也可
+加入 \texttt{Unit} 并返回 \texttt{unit}。
+
+类型层面加入存储类型 \(\Sigma\)，其中 \(\Sigma(l)=C\) 表示位置 \(l\) 存放
+类 \(C\) 的对象。位置和赋值规则为
+\[
+\inferrule*[right=\textsc{T-Loc}]
+ {\Sigma(l)=C}{\Gamma\mid\Sigma\vdash l:C}
+\]
+\[
+\inferrule*[right=\textsc{T-Assign}]
+ {\Gamma\mid\Sigma\vdash t_0:C_0\\
+  \mathit{fields}(C_0)=\overline C\ \overline f\\
+  \Gamma\mid\Sigma\vdash t_1:D\\
+  D\subtype C_i}
+ {\Gamma\mid\Sigma\vdash t_0.f_i:=t_1:C_i}
+\]
+还需定义 \(\Sigma\vdash\mu\)：二者定义域相同，并且每个位置中对象的全部字段值
+都符合该类声明的字段类型。保持性定理随后与\chapref{13}相同：一步求值可能
+扩展存储和存储类型，但已有位置的类型不变；字段更新保持存储良类型。
+
+\taplsolutionbacklink{ex:19.4.3}{返回练习19.4.3}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:19.4.4}
+\textbf{练习19.4.4}
+
+加入抛出与处理异常的项：
+\[
+ t::=\cdots
+ \mid \mathsf{raise}\ t
+ \mid \mathsf{try}\ t\ \mathsf{catch}\ (C\ x)\ t
+\]
+并约定可抛出的对象都是某个根类 \texttt{Throwable} 的子类。异常本身仍是普通
+对象值；\(\mathsf{raise}\ v\) 表示正在传播的异常。
+
+先求值 \texttt{raise} 的参数与 \texttt{try} 的受保护项：
+\[
+\inferrule*[right=\textsc{E-Raise}]
+ {t\trans t'}{\mathsf{raise}\ t\trans\mathsf{raise}\ t'}
+\qquad
+\inferrule*[right=\textsc{E-Try}]
+ {t\trans t'}
+ {\mathsf{try}\ t\ \mathsf{catch}\ (C\ x)\ h
+  \trans
+  \mathsf{try}\ t'\ \mathsf{catch}\ (C\ x)\ h}
+\]
+受保护项正常得到值时，处理器被丢弃：
+\[
+ \mathsf{try}\ v\ \mathsf{catch}\ (C\ x)\ h\trans v
+\]
+若得到 \(\mathsf{raise}\ v\)，令 \(D\) 为 \(v\) 的运行时类。若
+\(D\subtype C\)，执行处理器并以 \(v\) 替换 \(x\)；否则继续向外传播：
+\[
+\inferrule*[right=\textsc{E-Catch}]
+ {v=\mathsf{new}\ D(\overline v)\\D\subtype C}
+ {\mathsf{try}\ (\mathsf{raise}\ v)\ \mathsf{catch}\ (C\ x)\ h
+  \trans[x\mapsto v]h}
+\]
+\[
+\inferrule*[right=\textsc{E-Miss}]
+ {v=\mathsf{new}\ D(\overline v)\\D\nsubtype C}
+ {\mathsf{try}\ (\mathsf{raise}\ v)\ \mathsf{catch}\ (C\ x)\ h
+  \trans\mathsf{raise}\ v}
+\]
+此外，对字段访问、方法调用、对象创建、类型转换及其参数位置，都要加入异常
+传播规则；一旦当前求值位置产生 \(\mathsf{raise}\ v\)，就停止求值同一构造中
+尚未处理的部分，并把异常传到外层。
+
+一种简单的类型设计是让 \(\mathsf{raise}\ t\) 可以取得任意预期类型：
+\[
+\inferrule*[right=\textsc{T-Raise}]
+ {\Gamma\vdash t:D\\D\subtype\mathsf{Throwable}}
+ {\Gamma\vdash\mathsf{raise}\ t:C}
+\]
+处理器的两个正常出口必须具有相容类型。采用 FJ 的算法式风格，可要求处理器
+结果是受保护项结果类型的子类型，或反过来，再选择较大的类型；采用带包容规则的
+声明式系统，则可先把两个分支都提升到共同超类型 \(T\)：
+\[
+\inferrule*[right=\textsc{T-Try}]
+ {\Gamma\vdash t:T\\
+  \Gamma,x:C\vdash h:T\\
+  C\subtype\mathsf{Throwable}}
+ {\Gamma\vdash
+  \mathsf{try}\ t\ \mathsf{catch}\ (C\ x)\ h:T}
+\]
+这样，异常传播不会改变外围项期望的类型；进展性则把最终结果扩展为三类：普通
+值、未处理的 \(\mathsf{raise}\ v\)，或失败的类型转换。
+
+\taplsolutionbacklink{ex:19.4.4}{返回练习19.4.4}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:19.4.5}
+\textbf{练习19.4.5}
+
+加入统一的包容规则：
+\[
+\inferrule*[right=\textsc{T-Sub}]
+ {\Gamma\vdash t:S\\S\subtype T}
+ {\Gamma\vdash t:T}
+\]
+随后可以删去 T-Invk 与 T-New 中逐项比较实参类型的前提，改为直接要求实参已
+具有形参所声明的类型：
+\[
+\inferrule*[right=\textsc{T-Invk$'$}]
+ {\Gamma\vdash t_0:C_0\\
+  \mathit{mtype}(m,C_0)=\overline D\to C\\
+  \Gamma\vdash\overline t:\overline D}
+ {\Gamma\vdash t_0.m(\overline t):C}
+\]
+\[
+\inferrule*[right=\textsc{T-New$'$}]
+ {\mathit{fields}(C)=\overline D\ \overline f\\
+  \Gamma\vdash\overline t:\overline D}
+ {\Gamma\vdash\mathsf{new}\ C(\overline t):C}
+\]
+原规则中若实参实际具有 \(\overline C\subtype\overline D\)，先逐项使用 T-Sub
+即可满足新规则。方法声明规则里“方法体类型是声明结果类型的子类型”也可同样
+改成直接推导声明结果类型。
+
+这套系统更接近数学定义：同一项可以先取得最精确类型，再由 T-Sub 取得任意
+超类型。代价是类型推导不再由句法唯一决定，不能直接充当类型检查算法。实现时
+通常仍使用原来的算法规则计算最小类型；可以证明：算法得到类型 \(S\) 当且仅当
+声明式系统能给该项某个类型 \(T\)，并且 \(S\subtype T\)。
+
+类型转换规则中的子类型条件不能全部删去。它们决定一次转换属于向上、向下还是
+荒谬转换，也决定哪些转换对应合法 Java。可以保留三条转换规则；或者采用练习
+19.4.2 的单一 T-Cast，但那会接受所有转换，改变原系统所表达的 Java 静态限制。
+
+\taplsolutionbacklink{ex:19.4.5}{返回练习19.4.5}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:19.5.5}
+\textbf{练习19.5.5}
+
+实现可以分成类表、静态检查与求值三层。下面列出各层必须完成的操作及其相互
+依赖；按此结构实现，就能直接对应正文四张规则图。
+
+\textbf{一、抽象语法与类表。}
+分别为类声明、构造函数、方法声明和五类项定义数据类型。类表是从类名到类声明
+的映射。载入类表时先检查：类名唯一；除 \texttt{Object} 外所有被引用的类均有
+定义；继承图无环；字段不遮蔽继承字段；同一类中字段名、方法名与方法形参名均不
+重复。
+
+\textbf{二、辅助查询。}
+实现以下四个函数：
+\begin{description}
+\item[\(\mathit{subtype}(C,D)\)] 从 \(C\) 沿超类链向上查找，遇到 \(D\)
+返回真；\(C=D\) 时立即为真。
+\item[\(\mathit{fields}(C)\)] 先递归取得超类字段，再追加 \(C\) 自己声明的
+字段；\texttt{Object} 返回空序列。
+\item[\(\mathit{mtype}(m,C)\)] 先在 \(C\) 中查找方法；没有则递归查超类，
+返回形参类型序列与结果类型。
+\item[\(\mathit{mbody}(m,C)\)] 使用相同查找次序，返回形参名序列与方法体。
+\end{description}
+另实现 \(\mathit{override}\)，若超类链已有同名方法，就检查新旧方法类型完全
+相同。
+
+\textbf{三、类表检查。}
+构造函数的形参必须恰好由“继承字段、当前类字段”依次组成；
+\texttt{super} 的实参必须恰好是继承字段；赋给
+\texttt{this.f} 的必须恰好是当前类同名字段。检查方法时建立环境
+\(\overline x:\overline C,\mathsf{this}:C\)，计算方法体类型 \(E\)，验证
+\(E\subtype C_0\)，再检查覆盖条件。
+
+\textbf{四、项的类型检查。}
+\(\mathit{typeof}(\Gamma,t)\) 按\cref{fig:19-4}递归：变量查环境；字段访问先取得接收
+者类型并查字段序列；方法调用查 \(\mathit{mtype}\)，逐项检查实参；对象创建
+查 \(\mathit{fields}\)，逐项检查构造实参；类型转换根据两个类之间的子类型
+关系分类。实现可以把荒谬转换记录为警告而继续返回目标类型；若要模拟 Java
+前端，则把该警告提升为静态错误。
+
+\textbf{五、单步求值。}
+\(\mathit{eval1}(t)\) 先按\cref{fig:19-3}的同余规则从左到右找到下一项待求值的子项。
+接收者已经是 \(\mathsf{new}\ C(\overline v)\) 时：字段访问按字段序号取值；
+方法调用查 \(\mathit{mbody}\)，同时替换形参与 \texttt{this}；转换在
+\(C\subtype D\) 时删去。没有规则可用时区分“已经是值”与“失败转换或非法
+字段、方法导致卡住”。反复调用 \(\mathit{eval1}\) 直至得到值或卡住，即为
+多步解释器。
+
+替换只需处理变量，因为 FJ 的项中没有绑定构造；同时替换时应一次完成，避免
+某个实参中的变量又被后续替换。可以把替换映射建立为
+\(\{x_i\mapsto v_i,\mathsf{this}\mapsto v_0\}\)，遍历方法体时遇到变量便查表。
+
+最小测试集应包括：正文的 \texttt{Pair.setfst} 与字段访问；继承方法查找；
+方法覆盖；通过 \texttt{this} 的递归调用；合法向上、向下转换；运行时成功和
+失败的向下转换；求值后产生荒谬转换的例子；错误的字段数、方法参数数、覆盖类型
+及继承环。前八类验证动态语义，后四类验证类表与类型检查器不会静默接受坏输入。
+
+\taplsolutionbacklink{ex:19.5.5}{返回练习19.5.5}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:19.5.6}
+\textbf{练习19.5.6}
+
+GJ 风格扩展的核心，是让类、方法和类型都可以带有受上界约束的类型变量。可按
+以下顺序扩展\cref{ex:19.5.5}的实现。
+
+\textbf{语法。}
+类型从类名扩展为类型变量或带实参的类类型：
+\[
+ T::=X\mid C\langle\overline T\rangle
+\]
+类与方法声明分别增加类型形参
+\(\langle\overline X\subtype\overline N\rangle\)，对象创建、方法调用和类型
+转换也携带相应的类型实参。上界 \(N\) 可以提到先前声明的类型变量，从而表达
+F-有界约束，例如 \(X\subtype\mathit{Comparable}\langle X\rangle\)。
+
+\textbf{环境。}
+在变量环境 \(\Gamma\) 之外增加类型变量环境 \(\Delta\)，记录每个类型变量的
+上界。先定义类型良构判断 \(\Delta\vdash T\ \mathsf{OK}\)：类类型的实参数量
+必须正确，且把实际类型代入声明上界后，每个实参都必须是对应上界的子类型。
+
+\textbf{子类型。}
+增加变量规则
+\[
+ \inferrule{X\subtype N\in\Delta}{\Delta\vdash X\subtype N}
+\]
+类继承规则需要先把类声明中的形式类型变量替换为实际类型参数。例如，若
+\[
+ \mathsf{class}\ C\langle\overline X\subtype\overline N\rangle
+ \ \mathsf{extends}\ D\langle\overline U\rangle\{\ldots\},
+\]
+则
+\[
+ C\langle\overline T\rangle
+ \subtype
+ [\overline X\mapsto\overline T]
+ D\langle\overline U\rangle
+\]
+类型参数本身保持不变；GJ 的类类型并不会仅因实参之间有子类型关系就自动形成
+协变关系。
+
+\textbf{字段与方法查询。}
+\(\mathit{fields}\)、\(\mathit{mtype}\) 和 \(\mathit{mbody}\) 沿继承链查找
+时，都必须累积并应用类型替换。泛型方法调用还要先检查显式类型实参满足方法的
+上界，再把它们代入形参类型、返回类型与方法体中的类型标注。
+
+\textbf{类型检查与求值。}
+类型判断改写为 \(\Delta;\Gamma\vdash t:T\)。对象创建和方法调用先检查类型
+实参，再按替换后的字段或形参类型检查项实参。运行时仍可采用 FJ 的求值规则：
+类型参数不参与字段选择和方法体替换，可以在执行前擦除；但证明擦除正确，需要
+先证明类型替换保持良构与赋型，再证明项替换保持赋型。
+
+\textbf{验证顺序。}
+先测试无泛型 FJ 程序在扩展后行为不变；再测试单一泛型容器、带界类型变量、泛型
+方法、继承时改变类型实参、递归上界，以及违反上界的拒绝案例。最后比较擦除前后
+的求值结果。这样既覆盖 GJ 扩展新增的静态机制，也验证它没有改变 FJ 原有程序的
+可观察行为。
+
+\taplsolutionbacklink{ex:19.5.6}{返回练习19.5.6}
+\end{taplsolutionentrybox}

@@ -1,0 +1,87 @@
+\section*{第17章：子类型化的 ML 实现}
+\addcontentsline{toc}{section}{第17章：子类型化的 ML 实现}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:17.3.3}
+\textbf{练习17.3.3}
+
+核心改动是让子类型检查的失败携带“比较进行到哪里、两侧看到了什么”的信息。
+下面给出一种实现方案；字段路径按从外到内的顺序记录。
+
+\begin{lstlisting}
+type subtype_error =
+  | MissingField of string list * string
+  | ShapeMismatch of string list * ty * ty
+
+let rec check_subtype path tyS tyT =
+  if tyS = tyT then () else
+  match (tyS, tyT) with
+  | (_, TyTop) -> ()
+  | (TyArr(s1,s2), TyArr(t1,t2)) ->
+      check_subtype ("parameter"::path) t1 s1;
+      check_subtype ("result"::path) s2 t2
+  | (TyRecord(fs), TyRecord(ft)) ->
+      List.iter
+        (fun (label, tyTi) ->
+          match List.assoc_opt label fs with
+          | None -> raise (MissingField(List.rev path, label))
+          | Some tySi ->
+              check_subtype (label::path) tySi tyTi)
+        ft
+  | _ -> raise (ShapeMismatch(List.rev path, tyS, tyT))
+\end{lstlisting}
+
+\texttt{typeof} 的应用分支先分别算出函数类型与实参类型，再调用
+\texttt{check\_subtype [] tyT2 tyT11}。若收到 \texttt{MissingField}，
+错误消息应打印缺失标签以及此前经过的字段路径；若收到
+\texttt{ShapeMismatch}，则打印该路径上的实际类型和预期类型。投影分支也应
+使用同样的路径表示来报告“记录中没有此字段”，变量分支则报告越界索引与当前
+上下文长度。成功时函数仍返回 \texttt{()}，所以这项修改不改变哪些程序通过
+检查，只提高失败信息的精度。
+
+\taplsolutionbacklink{ex:17.3.3}{返回练习17.3.3}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:17.3.4}
+\textbf{练习17.3.4}
+
+令 \texttt{coerce S T} 返回一项 \(c:S\to T\)，并同时检查
+\(S\subtype T\)。递归结构与子类型算法一致：
+
+\begin{enumerate}
+\item 若 \(S=T\)，返回恒等函数 \(\lambda x:S.\,x\)。
+\item 若 \(T=\tapltype{Top}\)，返回
+  \(\lambda x:S.\,\{\}\)。这里用 unit／空记录表示唯一的
+  \(\tapltype{Top}\) 值。
+\item 若 \(S=S_1\to S_2\)、\(T=T_1\to T_2\)，先递归得到
+  \(c_1:T_1\to S_1\) 与 \(c_2:S_2\to T_2\)，再返回
+  \[
+    \lambda f:S_1\to S_2.\,
+      \lambda x:T_1.\,c_2\,(f\,(c_1\,x))
+  \]
+  参数位置的强制转换方向反转，结果位置保持原方向。
+\item 若两侧都是记录，对目标记录要求的每个字段 \(l_i:T_i\)，在源记录中
+  找到 \(l_i:S_i\)，递归得到 \(c_i:S_i\to T_i\)，并返回
+  \[
+    \lambda r:S.\,\{l_i=c_i\,(r.l_i)\}^{i\in1..n}
+  \]
+  源记录中目标不需要的字段不会出现在新记录里。
+\item 其他组合失败，并报告无法建立子类型关系。
+\end{enumerate}
+
+接着令 \texttt{typeof} 返回二元对“\((T,t')\)”：\(T\) 是最小类型，
+\(t'\) 是已经插入强制转换的项。变量、抽象和记录只需递归翻译子项；应用项
+先得到 \((S_1\to S_2,t_1')\) 与 \((T_1,t_2')\)，调用
+\texttt{coerce T1 S1} 得到 \(c\)，再返回
+\((S_2,t_1'\,(c\,t_2'))\)。投影项翻译其记录子项后保留投影。这样，类型
+推导中原来隐式使用 \textsc{T-Sub} 的位置都变成了翻译项中的显式函数应用。
+
+最后，主程序对 \texttt{typeof} 返回的 \(t'\) 求值并打印，而不再求值原始
+项。实现时必须为新生成的绑定变量选择不会捕获自由变量的名字；若内部项使用
+de Bruijn 索引，则改用既有的移位与替换工具即可避免名称捕获。
+
+\taplsolutionbacklink{ex:17.3.4}{返回练习17.3.4}
+\end{taplsolutionentrybox}

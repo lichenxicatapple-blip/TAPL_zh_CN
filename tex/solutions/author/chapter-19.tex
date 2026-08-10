@@ -1,0 +1,344 @@
+\newpage
+\section{第19章：案例研究——Featherweight Java}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:19.4.1}
+\textbf{19.4.1 解答}
+
+每项类声明都必须带有 \texttt{extends} 子句，而这些子句又不得形成环。因此，
+从任何类开始沿 \texttt{extends} 链不断向上查找，最终都必定到达
+\texttt{Object}。所以无需另设规则，已有规则就能导出每个类都是
+\texttt{Object} 的子类型。
+
+\taplsolutionbacklink{ex:19.4.1}{返回练习19.4.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:19.4.2}
+\textbf{19.4.2 解答}
+
+一个显而易见的改进，是把类型转换的三条类型规则合并成一条：
+\[
+\inferrule*[right=\textsc{T-Cast}]
+ {\Gamma\vdash t_0:D}
+ {\Gamma\vdash(C)t_0:C}
+\]
+并取消“荒谬转换”这一概念。另一项改进是省略构造函数，因为它们本来就不执行
+任何实质计算。
+
+\taplsolutionbacklink{ex:19.4.2}{返回练习19.4.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:19.4.6}
+\textbf{19.4.6 解答}
+
+\begin{enumerate}
+\item 在 FJ 中加入接口的形式化定义并不困难。
+
+\item 假设声明以下接口：
+\begin{lstlisting}
+interface A {}
+interface B {}
+interface C extends A,B {}
+interface D extends A,B {}
+\end{lstlisting}
+此时 (A) 与 (B) 都是 (C,D) 的共同上界，但二者之间没有最小者，因而
+(C,D) 没有最小上界。
+
+\item 不采用条件表达式通常使用的算法式规则
+\[
+\inferrule
+ {\Gamma\vdash t_1:\mathsf{boolean}\\
+  \Gamma\vdash t_2:E_2\\
+  \Gamma\vdash t_3:E_3}
+ {\Gamma\vdash t_1?t_2:t_3:E_2\mathbin{\lor}E_3}
+\]
+Java 使用以下两条受限规则：
+\[
+\inferrule
+ {\Gamma\vdash t_1:\mathsf{boolean}\\
+  \Gamma\vdash t_2:E_2\\
+  \Gamma\vdash t_3:E_3\\
+  E_2\subtype E_3}
+ {\Gamma\vdash t_1?t_2:t_3:E_3}
+\]
+\[
+\inferrule
+ {\Gamma\vdash t_1:\mathsf{boolean}\\
+  \Gamma\vdash t_2:E_2\\
+  \Gamma\vdash t_3:E_3\\
+  E_3\subtype E_2}
+ {\Gamma\vdash t_1?t_2:t_3:E_2}
+\]
+这些规则看起来合理，却无法与 FJ 所用的小步操作语义良好配合：类型保持性
+实际上不成立，很容易构造反例。
+\end{enumerate}
+
+\taplsolutionbacklink{ex:19.4.6}{返回练习19.4.6}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:19.4.7}
+\textbf{19.4.7 解答}
+
+有些出人意料的是，处理 \texttt{super} 比处理 \texttt{self} 更困难，因为
+解释 \texttt{super} 时，必须记住当前正在执行的方法体最初定义在哪个类中。
+至少有两种办法可以保存这项信息：
+\begin{enumerate}
+\item 给项添加标注，指明应从哪里开始查找其中的 \texttt{super}；
+\item 增加一个预处理步骤，重写整个类表：把对 \texttt{super} 的引用改写成
+对 \texttt{this} 的引用，同时使用经过改名的方法名来记录它们来自哪个类。
+\end{enumerate}
+
+\taplsolutionbacklink{ex:19.4.7}{返回练习19.4.7}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:19.5.1}
+\textbf{19.5.1 解答}
+
+证明主定理前，先建立几个辅助引理。与以往一样，关键是把类型判断与替换联系
+起来的引理 A.14。
+
+\medskip
+\textbf{引理 A.13}
+若
+\(\mathit{mtype}(m,D)=\overline C\to C_0\)，则对每个
+\(C\subtype D\) 都有
+\(\mathit{mtype}(m,C)=\overline C\to C_0\)。
+
+\textit{证明。}
+对 \(C\subtype D\) 的推导作直接归纳。若
+\(CT(C)=\mathsf{class}\ C\ \mathsf{extends}\ E\{\ldots\}\)，无论
+\(m\) 是否在 \(CT(C)\) 中定义，
+\(\mathit{mtype}(m,C)\) 都应与 \(\mathit{mtype}(m,E)\) 相同。
+
+\medskip
+\textbf{引理 A.14（项替换保持类型）}
+若
+\[
+ \Gamma,\overline x:\overline B\vdash t:D,
+ \qquad
+ \Gamma\vdash\overline s:\overline A,
+ \qquad
+ \overline A\subtype\overline B,
+\]
+则存在 \(C\subtype D\)，使
+\[
+ \Gamma\vdash[\overline x\mapsto\overline s]t:C
+\]
+
+\textit{证明。}
+对 \(\Gamma,\overline x:\overline B\vdash t:D\) 的推导作归纳。基本思路
+与带子类型化 lambda 演算完全相同，细节略有差异；最后两种情形最值得注意。
+
+\textbf{情形 T-Var：}
+\(t=x\)，且 \(x:D\in\Gamma,\overline x:\overline B\)。若
+\(x\notin\{\overline x\}\)，替换不改变 \(x\)，结论立即成立。若
+\(x=x_i\) 且 \(D=B_i\)，则替换结果为 \(s_i\)；由
+\(\Gamma\vdash s_i:A_i\) 及 \(A_i\subtype B_i\)，取 \(C=A_i\) 即可。
+
+\textbf{情形 T-Field：}
+\(t=t_0.f_i\)，且
+\[
+ \Gamma,\overline x:\overline B\vdash t_0:D_0,
+ \qquad
+ \mathit{fields}(D_0)=\overline C\ \overline f,
+ \qquad D=C_i
+\]
+由归纳假设，存在 \(C_0\subtype D_0\)，使
+\(\Gamma\vdash[\overline x\mapsto\overline s]t_0:C_0\)。容易验证，对某个
+字段类型序列 \(\overline D\)，有
+\[
+ \mathit{fields}(C_0)=
+ \mathit{fields}(D_0),\overline D\ \overline g
+\]
+所以 \(f_i\) 在 \(C_0\) 中仍有类型 \(C_i\)。由 T-Field 得
+\[
+ \Gamma\vdash
+ ([\overline x\mapsto\overline s]t_0).f_i:C_i
+\]
+
+\textbf{情形 T-Invk：}
+\(t=t_0.m(\overline t)\)，且
+\[
+\begin{gathered}
+ \Gamma,\overline x:\overline B\vdash t_0:D_0,
+ \qquad \mathit{mtype}(m,D_0)=\overline E\to D,\\
+ \Gamma,\overline x:\overline B\vdash\overline t:\overline D,
+ \qquad \overline D\subtype\overline E
+\end{gathered}
+\]
+由归纳假设，存在 \(C_0,\overline C\)，使
+\[
+\begin{gathered}
+ \Gamma\vdash[\overline x\mapsto\overline s]t_0:C_0,
+ \quad C_0\subtype D_0,\\
+ \Gamma\vdash[\overline x\mapsto\overline s]\overline t:\overline C,
+ \quad \overline C\subtype\overline D
+\end{gathered}
+\]
+由引理 A.13，
+\(\mathit{mtype}(m,C_0)=\overline E\to D\)；再由子类型关系的传递性，
+\(\overline C\subtype\overline E\)。于是 T-Invk 给出
+\[
+ \Gamma\vdash
+ ([\overline x\mapsto\overline s]t_0).m
+ ([\overline x\mapsto\overline s]\overline t):D
+\]
+
+\textbf{情形 T-New：}
+\(t=\mathsf{new}\ D(\overline t)\)，且
+\[
+ \mathit{fields}(D)=\overline D\ \overline f,
+ \quad
+ \Gamma,\overline x:\overline B\vdash\overline t:\overline C,
+ \quad
+ \overline C\subtype\overline D
+\]
+归纳假设给出某个 \(\overline E\subtype\overline C\)，满足
+\(\Gamma\vdash[\overline x\mapsto\overline s]\overline t:\overline E\)。
+由传递性，\(\overline E\subtype\overline D\)，再用 T-New 即得结论。
+
+\textbf{情形 T-UCast：}
+\(t=(D)t_0\)，且
+\(\Gamma,\overline x:\overline B\vdash t_0:C\)、\(C\subtype D\)。归纳
+假设给出 \(E\subtype C\)，满足
+\(\Gamma\vdash[\overline x\mapsto\overline s]t_0:E\)。由传递性
+\(E\subtype D\)，再用 T-UCast 得
+\(\Gamma\vdash(D)([\overline x\mapsto\overline s]t_0):D\)。
+
+\textbf{情形 T-DCast：}
+\(t=(D)t_0\)，且
+\(\Gamma,\overline x:\overline B\vdash t_0:C\)、\(D\subtype C\)、
+\(D\ne C\)。归纳假设给出 \(E\subtype C\)，满足
+\(\Gamma\vdash[\overline x\mapsto\overline s]t_0:E\)。若
+\(E\subtype D\) 或 \(D\subtype E\)，分别用 T-UCast 或 T-DCast 得到结果；
+若 \(D\nsubtype E\) 且 \(E\nsubtype D\)，则由 T-SCast 得到结果，并产生一条
+荒谬转换警告。
+
+\textbf{情形 T-SCast：}
+\(t=(D)t_0\)，且
+\(\Gamma,\overline x:\overline B\vdash t_0:C\)、\(D\nsubtype C\)、
+\(C\nsubtype D\)。归纳假设给出 \(E\subtype C\)，满足
+\(\Gamma\vdash[\overline x\mapsto\overline s]t_0:E\)。由 FJ 中每个类只有
+一个直接超类可知 \(E\nsubtype D\)：否则若同时有 \(E\subtype C\) 和
+\(E\subtype D\)，则 \(C\subtype D\) 与 \(D\subtype C\) 中必有一个成立，
+与前提矛盾。因此可用 T-SCast 得到结果，并产生荒谬转换警告。
+
+\medskip
+\textbf{引理 A.15（弱化）}
+若 \(\Gamma\vdash t:C\)，则 \(\Gamma,x:D\vdash t:C\)。
+
+\textit{证明。} 对类型推导作直接归纳。
+
+\medskip
+\textbf{引理 A.16}
+若
+\[
+ \mathit{mtype}(m,C_0)=\overline D\to D,
+ \qquad
+ \mathit{mbody}(m,C_0)=(\overline x,t),
+\]
+则存在 \(D_0\) 及 \(C\subtype D\)，使
+\[
+ C_0\subtype D_0,
+ \qquad
+ \overline x:\overline D,\mathsf{this}:D_0\vdash t:C
+\]
+
+\textit{证明。}
+对 \(\mathit{mbody}(m,C_0)\) 的推导作归纳。基例中 \(m\) 就定义在
+\(C_0\) 内；类表良构保证 T-Method 已经导出
+\(\overline x:\overline D,\mathsf{this}:C_0\vdash t:C\)。归纳步骤同样
+直接。
+
+现在证明类型安全性定理。对 \(t\trans t'\) 的推导作归纳，并按最后使用的规则
+分类。倒数第二个 T-DCast 子情形会产生荒谬转换警告。
+
+\textbf{情形 E-ProjNew：}
+设
+\[
+ t=(\mathsf{new}\ C_0(\overline v)).f_i,
+ \qquad t'=v_i,
+ \qquad \mathit{fields}(C_0)=\overline D\ \overline f
+\]
+从 \(t\) 的形式可知，\(\Gamma\vdash t:C\) 的最后一条规则必为 T-Field，
+其前提是
+\(\Gamma\vdash\mathsf{new}\ C_0(\overline v):D_0\)，且
+\(C=D_i\)。后一判断的最后一条规则又必为 T-New，其前提包括
+\(\Gamma\vdash\overline v:\overline C\) 与
+\(\overline C\subtype\overline D\)，并且 \(D_0=C_0\)。特别地，
+\(\Gamma\vdash v_i:C_i\)，而 \(C_i\subtype D_i=C\)，结论成立。
+
+\textbf{情形 E-InvkNew：}
+设
+\[
+\begin{gathered}
+ t=(\mathsf{new}\ C_0(\overline v)).m(\overline u),\\
+ t'=[\overline x\mapsto\overline u,
+     \mathsf{this}\mapsto\mathsf{new}\ C_0(\overline v)]t_0,\\
+ \mathit{mbody}(m,C_0)=(\overline x,t_0)
+\end{gathered}
+\]
+\(\Gamma\vdash t:C\) 的最后两条规则必为 T-Invk 与 T-New，其前提包括
+\[
+ \Gamma\vdash\mathsf{new}\ C_0(\overline v):C_0,
+ \quad
+ \Gamma\vdash\overline u:\overline C,
+ \quad
+ \overline C\subtype\overline D,
+ \quad
+ \mathit{mtype}(m,C_0)=\overline D\to C
+\]
+由引理 A.16，存在 \(D_0\) 与 \(B\subtype C\)，满足
+\(C_0\subtype D_0\) 且
+\(\overline x:\overline D,\mathsf{this}:D_0\vdash t_0:B\)。由引理 A.15
+可把 \(\Gamma\) 加入环境；再用引理 A.14 同时替换形参与
+\texttt{this}，得到某个 \(E\subtype B\)，使
+\(\Gamma\vdash t':E\)。由传递性 \(E\subtype C\)，完成此情形。
+
+\textbf{情形 E-CastNew：}
+设
+\[
+ t=(D)(\mathsf{new}\ C_0(\overline v)),
+ \qquad C_0\subtype D,
+ \qquad t'=\mathsf{new}\ C_0(\overline v)
+\]
+\(\Gamma\vdash t:C\) 的推导只能以 T-UCast 结束；若以 T-SCast 或
+T-DCast 结束，就会与 \(C_0\subtype D\) 矛盾。T-UCast 的前提给出
+\(\Gamma\vdash\mathsf{new}\ C_0(\overline v):C_0\) 与 \(D=C\)，所以取
+\(C'=C_0\) 即可。
+
+同余规则的情形都很直接，只展示 E-Cast。设
+\(t=(D)t_0\)、\(t'=(D)t_0'\)、\(t_0\trans t_0'\)。根据原推导最后使用
+的类型规则，分三种子情形。
+
+\textbf{子情形 T-UCast：}
+已知 \(\Gamma\vdash t_0:C_0\)、\(C_0\subtype D\)、\(D=C\)。归纳假设
+给出某个 \(C_0'\subtype C_0\)，使 \(\Gamma\vdash t_0':C_0'\)。由传递性
+\(C_0'\subtype C\)，所以 T-UCast 导出
+\(\Gamma\vdash(C)t_0':C\)，且不增加荒谬转换警告。
+
+\textbf{子情形 T-DCast：}
+已知 \(\Gamma\vdash t_0:C_0\)、\(D\subtype C_0\)、\(D=C\)。归纳假设
+给出 \(C_0'\subtype C_0\)，使 \(\Gamma\vdash t_0':C_0'\)。若
+\(C_0'\subtype C\) 或 \(C\subtype C_0'\)，分别用 T-UCast 或 T-DCast，
+不增加荒谬转换警告；若两边都不是子类型，则用 T-SCast，并产生一条荒谬转换
+警告。
+
+\textbf{子情形 T-SCast：}
+已知 \(\Gamma\vdash t_0:C_0\)、\(D\nsubtype C_0\)、\(C_0\nsubtype D\)、
+\(D=C\)。归纳假设给出 \(C_0'\subtype C_0\)，使
+\(\Gamma\vdash t_0':C_0'\)。于是仍有
+\(C_0'\nsubtype C\) 与 \(C\nsubtype C_0'\)，所以 T-SCast 导出
+\(\Gamma\vdash(C)t_0':C\)，并保留荒谬转换警告。
+
+\taplsolutionbacklink{thm:19.5.1}{返回定理19.5.1}
+\end{taplauthorsolutionentrybox}

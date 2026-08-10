@@ -1,0 +1,138 @@
+\section*{第15章：子类型化}
+\addcontentsline{toc}{section}{第15章：子类型化}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:15.5.1}
+\textbf{练习15.5.1}
+
+\textbf{证明目标。}若 \(\Gamma\vdash t:T\) 且 \(t\trans t'\)，则
+\(\Gamma\vdash t':T\)。
+
+对给定的类型推导作归纳。原有规则的情形与保持性定理
+\cref{thm:15.3.5}相同，只需检查末条类型规则为 \textsc{T-Downcast} 的
+新增情形。此时
+\[
+  t=t_0\ \mathsf{as}\ T,
+  \qquad
+  \Gamma\vdash t_0:S
+\]
+求值可能有两种来源。
+
+第一，若 \(t_0\trans t_0'\)，则
+\(t'=t_0'\ \mathsf{as}\ T\)。归纳假设给出
+\(\Gamma\vdash t_0':S\)，再应用 \textsc{T-Downcast}，得到
+\(\Gamma\vdash t':T\)。
+
+第二，若 \(t_0=v\)，且由运行时检查得到 \(\vdash v:T\)，则
+\textsc{E-Downcast} 令 \(t\trans v\)。空上下文中的类型判断可由弱化引理
+放入任意上下文，因此 \(\Gamma\vdash v:T\)。这正是所需结论。
+
+所以新增的向下类型转换规则不破坏保持性。
+
+\taplsolutionbacklink{ex:15.5.1}{返回练习15.5.1}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:15.5.2}
+\textbf{练习15.5.2}
+
+\begin{enumerate}
+\item 删去第一个前提后，只凭 \(T_1\subtype S_1\) 就可以推出
+  \(\tapltype{Ref}\ S_1\subtype\tapltype{Ref}\ T_1\)。取
+  \(S_1=\tapltype{Top}\)、\(T_1=\tapltype{Nat}\)，便会错误地得到
+  \(\tapltype{Ref}\ \tapltype{Top}\subtype
+    \tapltype{Ref}\ \tapltype{Nat}\)。于是下面的程序能够通过类型检查：
+  \[
+  (\lambda r:\tapltype{Ref}\ \tapltype{Nat}.\,
+     \mathsf{succ}(!r))
+  (\mathsf{ref}\ (\tapltrue\ \mathsf{as}\ \tapltype{Top}))
+  \]
+  运行时，引用单元实际保存的是 \(\tapltrue\)，读取后得到
+  \(\mathsf{succ}\ \tapltrue\)，求值卡住。缺失的第一个前提本来负责保证
+  “从引用中读出的实际值可以当作目标类型的值”。
+
+\item 删去第二个前提后，只凭 \(S_1\subtype T_1\) 就可以推出上述引用
+  子类型关系。取 \(S_1=\tapltype{Nat}\)、\(T_1=\tapltype{Top}\)，便会
+  错误地得到
+  \(\tapltype{Ref}\ \tapltype{Nat}\subtype
+    \tapltype{Ref}\ \tapltype{Top}\)。考虑
+  \[
+  \begin{aligned}
+  \mathsf{let}\ r&=\mathsf{ref}\ 0\ \mathsf{in}\\
+  \mathsf{let}\ u&=(\lambda s:\tapltype{Ref}\ \tapltype{Top}.\,
+                      s:=\tapltrue)\ r\ \mathsf{in}\\
+  &\mathsf{succ}(!r)
+  \end{aligned}
+  \]
+  参数 \(s\) 的静态类型允许把 \(\tapltrue:\tapltype{Top}\) 写入引用，
+  但 \(r\) 的原始类型仍是 \(\tapltype{Ref}\ \tapltype{Nat}\)。随后读取
+  \(r\) 并取后继，又得到 \(\mathsf{succ}\ \tapltrue\)。缺失的第二个
+  前提本来负责保证“经由目标引用类型写入的值，也符合引用单元的实际类型”。
+\end{enumerate}
+
+\taplsolutionbacklink{ex:15.5.2}{返回练习15.5.2}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:15.5.3}
+\textbf{练习15.5.3}
+
+下面的 Java 程序能够通过静态类型检查，却会在第三行抛出
+\texttt{ArrayStoreException}：
+\begin{tapljavacode}
+String[] strings = new String[1];
+Object[] objects = strings;
+objects[0] = new Object();
+\end{tapljavacode}
+第二行利用数组协变，把 \texttt{String[]} 当作 \texttt{Object[]}。
+第三行按照变量 \texttt{objects} 的静态类型是合法的，但这块数组在运行时
+仍是 \texttt{String[]}，不能存入普通 \texttt{Object}，所以动态检查失败。
+
+\taplsolutionbacklink{ex:15.5.3}{返回练习15.5.3}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:15.6.3}
+\textbf{练习15.6.3}
+
+先为源语言中的每个记录类型规定一种固定的字段顺序，例如按标签的字典序排列。
+设记录类型 \(R=\{l_i:T_i\}^{i\in1..n}\) 按该顺序写成
+\(l_1,\ldots,l_n\)，把它翻译为元组类型
+\[
+  \llbracket R\rrbracket
+  =\llbracket T_1\rrbracket\times\cdots\times\llbracket T_n\rrbracket
+\]
+记录项相应翻译为同一顺序的元组，投影 \(t.l_i\) 翻译为对
+\(\llbracket t\rrbracket\) 的第 \(i\) 个元组投影。其余类型和项沿用正文的
+翻译。
+
+子类型推导生成的强制转换按规则定义：
+\begin{itemize}
+\item 反身规则生成恒等函数；传递规则生成函数复合；
+\item 宽度规则生成一个元组投影函数，只保留目标记录所需的分量；
+\item 排列规则生成一个重排函数，按目标记录的字段顺序重新组成元组；
+\item 深度规则对每个分量分别应用相应字段类型的强制转换，再组成目标元组；
+\item 箭头规则和最大类型规则与正文相同。
+\end{itemize}
+例如，若
+\(R=\{a:\tapltype{Nat},b:\tapltype{Bool}\}\)，则宽度推导
+\(R\subtype\{a:\tapltype{Nat}\}\) 生成的转换是
+\[
+  \lambda p:\tapltype{Nat}\times\tapltype{Bool}.\,p.1
+\]
+若目标记录要求相反的字段顺序，排列转换便构造 \((p.2,p.1)\)。
+
+最后，对类型推导作结构归纳，证明
+\(\llbracket\Gamma\rrbracket\vdash
+\llbracket\mathcal D\rrbracket:\llbracket T\rrbracket\)。普通类型规则直接
+使用归纳假设；\textsc{T-Sub} 情形还需证明每条子类型推导生成的转换具有
+类型 \(\llbracket S\rrbracket\to\llbracket T\rrbracket\)。对该子类型
+推导再作结构归纳即可；上面逐条给出的元组投影、重排和分量转换恰好覆盖所有
+新增情形。因此，\cref{thm:15.6.2}在元组目标语言中仍然成立。
+
+\taplsolutionbacklink{ex:15.6.3}{返回练习15.6.3}
+\end{taplsolutionentrybox}

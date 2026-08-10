@@ -1,0 +1,216 @@
+\newpage
+\section{第16章：子类型化的元理论}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:16.1.2}
+\textbf{16.1.2 解答}
+
+第一项对 \(S\) 的结构作归纳即可。若 \(S=\tapltype{Top}\)，使用
+\textsc{S-Top}；若 \(S=S_1\to S_2\)，分别对 \(S_1,S_2\) 使用归纳
+假设，再应用 \textsc{S-Arrow}；记录类型的情形同理，分别对每个字段使用
+归纳假设，再应用 \textsc{S-Rcd}。
+
+第二项对不含 \textsc{S-Refl} 的 \(S\subtype U\) 与
+\(U\subtype T\) 两棵推导的总大小作归纳，并按两棵推导的末条规则分类。
+若第二棵以 \textsc{S-Top} 结束，直接得到 \(S\subtype T\)。若第一棵
+以 \textsc{S-Top} 结束，则 \(U=\tapltype{Top}\)；对子类型规则作反演可知
+第二棵也只能推出 \(T=\tapltype{Top}\)，仍由 \textsc{S-Top} 得证。
+
+若两棵都以 \textsc{S-Arrow} 结束，写
+\(S=S_1\to S_2\)、\(U=U_1\to U_2\)、\(T=T_1\to T_2\)。前提给出
+\(U_1\subtype S_1\)、\(S_2\subtype U_2\)、
+\(T_1\subtype U_1\)、\(U_2\subtype T_2\)。对子推导应用归纳假设，得到
+\(T_1\subtype S_1\) 和 \(S_2\subtype T_2\)，再应用
+\textsc{S-Arrow}。两棵都以 \textsc{S-Rcd} 结束时，对目标记录中的每个
+字段作同样处理，再应用 \textsc{S-Rcd}。一棵以箭头规则、另一棵以记录
+规则结束的组合不可能发生，因为它们会对中间类型 \(U\) 的外层结构提出互不
+相容的要求。
+
+\taplsolutionbacklink{lem:16.1.2}{返回引理16.1.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:16.1.3}
+\textbf{16.1.3 解答}
+
+加入 \(\tapltype{Bool}\) 后，引理第一项应改为：“每个类型 \(S\) 的
+\(S\subtype S\) 都能在不使用 \textsc{S-Refl} 的情况下导出，只有
+\(S=\tapltype{Bool}\) 时例外。”另一种做法是在子类型定义中显式加入
+\[
+  \tapltype{Bool}\subtype\tapltype{Bool}
+\]
+再证明扩充后的系统可以删去 \textsc{S-Refl}。
+
+\taplsolutionbacklink{ex:16.1.3}{返回练习16.1.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:16.2.5}
+\textbf{16.2.5 解答}
+
+对声明式类型推导作归纳，并按末条规则分类。
+
+\textsc{T-Var} 由 \textsc{TA-Var} 立即得到。对于 \textsc{T-Abs}，归纳
+假设给出函数体的算法类型 \(S_2\subtype T_2\)；由 \textsc{TA-Abs}
+得到 \(T_1\to S_2\)，再由 \textsc{S-Arrow} 得
+\(T_1\to S_2\subtype T_1\to T_2\)。
+
+对于 \textsc{T-App}，归纳假设给出
+\(\Gamma\algturnstile t_1:S_1\)，其中
+\(S_1\subtype T_{11}\to T_{12}\)，并给出
+\(\Gamma\algturnstile t_2:S_2\)，其中 \(S_2\subtype T_{11}\)。由
+子类型反演，\(S_1=S_{11}\to S_{12}\)，且
+\(T_{11}\subtype S_{11}\)、\(S_{12}\subtype T_{12}\)。传递性给出
+\(S_2\subtype S_{11}\)；算法子类型关系的完备性使
+\textsc{TA-App} 可用，于是得到结果类型 \(S_{12}\subtype T_{12}\)。
+
+\textsc{T-Rcd} 的情形逐字段应用归纳假设；\textsc{T-Proj} 与应用情形
+类似，利用子类型反演找到实际记录中的对应字段。若末条规则是
+\textsc{T-Sub}，则先使用归纳假设，再利用子类型传递性即可。
+
+\taplsolutionbacklink{thm:16.2.5}{返回定理16.2.5}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:16.2.6}
+\textbf{16.2.6 解答}
+
+若删去 \textsc{S-Arrow}，项
+\(\lambda x:\{a:\tapltype{Nat}\}.\,x\) 在声明式规则下同时具有
+\[
+\{a:\tapltype{Nat}\}\to\{a:\tapltype{Nat}\}
+\quad\text{和}\quad
+\{a:\tapltype{Nat}\}\to\tapltype{Top}
+\]
+两种类型。删去箭头子类型规则后，这两个类型不可比较，也不存在同时位于二者
+之下的类型，所以该项没有最小类型。
+
+\taplsolutionbacklink{ex:16.2.6}{返回练习16.2.6}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:16.3.2}
+\textbf{16.3.2 解答}
+
+以下两个算法相互递归。并算法总会返回一个类型；交算法在不存在交时失败。
+\[
+\begin{array}{rcl}
+\tapltype{Bool}\sqcup\tapltype{Bool}&=&\tapltype{Bool}\\
+(S_1\to S_2)\sqcup(T_1\to T_2)&=&
+ (S_1\sqcap T_1)\to(S_2\sqcup T_2)
+ \quad\text{（若参数类型的交存在）}\\
+\{l_i:S_i\}_{i\in I}\sqcup\{l_j:T_j\}_{j\in J}&=&
+ \{l_k:S_k\sqcup T_k\}_{k\in I\cap J}\\
+S\sqcup T&=&\tapltype{Top}\quad\text{（其他情形）}
+\end{array}
+\]
+\[
+\begin{array}{rcl}
+\tapltype{Top}\sqcap T&=&T\\
+S\sqcap\tapltype{Top}&=&S\\
+\tapltype{Bool}\sqcap\tapltype{Bool}&=&\tapltype{Bool}\\
+(S_1\to S_2)\sqcap(T_1\to T_2)&=&
+ (S_1\sqcup T_1)\to(S_2\sqcap T_2)\\
+\{l_i:S_i\}_{i\in I}\sqcap\{l_j:T_j\}_{j\in J}&=&
+ \{l_k:U_k\}_{k\in I\cup J}
+\end{array}
+\]
+记录交中，公共字段取字段类型的交；只出现在一侧的字段原样保留。任何递归
+调用失败时，整次交计算失败。递归调用时两种输入类型的总大小严格减小，因此
+算法不会发散。
+
+若 \(L\subtype S\) 且 \(L\subtype T\)，对 \(S,T\) 的结构作归纳，并
+使用子类型反演，可证明交算法不会失败。箭头情形中，\(L\) 的结果类型为
+\(S_2,T_2\) 的共同下界；记录情形中，\(L\) 包含两条记录全部字段，而且
+公共字段在 \(L\) 中的类型是两侧字段类型的共同子类型。这正好保证所有递归
+求交都成功。
+
+接着对算法的递归调用结构作归纳，可证明：若 \(S\sqcup T=J\)，则
+\(S\subtype J\) 且 \(T\subtype J\)；若 \(S\sqcap T=M\)，则
+\(M\subtype S\) 且 \(M\subtype T\)。最后同时对 \(S,T\) 的结构作归纳，
+得到最小性与最大性：每个公共超类型 \(U\) 都满足 \(J\subtype U\)，每个
+公共子类型 \(L\) 都满足 \(L\subtype M\)。因此算法算出的确实是并与交。
+
+\taplsolutionbacklink{ex:16.3.2}{返回练习16.3.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:16.3.3}
+\textbf{16.3.3 解答}
+
+最小类型是 \(\tapltype{Top}\)，即 \(\tapltype{Bool}\) 与 \(\{\}\)
+的并。不过，这个项能够通过类型检查可视为语言的一个弱点：
+\(\tapltype{Top}\) 型值没有可供使用的操作，程序员通常不会有意写出这样的
+条件式。一种做法是从系统中删除 \(\tapltype{Top}\)，并把求并改成偏操作；
+另一种做法是保留 \(\tapltype{Top}\)，但让类型检查器在项的最小类型为
+\(\tapltype{Top}\) 时发出警告。
+
+\taplsolutionbacklink{ex:16.3.3}{返回练习16.3.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:16.3.4}
+\textbf{16.3.4 解答}
+
+处理不变的 \(\tapltype{Ref}\) 很直接：只有两个引用的元素类型彼此相等时，
+并与交才仍是相同元素类型的引用。
+
+把 \(\tapltype{Ref}\) 分解为 \(\tapltype{Source}\) 和
+\(\tapltype{Sink}\) 后会遇到严重困难：子类型关系不再总有并或交。例如，
+\(\tapltype{Ref}\{a:\tapltype{Nat},b:\tapltype{Bool}\}\) 与
+\(\tapltype{Ref}\{a:\tapltype{Nat}\}\) 同时是
+\(\tapltype{Source}\{a:\tapltype{Nat}\}\) 和
+\(\tapltype{Sink}\{a:\tapltype{Nat},b:\tapltype{Bool}\}\) 的子类型，
+但后两个类型没有共同下界。
+
+最简单的解决方式之一，是只加入 \(\tapltype{Source}\) 或只加入
+\(\tapltype{Sink}\)。许多应用只需其中一个。例如，
+\taplsecref{18.12}{sec:18.12}中的类实现只需 \(\tapltype{Source}\)；并发
+语言中的通道则可能只需要传递发送能力，即 \(\tapltype{Sink}\)。另一种方案
+是让引用类型接受两个参数：\(\tapltype{Ref}\ S\ T\) 允许写入 \(S\) 型值、
+读出 \(T\) 型值；它对第一个参数逆变，对第二个参数协变。此时可把
+\(\tapltype{Sink}\ S\) 定义为
+\(\tapltype{Ref}\ S\ \tapltype{Top}\)，把
+\(\tapltype{Source}\ T\) 定义为
+\(\tapltype{Ref}\ \tapltype{Bot}\ T\)。
+
+\taplsolutionbacklink{ex:16.3.4}{返回练习16.3.4}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:16.4.1}
+\textbf{16.4.1 解答}
+
+需要。合适的规则是
+\[
+\inferrule*[right=\textsc{TA-If}]
+ {\Gamma\algturnstile t_1:T_1\\T_1=\tapltype{Bot}\\
+  \Gamma\algturnstile t_2:T_2\\
+  \Gamma\algturnstile t_3:T_3\\T_2\sqcup T_3=T}
+ {\Gamma\algturnstile
+  \mathsf{if}\ t_1\ \mathsf{then}\ t_2\ \mathsf{else}\ t_3:T}
+\]
+另一条看似自然的候选规则会直接把整个条件式赋为 \(\tapltype{Bot}\)：
+\[
+\inferrule*[right=\textsc{TA-If}]
+ {\Gamma\algturnstile t_1:T_1\\T_1=\tapltype{Bot}\\
+  \Gamma\algturnstile t_2:T_2\\
+  \Gamma\algturnstile t_3:T_3}
+ {\Gamma\algturnstile
+  \mathsf{if}\ t_1\ \mathsf{then}\ t_2\ \mathsf{else}\ t_3:
+  \tapltype{Bot}}
+\]
+这条规则虽然安全——\(\tapltype{Bot}\) 没有值，条件项不可能求得普通
+结果——却会给某些声明式规则无法赋型的项赋型，从而破坏算法类型关系的
+可靠性定理 \cref{thm:16.2.4}。
+
+\taplsolutionbacklink{ex:16.4.1}{返回练习16.4.1}
+\end{taplauthorsolutionentrybox}

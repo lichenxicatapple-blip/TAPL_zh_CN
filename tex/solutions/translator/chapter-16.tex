@@ -1,0 +1,57 @@
+\section*{第16章：子类型化的元理论}
+\addcontentsline{toc}{section}{第16章：子类型化的元理论}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:16.2.1}
+\textbf{练习16.2.1}
+
+证明分为两种情形。
+
+\textbf{情形 \textsc{T-Rcd}。}设记录的第 \(i\) 个字段原先由
+\(\Gamma\vdash t_i:T_i\) 得到。若这棵字段推导最后使用了
+\textsc{T-Sub}，则存在 \(S_i\)，使
+\(\Gamma\vdash t_i:S_i\) 且 \(S_i\subtype T_i\)。先对所有字段应用
+\textsc{T-Rcd}，得到
+\[
+  \Gamma\vdash\{l_i=t_i\}^{i\in1..n}:
+  \{l_i:S_i\}^{i\in1..n}
+\]
+再由记录子类型规则得到
+\(\{l_i:S_i\}^{i\in1..n}\subtype
+  \{l_i:T_i\}^{i\in1..n}\)，最后只在整条记录推导的顶部使用一次
+\textsc{T-Sub}。
+
+\textbf{情形 \textsc{T-Proj}。}设投影前的项具有类型
+\(S\)，并经包容规则被看作 \(\{l_i:T_i\}^{i\in1..n}\)。由子类型反演，
+\(S\) 必须是一种记录类型，其中包含字段 \(l_j:S_j\)，且
+\(S_j\subtype T_j\)。因此，可以先直接使用 \textsc{T-Proj} 得到
+\(\Gamma\vdash t.l_j:S_j\)，再在整棵投影推导的顶部使用
+\textsc{T-Sub} 得到 \(\Gamma\vdash t.l_j:T_j\)。
+
+两种情形都把字段内部的 \textsc{T-Sub} 移到了所考察推导的顶部。
+
+\taplsolutionbacklink{ex:16.2.1}{返回练习16.2.1}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:16.2.3}
+\textbf{练习16.2.3}
+
+取
+\[
+  s=(\lambda r:\{x:\tapltype{Nat}\}.\,r)\,
+      \{x=0,y=1\}
+  \qquad\text{和}\qquad
+  t=\{x=0,y=1\}
+\]
+有 \(s\trans t\)。算法类型规则给 \(s\) 的类型是
+\(S=\{x:\tapltype{Nat}\}\)，给 \(t\) 的类型是
+\(T=\{x:\tapltype{Nat},y:\tapltype{Nat}\}\)。由记录宽度子类型规则，
+\(T\subtype S\)；反向的 \(S\subtype T\) 不成立。这个例子说明：单步
+求值可能使算法计算出的最小类型变得更精确，因此算法类型关系不满足通常形式的
+保持性定理。
+
+\taplsolutionbacklink{ex:16.2.3}{返回练习16.2.3}
+\end{taplsolutionentrybox}

@@ -1,5 +1,884 @@
-% Chapter 18 — Case Study: Imperative Objects
-% Source: ../source/split/chapters/ch18-imperative-objects_p216-p238.pdf
-% Original print pages: 225--246
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:18}
+% 第 18 章：案例研究——命令式对象
+% Source: source/split/chapters/ch18-imperative-objects_p216-p238.pdf
+% Original print pages: 225--247
+% Status: 待独立初审
+
+\chapter{案例研究：命令式对象}
+\label{chap:18}
+
+本章进入第一个较为完整的程序设计示例。我们将综合运用此前定义的大部分
+机制——函数、记录、一般递归、可变引用与子类型化——构造一组支持对象和类的
+编程惯用法。这些对象与类类似于 Smalltalk、Java 等面向对象语言中的相应机制。
+本章不会为对象或类加入新的具体语法；这里的目标，是用层次更低的构造近似
+实现这些较复杂的语言特性，从而理解它们的工作方式。
+
+在本章大部分内容中，这种近似相当准确：把对象和类视为派生形式，并将其去糖
+为已有机制的简单组合，便能令人满意地实现它们的大多数特性。不过，讨论虚方法
+与 \texttt{self} 时会遇到求值次序问题，使这种去糖不够贴近真实实现。更直接的
+做法是明确规定对象与类的语法、操作语义和类型规则；\chapref{19}将采用这种方式。
+
+\section{什么是面向对象程序设计？}
+\label{sec:18.1}
+
+围绕“某某的本质是什么？”展开的争论，往往更能暴露参与者各自的偏好，而
+不是揭示讨论对象的某种客观真相。试图严格定义“面向对象”也不例外。尽管如此，
+大多数面向对象语言仍共享若干基本特性；这些特性共同支持一种独特的程序设计
+风格，其优点与缺点都已得到较充分的认识。\footnote{本章示例使用带子类型化
+的简单类型 lambda 演算（\cref{fig:15-1}），并加入记录
+（\cref{fig:15-3}）与引用（\cref{fig:13-1}）。相应的 OCaml 实现是
+\texttt{fullref}。}
+
+\begin{enumerate}
+\item \textbf{多种表示。}面向对象风格最基本的特征也许是：对对象调用操作时，
+  由对象自身决定执行哪段代码。只要每个对象都携带一套适合其内部表示的操作
+  实现，两个响应同一组操作、也就是具有同一接口的对象，可以采用完全不同的
+  内部表示。这些实现称为对象的\termfirst{方法}{method}。调用对象上的操作称为
+  \termfirst{方法调用}{method invocation}，也常形象地称为向对象“发送消息”。
+  调用时需要在运行期根据操作名查找对象所关联的方法表；这个过程称为
+  \termfirst{动态分派}{dynamic dispatch}。
+
+  相比之下，传统的抽象数据类型（ADT）由一组值和这组值上的一套固定操作实现
+  组成。操作实现由静态定义，既有优点也有缺点；\taplsecref{24.2}{sec:24.2}
+  会进一步比较二者。
+
+\item \textbf{封装。}对象的内部表示通常不会暴露在对象定义之外；只有对象
+  自身的方法可以直接查看或修改其字段。\footnote{不同语言对封装的具体规定
+  并不相同。在 Smalltalk 中，对象外部根本无法命名其内部字段；Java 和 C++
+  则允许把字段标为 \texttt{public} 或 \texttt{private}。反过来，Smalltalk
+  的所有方法都公开可用，而 Java 与 C++ 允许把方法标为私有，只能从同一对象
+  的其他方法中调用。本章忽略这些细化，但相关问题在研究文献中已有深入讨论
+  （Pierce 与 Turner, 1993；Fisher 与 Mitchell, 1998；Fisher, 1996a；
+  Fisher 与 Mitchell, 1996；Fisher, 1996b；Fisher 与 Reppy, 1999）。
+
+  虽然大多数面向对象语言都把封装视为核心概念，也有一些语言并不如此。
+  CLOS、Cecil、Dylan、KEA 以及 Castagna、Ghelli 与 Longo 的
+  lambda-\& 演算采用多方法，把对象状态与方法分开，并在方法调用时借助特殊
+  类型标签从重载的方法体中选择合适分支。这些语言在对象创建、方法调用和类
+  定义方面的底层机制与本章差别很大，不过最终形成的高层编程惯用法颇为相似。}
+  这意味着修改对象的内部表示时，影响
+  通常局限在程序中一小块容易定位的区域，从而显著改善大型系统的可读性和
+  可维护性。
+
+  抽象数据类型也提供相似的封装：值的具体表示只在某个作用域——例如模块或
+  ADT 定义——内可见，作用域之外的代码只能调用该作用域内定义的操作来处理
+  这些值。
+
+\item \textbf{子类型化。}对象的类型，也就是它的接口，只列出操作的名称与
+  类型。内部表示不会出现在对象类型中，因为它不影响外部可以直接对对象执行
+  哪些操作。
+
+  对象接口很自然地适合子类型关系。若对象满足接口 \(I\)，它也必然满足只列出
+  \(I\) 中一部分操作的接口 \(J\)：期待 \(J\) 型对象的上下文只能调用
+  \(J\) 中的操作，所以传入 \(I\) 型对象总是安全的。因此，对象子类型化与
+  记录子类型化相似；在本章的对象模型中，二者实际上完全相同。忽略接口中
+  一部分操作的能力，使同一段客户代码能够统一处理多种对象，只要求它们提供
+  某组共同操作。
+
+\item \textbf{继承。}接口有部分重合的对象通常也会共享部分行为，我们希望
+  这些共同行为只实现一次。大多数面向对象语言通过\termfirst{类}{class}实现
+  这种复用：类是创建对象的模板；\termfirst{子类化}{subclassing}允许在旧类
+  上增加新方法，并在必要时有选择地覆盖旧方法，从而派生新类。有些语言不用
+  类，而采用\termfirst{委托}{delegation}，把对象与类的特性结合起来。
+
+\item \textbf{开放递归。}大多数具有对象和类的语言还允许一个方法体通过特殊
+  变量 \texttt{self}（有些语言写作 \texttt{this}）调用同一对象的其他方法。
+  \texttt{self} 的特殊之处在于它采用\termfirst{迟绑定}{late binding}：在
+  某个类中定义的方法，可以调用直到该类的某个子类中才定义的方法。
+\end{enumerate}
+
+本章余下各节依次发展这些特性：先构造很简单的独立对象，再逐步加入能力更强
+的类机制。后续章节还会从其他角度研究对象与类。\chapref{19}直接定义 Java
+风格的对象与类，不再把它们编码成其他构造；\chapref{27}借助有界量化改进
+本章类构造的运行效率；\chapref{32}则在纯函数式环境中发展更强的对象编码。
+
+\section{对象}
+\label{sec:18.2}
+
+最简单的对象就是一种数据结构：它封装内部状态，并通过一组方法允许客户代码
+访问这些状态。内部状态通常由若干可变的\termfirst{实例变量}{instance
+variable}（或字段）组成；这些变量由各方法共享，程序的其他部分无法访问。
+
+本章始终以简单计数器对象为例。每个计数器保存一个数，并提供两个方法：
+\texttt{get} 返回当前值，\texttt{inc} 把该值加一。
+
+利用前几章的机制，可以用一个引用单元保存内部状态，用一条函数字段记录保存
+各方法。当前状态为 1 的计数器如下：
+
+\begin{lstlisting}
+c = let x = ref 1 in
+      {get = lambda _:Unit. !x,
+       inc = lambda _:Unit. x := succ(!x)};
+
+? c : {get:Unit->Nat, inc:Unit->Unit}
+\end{lstlisting}
+
+两个方法体都写成接受无关紧要参数的函数；参数写作 \texttt{\_}，因为函数体
+不会引用它。外层抽象会阻止方法体在创建对象时立即求值。以后每次把方法应用于
+\texttt{unit}，都可以重新执行方法体。还要注意，对象状态由两个方法共享，
+却无法从程序其余部分访问；这种封装直接来自变量 \texttt{x} 的词法作用域。
+
+调用对象 \texttt{c} 的方法，只需从记录中投影相应字段，再把它应用于合适
+参数：
+
+\begin{lstlisting}
+c.inc unit;                 ? unit : Unit
+c.get unit;                 ? 2 : Nat
+(c.inc unit; c.inc unit; c.get unit);   ? 4 : Nat
+\end{lstlisting}
+
+\texttt{inc} 返回 \texttt{unit}，所以可以用\taplsecref{11.3}{sec:11.3}
+的分号记法连续执行多次递增。最后一行也可以写成：
+
+\begin{lstlisting}
+let _ = c.inc unit in let _ = c.inc unit in c.get unit;
+\end{lstlisting}
+
+我们可能要创建并操作许多计数器，因此为其类型引入缩写：
+
+\begin{lstlisting}
+Counter = {get:Unit->Nat, inc:Unit->Unit};
+\end{lstlisting}
+
+本章关注对象的构造方式，而不是如何用对象组织大型程序。不过，至少需要考察
+一项使用对象的函数，验证它能够处理内部表示不同的对象。下面的简单函数接受
+计数器，并连续调用三次 \texttt{inc}：
+
+\begin{lstlisting}
+inc3 = lambda c:Counter.
+         (c.inc unit; c.inc unit; c.inc unit);
+
+? inc3 : Counter -> Unit
+
+(inc3 c; c.get unit);       ? 7 : Nat
+\end{lstlisting}
+
+\section{对象生成器}
+\label{sec:18.3}
+
+前面一次构造了一个计数器。编写\termfirst{对象生成器}{object generator}
+同样简单：这是一个每次调用都会创建并返回新计数器的函数。
+
+\begin{lstlisting}
+newCounter =
+  lambda _:Unit. let x = ref 1 in
+    {get = lambda _:Unit. !x,
+     inc = lambda _:Unit. x := succ(!x)};
+
+? newCounter : Unit -> Counter
+\end{lstlisting}
+
+\section{子类型化}
+\label{sec:18.4}
+
+面向对象风格广受欢迎的一个原因，是同一段客户代码能够处理结构不同的对象。
+例如，除了前面的 \texttt{Counter}，还可以创建带 \texttt{reset} 方法的
+对象，使其随时恢复初始状态 1。
+
+\begin{lstlisting}
+ResetCounter =
+  {get:Unit->Nat, inc:Unit->Unit, reset:Unit->Unit};
+
+newResetCounter =
+  lambda _:Unit. let x = ref 1 in
+    {get = lambda _:Unit. !x,
+     inc = lambda _:Unit. x := succ(!x),
+     reset = lambda _:Unit. x := 1};
+
+? newResetCounter : Unit -> ResetCounter
+\end{lstlisting}
+
+\texttt{ResetCounter} 包含 \texttt{Counter} 的全部字段，并多出一个字段，
+所以记录子类型规则给出
+\(\mathit{ResetCounter}\subtype\mathit{Counter}\)。因此，接受普通计数器
+的 \texttt{inc3} 也能安全地用于可重置计数器：
+
+\begin{lstlisting}
+rc = newResetCounter unit;  ? rc : ResetCounter
+(inc3 rc; rc.reset unit; inc3 rc; rc.get unit);  ? 4 : Nat
+\end{lstlisting}
+
+\section{组合实例变量}
+\label{sec:18.5}
+
+迄今为止，对象状态只包含一个引用单元。更实际的对象通常有多个实例变量。
+后文需要把这些变量作为整体传递，因此把计数器的内部表示改成“引用单元组成的
+记录”，方法体通过投影字段访问实例变量：
+
+\begin{lstlisting}
+c = let r = {x=ref 1} in
+      {get = lambda _:Unit. !(r.x),
+       inc = lambda _:Unit. r.x := succ(!(r.x))};
+
+? c : Counter
+\end{lstlisting}
+
+这条实例变量记录的类型称为对象的\termfirst{表示类型}{representation type}：
+
+\begin{lstlisting}
+CounterRep = {x:Ref Nat};
+\end{lstlisting}
+
+\section{简单的类}
+\label{sec:18.6}
+
+\texttt{newCounter} 与 \texttt{newResetCounter} 除了后者多出
+\texttt{reset} 方法外，定义完全相同。这两个例子很短，重复并不严重；但真实
+程序中的定义可能延续许多页，最好把共同功能只写一次。大多数面向对象语言
+用类来实现这种复用。
+
+现实语言的类机制往往十分复杂，包含 \texttt{self}、\texttt{super}、可见性
+注解、静态字段与方法、内部类、友元类、\texttt{final}、
+\texttt{Serializable} 等许多特性。\footnote{多数语言之所以把大量机制都
+塞进类，是因为类往往是唯一的大规模程序结构组织手段。广泛使用的语言中，
+只有 OCaml 同时提供类和成熟的模块系统。因此，在许多语言中，凡是与大型程序
+结构有关的特性，最终都容易集中到类机制里。}本章忽略其中大部分，只讨论类最基本的
+两方面：通过继承复用代码，以及 \texttt{self} 的迟绑定。先从继承开始。
+
+最原始的类，就是保存一组方法的数据结构；它既可以实例化成新对象，也可以
+扩展成另一个类。
+
+为什么不能直接复用某个计数器对象的方法来构造可重置计数器？因为某个具体
+对象的方法体引用着该对象特定的实例变量记录。若想让同一段代码配合另一条实例
+变量记录使用，就必须把方法对实例变量抽象出来。于是，前面的
+\texttt{newCounter} 可以拆成两部分。第一部分以任意实例变量记录为参数，
+定义方法体：
+
+\begin{lstlisting}
+counterClass =
+  lambda r:CounterRep.
+    {get = lambda _:Unit. !(r.x),
+     inc = lambda _:Unit. r.x := succ(!(r.x))};
+
+? counterClass : CounterRep -> Counter
+\end{lstlisting}
+
+第二部分分配实例变量记录，并把它交给方法体，构造对象：
+
+\begin{lstlisting}
+newCounter =
+  lambda _:Unit. let r = {x=ref 1} in counterClass r;
+
+? newCounter : Unit -> Counter
+\end{lstlisting}
+
+\texttt{counterClass} 中的方法体可以复用于新类，也就是子类。例如，可重置
+计数器类定义为：
+
+\begin{lstlisting}
+resetCounterClass =
+  lambda r:CounterRep.
+    let super = counterClass r in
+      {get = super.get,
+       inc = super.inc,
+       reset = lambda _:Unit. r.x := 1};
+
+? resetCounterClass : CounterRep -> ResetCounter
+\end{lstlisting}
+
+与 \texttt{counterClass} 相同，该函数接受实例变量记录并返回对象。它先用
+同一条实例变量记录 \texttt{r} 调用 \texttt{counterClass}，得到的“父对象”
+绑定为 \texttt{super}；随后复制 \texttt{super} 的 \texttt{get} 与
+\texttt{inc} 字段，并为 \texttt{reset} 提供新函数，构造新的对象。由于
+\texttt{super} 也是基于 \texttt{r} 构造的，三个方法共享同一组实例变量。
+
+创建可重置计数器时，再次分配实例变量，并调用下面这个实际完成构造工作的类
+生成器：
+
+\begin{lstlisting}
+newResetCounter =
+  lambda _:Unit. let r = {x=ref 1} in resetCounterClass r;
+
+? newResetCounter : Unit -> ResetCounter
+\end{lstlisting}
+
+\begin{exercise}[推荐，\(\star\star\)]
+\label{ex:18.6.1}
+编写 \texttt{resetCounterClass} 的子类，新增方法 \texttt{dec}，把计数器
+当前保存的值减一。使用 \texttt{fullref} 检查器测试这个类。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:18.6.1}{18.6.1}
+
+\begin{exercise}[\(\star\star\), \(\nrightarrow\)]
+\label{ex:18.6.2}
+在子类方法记录中显式复制超类的大多数字段，记法显得笨重。它虽不必重新写出
+超类方法的代码，却仍要重复许多字段名。若用这种风格开发更大的面向对象程序，
+很快就会希望采用更紧凑的写法，例如
+\[
+  \mathit{super}\ \mathsf{with}\
+  \{\mathit{reset}=\lambda\_:\tapltype{Unit}.\,r.x:=1\}
+\]
+表示“一条与 \texttt{super} 相同、但新增或替换了 \texttt{reset} 字段的
+记录”。请为这种构造写出语法、操作语义和类型规则。
+\end{exercise}
+\taplsolutionlink{sol:translator:18.6.2}{18.6.2}
+
+这里要强调：这些类是值，不是类型。完全可以创建许多类，让它们生成类型完全
+相同的对象。在 C++、Java 等主流面向对象语言中，类的地位更复杂：既充当编译
+期类型，也充当运行期数据结构。\taplsecref{19.3}{sec:19.3}会进一步讨论。
+
+\section{增加实例变量}
+\label{sec:18.7}
+
+普通计数器与可重置计数器恰好使用相同的内部表示；一般而言，子类不仅要扩展
+超类的方法，也可能要扩展其实例变量。例如，可以定义“备份计数器”：它的
+\texttt{reset} 不恢复某个固定常量，而恢复到最近一次调用 \texttt{backup}
+时保存的状态。
+
+\begin{lstlisting}
+BackupCounter =
+  {get:Unit->Nat, inc:Unit->Unit,
+   reset:Unit->Unit, backup:Unit->Unit};
+
+BackupCounterRep = {x:Ref Nat, b:Ref Nat};
+\end{lstlisting}
+
+实现这种计数器需要额外的实例变量 \texttt{b} 保存备份值。与
+\texttt{resetCounterClass} 复制 \texttt{counterClass} 的
+\texttt{get}、\texttt{inc} 并添加 \texttt{reset} 相似，
+\texttt{backupCounterClass} 从 \texttt{resetCounterClass} 复制
+\texttt{get}、\texttt{inc}，并提供自己的 \texttt{reset} 与
+\texttt{backup}：
+
+\begin{lstlisting}
+backupCounterClass =
+  lambda r:BackupCounterRep.
+    let super = resetCounterClass r in
+      {get = super.get,
+       inc = super.inc,
+       reset = lambda _:Unit. r.x := !(r.b),
+       backup = lambda _:Unit. r.b := !(r.x)};
+
+? backupCounterClass : BackupCounterRep -> BackupCounter
+\end{lstlisting}
+
+这个定义有两点值得注意。第一，父对象 \texttt{super} 已经有
+\texttt{reset} 方法，但我们希望它表现不同，所以另写了一份新实现。新类
+\termfirst{覆盖}{override}了超类的 \texttt{reset} 方法。第二，在构造
+\texttt{super} 时，子类型化不可或缺：\texttt{resetCounterClass} 需要
+\texttt{CounterRep} 型参数，而实际参数 \texttt{r} 的类型是其子类型
+\texttt{BackupCounterRep}。也就是说，父对象实际收到的实例变量记录比它的
+方法所需的更大。
+
+\begin{exercise}[推荐，\(\star\star\)]
+\label{ex:18.7.1}
+为 \texttt{backupCounterClass} 定义一个子类，增加方法
+\texttt{reset2} 与 \texttt{backup2}，控制第二个备份槽。它应与
+\texttt{backupCounterClass} 引入的备份槽完全独立：\texttt{reset} 恢复
+最近一次 \texttt{backup} 保存的值，\texttt{reset2} 恢复最近一次
+\texttt{backup2} 保存的值。使用 \texttt{fullref} 测试这个类。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:18.7.1}{18.7.1}
+
+\section{调用超类方法}
+\label{sec:18.8}
+
+此前，变量 \texttt{super} 用于把超类的功能复制进子类。也可以在新方法体中
+调用 \texttt{super} 的方法，在超类行为上增加额外操作。例如，定义一种备份
+计数器，使每次调用 \texttt{inc} 前都自动调用 \texttt{backup}。这个类究竟
+有什么实际用途并不重要；它只是用于说明写法。
+
+\begin{lstlisting}
+funnyBackupCounterClass =
+  lambda r:BackupCounterRep.
+    let super = backupCounterClass r in
+      {get = super.get,
+       inc = lambda _:Unit.
+               (super.backup unit; super.inc unit),
+       reset = super.reset,
+       backup = super.backup};
+
+? funnyBackupCounterClass : BackupCounterRep -> BackupCounter
+\end{lstlisting}
+
+新的 \texttt{inc} 定义调用 \texttt{super.inc} 与
+\texttt{super.backup}，不必在这里重写超类两项方法的代码。示例较大时，
+这种方式可以显著减少重复实现。
+
+\section{带 \texttt{self} 的类}
+\label{sec:18.9}
+
+最后一项扩展允许类的方法通过 \texttt{self} 相互引用。考虑一种带
+\texttt{set} 方法的计数器，外部可以用它把当前计数设为任意自然数：
+
+\begin{lstlisting}
+SetCounter =
+  {get:Unit->Nat, set:Nat->Unit, inc:Unit->Unit};
+\end{lstlisting}
+
+假设还希望 \texttt{inc} 通过 \texttt{set} 和 \texttt{get} 实现，而
+不直接读取或修改实例变量 \texttt{x}。在较大的例子中，\texttt{set} 与
+\texttt{get} 的定义可能各占许多页。由于三项方法都在同一个类中，这相当于
+要求这些方法相互递归。
+
+\taplsecref{11.11}{sec:11.11}已经用 \texttt{fix} 构造过相互递归的函数
+记录。做法是把方法记录对另一个函数字段记录参数作抽象，把该参数称为
+\texttt{self}，再用 \texttt{fix}“打结”：正在构造的这条记录，正是随后
+作为 \texttt{self} 传入的记录。
+
+\begin{lstlisting}
+setCounterClass =
+  lambda r:CounterRep.
+    fix
+      (lambda self:SetCounter.
+        {get = lambda _:Unit. !(r.x),
+         set = lambda i:Nat. r.x := i,
+         inc = lambda _:Unit.
+                 self.set (succ (self.get unit))});
+
+? setCounterClass : CounterRep -> SetCounter
+\end{lstlisting}
+
+这个类没有父类，所以不需要 \texttt{super}。\texttt{inc} 方法体从
+\texttt{self} 方法记录中调用 \texttt{get}，再调用 \texttt{set}。
+\texttt{fix} 完全封装在 \texttt{setCounterClass} 内部；创建计数器时仍
+使用一贯的方式：
+
+\begin{lstlisting}
+newSetCounter =
+  lambda _:Unit. let r = {x=ref 1} in setCounterClass r;
+
+? newSetCounter : Unit -> SetCounter
+\end{lstlisting}
+
+\section{通过 \texttt{self} 实现开放递归}
+\label{sec:18.10}
+
+大多数面向对象语言支持更一般的方法间递归调用，称为
+\termfirst{开放递归}{open recursion}，也称 \texttt{self} 的迟绑定。
+要实现这种行为，先从类定义中移走 \texttt{fix}：
+
+\begin{lstlisting}
+setCounterClass =
+  lambda r:CounterRep.
+  lambda self:SetCounter.
+    {get = lambda _:Unit. !(r.x),
+     set = lambda i:Nat. r.x := i,
+     inc = lambda _:Unit.
+             self.set (succ(self.get unit))};
+
+? setCounterClass : CounterRep -> SetCounter -> SetCounter
+\end{lstlisting}
+
+再把 \texttt{fix} 放到对象创建函数中：
+
+\begin{lstlisting}
+newSetCounter =
+  lambda _:Unit. let r = {x=ref 1} in
+    fix (setCounterClass r);
+
+? newSetCounter : Unit -> SetCounter
+\end{lstlisting}
+
+移动 \texttt{fix} 会改变 \texttt{setCounterClass} 的类型：它不仅对实例
+变量记录作抽象，还对一个 \texttt{self} 对象作抽象；二者都在实例化时提供。
+
+开放递归的关键作用是：超类中的方法能够调用子类的方法，即使定义超类时子类
+还不存在。现在，\texttt{self} 指向创建当前对象时实际使用的那个类的方法，
+其范围不再限于当前类；创建对象时使用的类可能是当前类的某个子类。
+
+例如，构造一种计数器，记录 \texttt{set} 被调用的次数。接口多出一项读取
+调用次数的操作，表示中也增加一个实例变量：
+
+\begin{lstlisting}
+InstrCounter =
+  {get:Unit->Nat, set:Nat->Unit,
+   inc:Unit->Unit, accesses:Unit->Nat};
+
+InstrCounterRep = {x:Ref Nat, a:Ref Nat};
+\end{lstlisting}
+
+下面的插桩计数器类从 \texttt{setCounterClass} 复制 \texttt{inc} 和
+\texttt{get}；\texttt{accesses} 按通常方式定义；\texttt{set} 先把调用
+计数加一，再通过 \texttt{super} 调用超类的 \texttt{set}：
+
+\begin{lstlisting}
+instrCounterClass =
+  lambda r:InstrCounterRep.
+  lambda self:InstrCounter.
+    let super = setCounterClass r self in
+      {get = super.get,
+       set = lambda i:Nat.
+               (r.a := succ(!(r.a)); super.set i),
+       inc = super.inc,
+       accesses = lambda _:Unit. !(r.a)};
+
+? instrCounterClass :
+    InstrCounterRep -> InstrCounter -> InstrCounter
+\end{lstlisting}
+
+由于 \texttt{self} 采用开放递归，\texttt{inc} 方法体中对 \texttt{set}
+的调用最终会执行子类重新定义的 \texttt{set}，从而递增实例变量
+\texttt{a}。虽然 \texttt{inc} 定义在超类中，而“递增调用次数”的行为定义
+在子类中，这种动态联系仍然成立。
+
+\section{开放递归与求值次序}
+\label{sec:18.11}
+
+上述 \texttt{instrCounterClass} 有一个问题：无法用它创建实例。若按通常方式
+定义
+
+\begin{lstlisting}
+newInstrCounter =
+  lambda _:Unit. let r = {x=ref 1, a=ref 0} in
+    fix (instrCounterClass r);
+
+? newInstrCounter : Unit -> InstrCounter
+\end{lstlisting}
+
+再计算 \texttt{newInstrCounter unit}，求值器会发散。下面逐步说明原因。用
+\(\langle\mathit{ivars}\rangle\) 表示分配完成的实例变量记录，用
+\(\langle f\rangle\) 表示等待 \texttt{self} 的函数，用
+\(\langle\mathit{imethods}\rangle\) 与
+\(\langle\mathit{smethods}\rangle\) 分别表示两类方法记录。
+
+\begin{enumerate}
+\item 把 \texttt{newInstrCounter} 应用于 \texttt{unit}，得到
+\[
+\mathsf{let} r=\{x=\mathsf{ref} 1,a=\mathsf{ref} 0\}\
+\mathsf{in}\ \mathsf{fix}\,(\mathit{instrCounterClass}\ r)
+\]
+
+\item 分配两个引用单元，组成
+\(\langle\mathit{ivars}\rangle\)，并在余下项中用它替换 \(r\)：
+\[
+\mathsf{fix}\,(\mathit{instrCounterClass}\,
+  \langle\mathit{ivars}\rangle)
+\]
+
+\item 把 \(\langle\mathit{ivars}\rangle\) 传给
+\texttt{instrCounterClass}。由于该类以两个 lambda 抽象开头，立即得到一个
+等待 \texttt{self} 的函数：
+\[
+\mathsf{fix}\,(\lambda self:\mathit{InstrCounter}.\,
+  \mathsf{let}\ super=
+    \mathit{setCounterClass}\,\langle\mathit{ivars}\rangle\,self\
+  \mathsf{in}\ \langle\mathit{imethods}\rangle)
+\]
+把括号中的函数记作 \(\langle f\rangle\)，当前项便是
+\(\mathsf{fix}\,\langle f\rangle\)。
+
+\item 按照规则 \textsc{E-FixBeta} 展开
+\(\mathsf{fix}\,\langle f\rangle\)，也就是在
+\(\langle f\rangle\) 的函数体中，用
+\(\mathsf{fix}\,\langle f\rangle\) 替换 \texttt{self}：
+\[
+\mathsf{let}\ super=
+  \mathit{setCounterClass}\,\langle\mathit{ivars}\rangle\,
+    (\mathsf{fix}\,\langle f\rangle)\
+\mathsf{in}\ \langle\mathit{imethods}\rangle
+\]
+
+\item 先把 \texttt{setCounterClass} 应用于实例变量记录，得到
+\[
+\mathsf{let}\ super=
+  (\lambda self:\mathit{SetCounter}.\,
+    \langle\mathit{smethods}\rangle)
+  (\mathsf{fix}\,\langle f\rangle)
+\mathsf{in}\ \langle\mathit{imethods}\rangle
+\]
+
+\item 按值调用要求先把实参
+\(\mathsf{fix}\,\langle f\rangle\) 求值为值，才能执行外层 beta 归约。
+于是下一步只能再次展开 \texttt{fix}，得到一个更深的同类表达式。
+
+\item 对内层的 \texttt{setCounterClass} 应用继续求值，又出现一项
+\((\lambda self.\langle\mathit{smethods}\rangle)
+  (\mathsf{fix}\,\langle f\rangle)\)。
+
+\item 新出现的应用仍须先把实参 \(\mathsf{fix}\,\langle f\rangle\)
+求值，于是再次展开 \texttt{fix}。相同结构会不断加深，外层应用永远无法执行。
+\end{enumerate}
+
+问题在于，传给 \texttt{fix} 的函数过早使用了自己的参数 \texttt{self}。
+\texttt{fix} 的操作语义预期：对 \(\lambda x.t\) 取不动点时，\(t\) 只在
+受保护的位置——例如内层 lambda 抽象的函数体——引用 \(x\)。\chapref{11}的
+\texttt{iseven} 把 \texttt{fix} 用于形如
+\(\lambda ie.\lambda x.\ldots\) 的函数，递归引用 \(ie\) 受内层抽象
+\(\lambda x\) 保护。这里的 \texttt{instrCounterClass} 却在计算
+\texttt{super} 时立刻使用 \texttt{self}。
+
+有三种处理方向。
+
+\begin{enumerate}
+\item 在 \texttt{instrCounterClass} 中用无关紧要的 lambda 抽象保护
+  \texttt{self}，避免它过早求值。下面将发展这种方案。它并不完全令人满意，
+  但只用已有机制即可描述和理解；\chapref{32}讨论纯函数式对象编码时还会用到。
+\item 改用其他底层机制模拟类。例如，不用 \texttt{fix} 构造方法表，而用
+  引用单元显式地把递归联系“接起来”。\taplsecref{18.12}{sec:18.12}将发展
+  这个想法，\chapref{27}还会进一步改进。
+\item 不再把对象和类编码成 lambda 抽象、记录与 \texttt{fix}，而把它们
+  当作语言的基本构造，直接规定求值规则与类型规则。这样便可以选择符合预期的
+  对象和类语义，而不必绕过既有应用与 \texttt{fix} 规则的限制。\chapref{19}
+  将采用这种方法。
+\end{enumerate}
+
+用无关紧要的 lambda 抽象控制求值次序，是函数式程序设计中常用的技巧。任意
+表达式 \(t\) 都可以变成函数
+\(\lambda\_:\tapltype{Unit}.t\)，也就是延迟计算封装。这个函数在句法上
+已经是值；求值 \(t\) 所需的计算都会推迟到该函数应用于 \texttt{unit} 时。
+于是，程序可以先以未求值形式传递 \(t\)，以后再请求它的结果。
+
+当前需要推迟的是 \texttt{self} 的求值。把它的类型从对象（例如
+\texttt{SetCounter}）改为对象的延迟计算封装
+\texttt{Unit->SetCounter} 即可。具体需要三处修改：改变类的
+\texttt{self} 参数类型；在构造结果对象前增加一层无关紧要的抽象；把方法体
+中每个 \texttt{self} 改成 \texttt{self unit}。
+
+\begin{lstlisting}
+setCounterClass =
+  lambda r:CounterRep.
+  lambda self:Unit->SetCounter.
+  lambda _:Unit.
+    {get = lambda _:Unit. !(r.x),
+     set = lambda i:Nat. r.x := i,
+     inc = lambda _:Unit.
+             (self unit).set
+               (succ((self unit).get unit))};
+
+? setCounterClass :
+    CounterRep -> (Unit->SetCounter) -> Unit -> SetCounter
+\end{lstlisting}
+
+我们不希望 \texttt{newSetCounter} 的类型改变，它仍应返回对象。因此，取
+\texttt{setCounterClass} 的不动点后，还要把所得延迟计算封装应用于
+\texttt{unit}：
+
+\begin{lstlisting}
+newSetCounter =
+  lambda _:Unit. let r = {x=ref 1} in
+    fix (setCounterClass r) unit;
+
+? newSetCounter : Unit -> SetCounter
+\end{lstlisting}
+
+\texttt{instrCounterClass} 也作对应修改。改变 \texttt{self} 的类型后，其余
+改动都由类型规则直接决定：
+
+\begin{lstlisting}
+instrCounterClass =
+  lambda r:InstrCounterRep.
+  lambda self:Unit->InstrCounter.
+  lambda _:Unit.
+    let super = setCounterClass r self unit in
+      {get = super.get,
+       set = lambda i:Nat.
+               (r.a := succ(!(r.a)); super.set i),
+       inc = super.inc,
+       accesses = lambda _:Unit. !(r.a)};
+
+? instrCounterClass : InstrCounterRep ->
+    (Unit->InstrCounter) -> Unit -> InstrCounter
+\end{lstlisting}
+
+最后，\texttt{newInstrCounter} 也把无关紧要的实参交给 \texttt{fix}
+构造出的延迟计算封装：
+
+\begin{lstlisting}
+newInstrCounter =
+  lambda _:Unit. let r = {x=ref 1, a=ref 0} in
+    fix (instrCounterClass r) unit;
+
+? newInstrCounter : Unit -> InstrCounter
+
+ic = newInstrCounter unit;  ? ic : InstrCounter
+\end{lstlisting}
+
+加入延迟计算封装前，创建 \texttt{ic} 的这一步会发散。现在可以实际使用对象，
+以下测试表明 \texttt{accesses} 会按预期统计 \texttt{set} 与
+\texttt{inc} 的调用：
+
+\begin{lstlisting}
+(ic.set 5; ic.accesses unit);  ? 1 : Nat
+(ic.inc unit; ic.get unit);    ? 6 : Nat
+ic.accesses unit;              ? 2 : Nat
+\end{lstlisting}
+
+\begin{exercise}[推荐，\(\star\star\star\)]
+\label{ex:18.11.1}
+使用 \texttt{fullref} 检查器实现下列扩展：
+\begin{enumerate}
+\item 重写 \texttt{instrCounterClass}，使它也统计 \texttt{get} 的调用；
+\item 在修改后的 \texttt{instrCounterClass} 上定义子类，加入
+  \taplsecref{18.4}{sec:18.4}中的 \texttt{reset} 方法；
+\item 再定义一个子类，加入\taplsecref{18.7}{sec:18.7}中的备份功能。
+\end{enumerate}
+\end{exercise}
+\taplauthorsolutionlink{sol:author:18.11.1}{18.11.1}
+
+\section{更高效的实现}
+\label{sec:18.12}
+
+前面的测试表明，这种类实现确实具有 Smalltalk、C++、Java 等语言中通过
+\texttt{self} 进行开放递归的方法调用行为。不过，从效率看，这个实现并不
+理想。为使 \texttt{fix} 收敛而加入的延迟计算封装，会推迟类方法表的构造。
+特别是，方法体中每次调用 \texttt{self} 都变成 \texttt{self unit}；也就
+是说，每次递归调用另一个方法时，都会重新计算 \texttt{self} 的方法！
+
+可以不用不动点，而用引用单元在创建对象时把类层次中的递归联系“接起来”，
+从而避免重复计算。\footnote{这种做法与\cref{ex:13.5.8}的解答本质相同。
+James Riely 指出，可以利用 \texttt{Source} 类型的协变性，把它用于类构造。}
+类不再对一条以后用 \texttt{fix} 构造的方法记录
+\texttt{self} 作抽象，而是对“指向方法记录的引用”作抽象，并先分配这条记录。
+具体说，实例化类时先为方法分配一个堆单元，以占位值初始化；然后构造真正的
+方法，并把指向该堆单元的指针交给它们，以便递归调用；最后回填堆单元，使它
+保存真正的方法。下面再次给出 \texttt{setCounterClass}：
+
+\begin{lstlisting}
+setCounterClass =
+  lambda r:CounterRep. lambda self:Ref SetCounter.
+    {get = lambda _:Unit. !(r.x),
+     set = lambda i:Nat. r.x := i,
+     inc = lambda _:Unit.
+             (!self).set (succ ((!self).get unit))};
+
+? setCounterClass : CounterRep -> Ref SetCounter -> SetCounter
+\end{lstlisting}
+
+\texttt{self} 指向保存当前对象方法的单元。调用 \texttt{setCounterClass}
+时，该单元先装入占位值：
+
+\begin{lstlisting}
+dummySetCounter =
+  {get = lambda _:Unit. 0,
+   set = lambda i:Nat. unit,
+   inc = lambda _:Unit. unit};
+
+? dummySetCounter : SetCounter
+
+newSetCounter =
+  lambda _:Unit.
+    let r = {x=ref 1} in
+    let cAux = ref dummySetCounter in
+      (cAux := (setCounterClass r cAux); !cAux);
+
+? newSetCounter : Unit -> SetCounter
+\end{lstlisting}
+
+方法体中的所有 \texttt{!self} 都受 lambda 抽象保护，因此在
+\texttt{newSetCounter} 回填 \texttt{cAux} 之前，程序不会实际解引用它。
+
+为了支持 \texttt{setCounterClass} 的子类，还需细化 \texttt{self} 的类型。
+每个类原先要求 \texttt{self} 与它构造的方法记录同型。因此，插桩计数器子类
+的 \texttt{self} 是指向 \texttt{InstrCounter} 方法记录的指针。然而，
+\taplsecref{15.5}{sec:15.5}已经看到，\texttt{Ref SetCounter} 与
+\texttt{Ref InstrCounter} 不可比较；把后者提升为前者并不安全。于是，在
+\texttt{instrCounterClass} 中构造 \texttt{super} 时会发生参数类型不匹配。
+
+解决办法是把 \texttt{self} 类型中的 \texttt{Ref} 换成
+\texttt{Source}：只把读取方法指针的能力交给类，不交出它并不需要的写入能力。
+\texttt{Source} 允许协变子类型化，所以
+\[
+\mathit{Source}\ \mathit{InstrCounter}
+  \subtype
+\mathit{Source}\ \mathit{SetCounter}
+\]
+构造 \texttt{super} 便能通过类型检查。
+
+\begin{lstlisting}
+setCounterClass =
+  lambda r:CounterRep. lambda self:Source SetCounter.
+    {get = lambda _:Unit. !(r.x),
+     set = lambda i:Nat. r.x := i,
+     inc = lambda _:Unit.
+             (!self).set (succ ((!self).get unit))};
+
+instrCounterClass =
+  lambda r:InstrCounterRep.
+  lambda self:Source InstrCounter.
+    let super = setCounterClass r self in
+      {get = super.get,
+       set = lambda i:Nat.
+               (r.a := succ(!(r.a)); super.set i),
+       inc = super.inc,
+       accesses = lambda _:Unit. !(r.a)};
+
+? instrCounterClass : InstrCounterRep ->
+    Source InstrCounter -> InstrCounter
+\end{lstlisting}
+
+创建插桩计数器时，先定义一组占位方法作为 \texttt{self} 指针的初值，再分配
+实例变量和方法的堆空间，调用类构造真正的方法，最后回填引用单元：
+
+\begin{lstlisting}
+dummyInstrCounter =
+  {get = lambda _:Unit. 0,
+   set = lambda i:Nat. unit,
+   inc = lambda _:Unit. unit,
+   accesses = lambda _:Unit. 0};
+
+newInstrCounter =
+  lambda _:Unit.
+    let r = {x=ref 1, a=ref 0} in
+    let cAux = ref dummyInstrCounter in
+      (cAux := (instrCounterClass r cAux); !cAux);
+
+? newInstrCounter : Unit -> InstrCounter
+\end{lstlisting}
+
+现在，\texttt{instrCounterClass} 与 \texttt{setCounterClass} 中构造方法表
+的代码，每创建一个对象只执行一次，而不再每次调用方法都执行。不过，同一类
+产生的每个对象所构造的方法表完全相同，理想情况下似乎只应在定义类时计算一次。
+\chapref{27}将借助\chapref{26}引入的有界量化实现这一优化。
+
+\section{小结}
+\label{sec:18.13}
+
+回到本章开头列出的面向对象程序设计特性，看看它们如何体现在本章示例中。
+
+\begin{enumerate}
+\item \textbf{多种表示。}本章所有对象都是计数器，也就是都能作为
+  \texttt{Counter} 使用；它们的内部表示却差别很大，从
+  \taplsecref{18.2}{sec:18.2}中的单个引用单元，到
+  \taplsecref{18.9}{sec:18.9}中包含多个引用的记录。每个对象都是函数记录，
+  提供适合其内部表示的 \texttt{Counter} 方法实现，或更多方法。
+
+\item \textbf{封装。}构造对象时，把实例变量记录交给用于构造方法的函数。
+  因此，实例变量只能在方法内部被命名，程序其余部分无法直接访问。
+
+\item \textbf{子类型化。}在本章模型中，对象类型之间的子类型化，就是普通的
+  函数字段记录类型之间的子类型化。
+
+\item \textbf{继承。}继承通过把已有超类的方法实现复制到新子类来模拟。
+  严格说来，超类和子类都是“从实例变量到方法记录”的函数。子类先等待自己的
+  实例变量，再用这些变量实例化超类，得到一条操作同一组变量的超类方法记录。
+
+\item \textbf{开放递归。}现实语言中由 \texttt{self} 或 \texttt{this}
+  提供的开放递归，在这里通过另一项类参数 \texttt{self} 模拟。方法可以借它
+  引用同一对象的其他方法。创建对象时再用 \texttt{fix} 或可回填的引用单元
+  把这项参数与最终的方法记录连接起来。
+\end{enumerate}
+
+\begin{exercise}[\(\star\star\star\)]
+\label{ex:18.13.1}
+对象还有一项在某些场合很有用的特性：\termfirst{对象身份}{object identity}。
+设想一种 \texttt{sameObject} 操作：若两个参数求值为同一个对象，返回
+\texttt{true}；若它们由不同时间的两次对象生成器调用创建，则返回
+\texttt{false}。应怎样扩展本章的对象模型来支持对象身份？
+\end{exercise}
+\taplauthorsolutionlink{sol:author:18.13.1}{18.13.1}
+
+\section{注记}
+\label{sec:18.14}
+
+对象编码一直是程序语言研究中产生示例与问题的重要来源。Reynolds（1978）
+很早就给出过一种编码；Cardelli（1984）的文章引发了该领域的广泛兴趣。
+Cook（1989）、Cook 与 Palsberg（1989）、Kamin（1988）和 Reddy（1988）
+发展了用不动点理解 \texttt{self} 的方法；Kamin 与 Reddy（1994）以及
+Bruce（1991）研究了这些模型之间的关系。
+
+Gunter 与 Mitchell（1994）收录了该领域若干重要的早期论文。Bruce、
+Cardelli 与 Pierce（1999）以及 Abadi 与 Cardelli（1996）综述了后续发展；
+Bruce（2002）给出了当时最新的进展。Palsberg 与 Schwartzbach（1994）以及
+Castagna（1997）提出了对象及其类型系统的其他基础方法。\chapref{32}末尾还会
+给出更多历史注记。
+
+\begin{flushright}
+\begin{minipage}{0.63\linewidth}
+\tapltranslateditalic{继承的重要性被大大高估了。}
+
+\small\itshape Inheritance is highly overrated.
+
+\raggedleft
+——Grady Booch
+\end{minipage}
+\end{flushright}

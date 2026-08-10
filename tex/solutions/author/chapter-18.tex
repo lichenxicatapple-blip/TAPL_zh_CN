@@ -1,0 +1,161 @@
+\newpage
+\section{第18章：案例研究——命令式对象}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:18.6.1}
+\textbf{18.6.1 解答}
+
+\begin{lstlisting}
+DecCounter =
+  {get:Unit->Nat, inc:Unit->Unit, reset:Unit->Unit,
+   dec:Unit->Unit};
+
+decCounterClass =
+  lambda r:CounterRep.
+    let super = resetCounterClass r in
+      {get = super.get,
+       inc = super.inc,
+       reset = super.reset,
+       dec = lambda _:Unit. r.x := pred(!(r.x))};
+\end{lstlisting}
+
+\taplsolutionbacklink{ex:18.6.1}{返回练习18.6.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:18.7.1}
+\textbf{18.7.1 解答}
+
+\begin{lstlisting}
+BackupCounter2 =
+  {get:Unit->Nat, inc:Unit->Unit,
+   reset:Unit->Unit, backup:Unit->Unit,
+   reset2:Unit->Unit, backup2:Unit->Unit};
+
+BackupCounterRep2 = {x:Ref Nat, b:Ref Nat, b2:Ref Nat};
+
+backupCounterClass2 =
+  lambda r:BackupCounterRep2.
+    let super = backupCounterClass r in
+      {get = super.get,
+       inc = super.inc,
+       reset = super.reset,
+       backup = super.backup,
+       reset2 = lambda _:Unit. r.x := !(r.b2),
+       backup2 = lambda _:Unit. r.b2 := !(r.x)};
+\end{lstlisting}
+
+\taplsolutionbacklink{ex:18.7.1}{返回练习18.7.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:18.11.1}
+\textbf{18.11.1 解答}
+
+先让 \texttt{get} 和 \texttt{set} 都递增访问计数：
+
+\begin{lstlisting}
+instrCounterClass =
+  lambda r:InstrCounterRep.
+  lambda self:Unit->InstrCounter.
+  lambda _:Unit.
+    let super = setCounterClass r self unit in
+      {get = lambda _:Unit.
+               (r.a := succ(!(r.a)); super.get unit),
+       set = lambda i:Nat.
+               (r.a := succ(!(r.a)); super.set i),
+       inc = super.inc,
+       accesses = lambda _:Unit. !(r.a)};
+\end{lstlisting}
+
+加入 \texttt{reset} 的子类如下：
+
+\begin{lstlisting}
+ResetInstrCounter =
+  {get:Unit->Nat, set:Nat->Unit, inc:Unit->Unit,
+   accesses:Unit->Nat, reset:Unit->Unit};
+
+resetInstrCounterClass =
+  lambda r:InstrCounterRep.
+  lambda self:Unit->ResetInstrCounter.
+  lambda _:Unit.
+    let super = instrCounterClass r self unit in
+      {get = super.get,
+       set = super.set,
+       inc = super.inc,
+       accesses = super.accesses,
+       reset = lambda _:Unit. r.x := 0};
+\end{lstlisting}
+
+最后加入备份功能，并给出对象生成器：
+
+\begin{lstlisting}
+BackupInstrCounter =
+  {get:Unit->Nat, set:Nat->Unit, inc:Unit->Unit,
+   accesses:Unit->Nat, backup:Unit->Unit, reset:Unit->Unit};
+
+BackupInstrCounterRep =
+  {x:Ref Nat, a:Ref Nat, b:Ref Nat};
+
+backupInstrCounterClass =
+  lambda r:BackupInstrCounterRep.
+  lambda self:Unit->BackupInstrCounter.
+  lambda _:Unit.
+    let super = resetInstrCounterClass r self unit in
+      {get = super.get,
+       set = super.set,
+       inc = super.inc,
+       accesses = super.accesses,
+       reset = lambda _:Unit. r.x := !(r.b),
+       backup = lambda _:Unit. r.b := !(r.x)};
+
+newBackupInstrCounter =
+  lambda _:Unit.
+    let r = {x=ref 1, a=ref 0, b=ref 0} in
+      fix (backupInstrCounterClass r) unit;
+\end{lstlisting}
+
+\taplsolutionbacklink{ex:18.11.1}{返回练习18.11.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:18.13.1}
+\textbf{18.13.1 解答}
+
+可以用引用单元检验对象身份。先在对象的内部表示中加入类型为
+\texttt{Ref (Ref Nat)} 的身份字段：
+
+\begin{lstlisting}
+IdCounterRep = {x:Ref Nat, id:Ref (Ref Nat)};
+
+IdCounter =
+  {get:Unit->Nat, inc:Unit->Unit, id:Unit->Ref Nat};
+
+idCounterClass =
+  lambda r:IdCounterRep.
+    {get = lambda _:Unit. !(r.x),
+     inc = lambda _:Unit. r.x := succ(!(r.x)),
+     id = lambda _:Unit. !(r.id)};
+\end{lstlisting}
+
+\texttt{id} 方法只返回身份字段中保存的引用。\texttt{sameObject} 接受两个
+具有 \texttt{id} 方法的对象，并检查它们返回的引用是否相同：
+
+\begin{lstlisting}
+sameObject =
+  lambda a:{id:Unit->Ref Nat}.
+  lambda b:{id:Unit->Ref Nat}.
+    ((b.id unit) := 1;
+     (a.id unit) := 0;
+     iszero (!(b.id unit)));
+\end{lstlisting}
+
+这里利用别名来检验两条引用是否指向同一单元：先确保第二条引用保存非零值，
+再向第一条写入零，最后检查第二条是否也变成零。
+
+\taplsolutionbacklink{ex:18.13.1}{返回练习18.13.1}
+\end{taplauthorsolutionentrybox}
