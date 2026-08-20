@@ -36,5 +36,12 @@ check_project fullerror fullerror/fullerror
 check_project fullsub fullsub/fullsub
 check_project bot bot/bot
 check_project rcdsubbot rcdsubbot/rcdsubbot
+check_project recon recon
+check_project reconbase reconbase
+check_project fullrecon fullrecon
+check_project fullpoly fullpoly
+check_project fullfsub fullfsub
+check_project fullfomsub fullfomsub
+check_project purefsub purefsub
 
 printf '\nAll official OCaml projects compiled and ran their bundled tests.\n'
