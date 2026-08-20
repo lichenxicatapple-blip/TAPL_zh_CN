@@ -62,7 +62,7 @@ hd (tl (tl l));       $\blacktriangleright$ 1 : Nat
 \label{sol:author:20.1.2}
 \textbf{20.1.2 解答}
 
-\begin{lstlisting}
+\begin{lstlisting}[mathescape=true]
 fib = fix (lambda f:Nat->Nat->Stream.
         lambda m:Nat. lambda n:Nat. lambda _:Unit.
           {n, f n (plus m n)}) 0 1;

@@ -250,8 +250,10 @@ T(2)=T(1,1)=T(1,2)=\tapltype{Top}.
 \[
 T ::= \tapltype{Top}\mid T\times T\mid T\to T.
 \]
-形式上，\(\mathcal T_f\) 是该文法描述的生成函数的最小不动点。若把同一
-生成函数取最大不动点，就得到全部树类型 \(\mathcal T\)。
+形式上，\(\mathcal T_f\) 是该文法所描述生成函数的最小不动点。该生成函数以
+所有由 \(\tapltype{Top}\)、\(\to\) 和 \(\times\) 标记的有限树和无限树为全集；
+换言之，在\cref{def:21.2.1}中删去最后两项条件，就得到这个全集。同一生成函数
+取最大不动点，便得到全部树类型 \(\mathcal T\)。
 
 \begin{exercise}[推荐，\(\star\star\)]
 \label{ex:21.2.2}
