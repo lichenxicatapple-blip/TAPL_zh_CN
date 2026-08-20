@@ -74,12 +74,13 @@ NatList = <nil:Unit, cons:{Nat,NatList}>;
 \begin{lstlisting}[mathescape=true]
 NatList = $\mu$X. <nil:Unit, cons:{Nat,X}>;
 \end{lstlisting}
-直观地说，这一定义把 \texttt{NatList} 指定为满足
+直观地说，令 \(T\) 表示上面定义的整个递归类型。这个类型展开一层后仍会在
+\texttt{cons} 分支中包含自身，因而满足
 \[
-X=\langle\mathsf{nil}:\tapltype{Unit},
-          \mathsf{cons}:\{\tapltype{Nat},X\}\rangle
+T=\langle\mathsf{nil}:\tapltype{Unit},
+          \mathsf{cons}:\{\tapltype{Nat},T\}\rangle
 \]
-的无限类型。
+而 \texttt{NatList} 正是这个无限类型的名称。
 
 \taplsecref{20.2}{sec:20.2}将看到，递归类型有两种略有差异的形式化方式，即
 等递归表示和同构递归表示。二者的差别在于，程序员需要用
