@@ -163,17 +163,45 @@ $\blacktriangleright$ 10 : Nat
 
 \subsection*{永远“吃不饱”的函数}
 
-下面这个例子稍微微妙一些。类型 \texttt{Hungry} 的值可以不断接受自然数参数；
-每接受一个参数，仍返回一个等待更多参数的函数：
+下面这个例子展示递归类型一种稍微微妙的用法。先定义：
 \begin{lstlisting}[mathescape=true]
 Hungry = $\mu$A. Nat->A;
-
+\end{lstlisting}
+将这个递归类型展开一层，可得
+\[
+\texttt{Hungry}=\tapltype{Nat}\to\texttt{Hungry}
+\]
+因此，\texttt{Hungry} 类型的值可以看作一个函数：它每接受一个自然数，返回的
+仍是 \texttt{Hungry} 类型的函数，可以继续接受更多自然数。这样的值可以用
+\texttt{fix} 构造：
+\begin{lstlisting}[mathescape=true]
 f = fix (lambda f:Nat->Hungry. lambda n:Nat. f);
 $\blacktriangleright$ f : Hungry
+\end{lstlisting}
 
+连续传入任意多个自然数，得到的仍是一个 \texttt{Hungry} 类型的函数：
+\begin{lstlisting}[mathescape=true]
 f 0 1 2 3 4 5;
 $\blacktriangleright$ <fun> : Hungry
 \end{lstlisting}
+
+\translatornote{把 \texttt{fix} 中作为递归参数的 \texttt{f} 临时改名为
+\texttt{self}，并令
+\[
+G=\lambda\texttt{self}:\tapltype{Nat}\to\texttt{Hungry}.\,
+  \lambda n:\tapltype{Nat}.\,\texttt{self}
+\]
+则上面的 \texttt{f} 就是 \(\operatorname{fix}\,G\)。根据 \texttt{fix} 的
+求值规则，
+\[
+\operatorname{fix}\,G
+\longrightarrow G\,(\operatorname{fix}\,G)
+\longrightarrow \lambda n:\tapltype{Nat}.\,\operatorname{fix}\,G
+\]
+所以每次把一个自然数传给 \texttt{f}，结果仍是 \texttt{f}。函数应用按左结合
+解析，因而 \texttt{f 0 1 2} 会依次回到 \texttt{f}。传入有限多个参数后，
+求值会结束并得到函数值；这里并没有发生无限求值。这个简单例子展示了递归类型
+也能形成无限展开的函数类型，并为下一小节的流类型作铺垫。}
 
 \subsection*{流}
 
