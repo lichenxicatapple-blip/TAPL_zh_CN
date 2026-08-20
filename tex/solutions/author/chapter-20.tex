@@ -132,8 +132,9 @@ ifd fls one fls;        $\blacktriangleright$ <bool=false> as D : D
 \end{lstlisting}
 
 即使第二个条件表达式在原来的无类型对象语言中会被视为类型不一致，它仍能编码
-成 \(D\) 的值。这里构造的是表示无类型项的数据结构：对象语言是无类型演算，
-元语言则是带递归类型的简单类型 lambda 演算。能够在带类型的元语言中表示
+成 \(D\) 的值。这里构造的是表示无类型项的数据结构：对象语言（被表示的语言）
+是无类型演算，元语言（用来进行表示的语言）则是带递归类型的简单类型 lambda
+演算。能够在带类型的元语言中表示
 无类型对象语言，并不比用 ML 数据结构表示本书各章的带类型或无类型 lambda 项
 更令人意外。
 
@@ -158,16 +159,27 @@ prj = lambda f:D. lambda n:Nat. case f of
       | <fn=g>  ==> divergeD unit
       | <rcd=r> ==> r n;
 
+\end{lstlisting}
+
+\pagebreak[4]
+\begin{lstlisting}
 myrcd = rcd (lambda n:Nat.
           if iszero n then zro
           else if iszero (pred n) then one
           else divergeD unit);
 \end{lstlisting}
 
-\translatornote{原书的 \texttt{myrcd} 定义把第一处判断写成
-\texttt{iszero 0}，这会使判断恒为真，全部字段都返回 \texttt{zro}。结合下一
-分支对 \texttt{pred n} 的检查和本题要按字段编号选择值的目的，这里把它修正为
-\texttt{iszero n}。作者官方勘误未收录这一处。}
+\translatornote{\texttt{myrcd} 是对上述记录构造与字段投影编码的示例。记录
+在这里由一个 \(\tapltype{Nat}\to D\) 型查找函数表示：标签 0 映射到
+\texttt{zro}，标签 1 映射到 \texttt{one}，访问其他标签则通过
+\texttt{divergeD unit} 进入发散；外层的 \texttt{rcd} 再把这个函数封装成
+\(D\) 型记录。因此，\texttt{prj myrcd 0} 得到 \texttt{zro}，
+\texttt{prj myrcd 1} 得到 \texttt{one}。
+
+原书的 \texttt{myrcd} 定义把第一处判断写成 \texttt{iszero 0}，这会使判断
+恒为真，全部字段都返回 \texttt{zro}。结合下一分支对 \texttt{pred n} 的检查
+和本题要按字段编号选择值的目的，这里把它修正为 \texttt{iszero n}。作者官方
+勘误未收录这一处。}
 
 \taplsolutionbacklink{ex:20.1.5}{返回练习20.1.5}
 \end{taplauthorsolutionentrybox}
@@ -186,7 +198,88 @@ f = fix (lambda f:Nat->Hungry. lambda n:Nat.
 ff = fold [Hungry] f;
 ff1 = (unfold [Hungry] ff) 0;
 ff2 = (unfold [Hungry] ff1) 2;
+\end{lstlisting}
 
+\translatornote{这个例子集中展示了从等递归写法改成同构递归写法时，需要在
+哪些位置显式加入 \texttt{fold} 与 \texttt{unfold}。由
+\[
+\texttt{Hungry}=\mu A.\,\tapltype{Nat}\to A
+\]
+可知，\texttt{Hungry} 展开一层后的类型是
+\[
+U=\tapltype{Nat}\to\texttt{Hungry}
+\]
+等递归系统直接把 \(U\) 与 \texttt{Hungry} 视为相同类型，所以正文中的原版本
+可以在两者之间直接切换。同构递归系统把它们视为两个不同类型，程序必须显式
+使用以下两个操作在两者之间转换：
+\[
+\mathsf{fold}[\texttt{Hungry}]:U\to\texttt{Hungry}
+\qquad
+\mathsf{unfold}[\texttt{Hungry}]:\texttt{Hungry}\to U
+\]
+
+先看 \texttt{fix} 的参数。为避免与外层定义的 \texttt{f} 混淆，暂时把这个
+递归参数改名为 \texttt{self}，并把传给 \texttt{fix} 的生成器写成
+\[
+G=\lambda\texttt{self}:U.\,
+  \lambda n:\tapltype{Nat}.\,
+  \mathsf{fold}[\texttt{Hungry}]\,\texttt{self}
+\]
+其类型可以逐层读出：\texttt{self} 具有类型
+\(U=\tapltype{Nat}\to\texttt{Hungry}\)；
+\texttt{fold[Hungry] self} 因而具有类型 \texttt{Hungry}；所以
+\(\lambda n:\tapltype{Nat}.\,\mathsf{fold}[\texttt{Hungry}]\,
+\texttt{self}
+\) 具有类型
+\(\tapltype{Nat}\to\texttt{Hungry}=U\)。生成器 \(G\) 的输入与输出
+于是都是 \(U\)，即 \(G:U\to U\)，正好可以传给 \texttt{fix}，最终得到
+\(\operatorname{fix}\,G:U\)。
+
+函数体中的第一处 \texttt{fold} 不能省略。若仍像等递归版本那样直接返回
+\texttt{self}，内层抽象将具有类型
+\[
+\tapltype{Nat}\to U
+=\tapltype{Nat}\to(\tapltype{Nat}\to\texttt{Hungry})
+\]
+而需要的输出类型是
+\(U=\tapltype{Nat}\to\texttt{Hungry}\)。等递归系统会自动把其中的
+\(U\) 当作 \texttt{Hungry}；同构递归系统不会这样做。把
+\texttt{self} 写成 \texttt{fold[Hungry] self} 后，函数体才真正具有
+\texttt{Hungry} 类型，整个内层抽象才具有所需的类型 \(U\)。
+
+现在再逐行看后面的定义。\texttt{f = fix G} 的类型是 \(U\)，也就是
+\(\tapltype{Nat}\to\texttt{Hungry}\)，还不是 \texttt{Hungry}；因此需要
+\[
+\texttt{ff = fold[Hungry] f}
+\]
+把它转为 \texttt{Hungry}。同构递归系统也不会直接把 \texttt{ff} 当作函数，
+所以不能直接写 \texttt{ff 0}。必须先将它展开：
+\[
+\mathsf{unfold}[\texttt{Hungry}]\,\texttt{ff}:U
+=\tapltype{Nat}\to\texttt{Hungry}
+\]
+现在传入 \(0\)，所得 \texttt{ff1} 具有类型 \texttt{Hungry}。若还要传入
+下一个自然数，就必须再次展开 \texttt{ff1}；这正是
+\texttt{ff2 = (unfold[Hungry] ff1) 2} 的作用，所得 \texttt{ff2} 仍具有
+类型 \texttt{Hungry}。
+
+从求值过程也能看出它为何可以永远继续接收参数：
+\[
+\mathsf{unfold}[\texttt{Hungry}]\,\texttt{ff}
+\longrightarrow \texttt{f},
+\qquad
+\texttt{f}\;0
+\longrightarrow^{*}
+\mathsf{fold}[\texttt{Hungry}]\,\texttt{f}
+=\texttt{ff}
+\]
+传入一个自然数后，又得到同一个 \texttt{Hungry} 值；继续传入有限多个自然数，
+每一步都会重复这一过程。三类新增操作的职责由此分明：函数体中的
+\texttt{fold} 保证每次调用返回 \texttt{Hungry}，外层的 \texttt{fold} 把
+初始函数转成 \texttt{Hungry}，每次调用前的 \texttt{unfold} 则把它重新转成
+可以接收自然数的函数。}
+
+\begin{lstlisting}[mathescape=true]
 fixT = lambda f:T->T.
   (lambda x:($\mu$A.A->T).
      f ((unfold [$\mu$A.A->T] x) x))

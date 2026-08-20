@@ -192,16 +192,21 @@ G=\lambda\texttt{self}:\tapltype{Nat}\to\texttt{Hungry}.\,
   \lambda n:\tapltype{Nat}.\,\texttt{self}
 \]
 则上面的 \texttt{f} 就是 \(\operatorname{fix}\,G\)。根据 \texttt{fix} 的
-求值规则，
+求值规则 E-FixBeta，应当把 \(\operatorname{fix}\,G\) 直接替换到函数体中的
+\texttt{self}：
 \[
 \operatorname{fix}\,G
-\longrightarrow G\,(\operatorname{fix}\,G)
-\longrightarrow \lambda n:\tapltype{Nat}.\,\operatorname{fix}\,G
+\longrightarrow
+[\texttt{self}\mapsto\operatorname{fix}\,G]\,
+  (\lambda n:\tapltype{Nat}.\,\texttt{self})
+=\lambda n:\tapltype{Nat}.\,\operatorname{fix}\,G
 \]
-所以每次把一个自然数传给 \texttt{f}，结果仍是 \texttt{f}。函数应用按左结合
-解析，因而 \texttt{f 0 1 2} 会依次回到 \texttt{f}。传入有限多个参数后，
-求值会结束并得到函数值；这里并没有发生无限求值。这个简单例子展示了递归类型
-也能形成无限展开的函数类型，并为下一小节的流类型作铺垫。}
+因此，\(\operatorname{fix}\,G\) 求值为一个函数；这个函数接收自然数后，函数体
+又返回 \(\operatorname{fix}\,G\)，随后再次得到同样形式的函数值。函数应用按
+左结合解析，因而 \texttt{f 0 1 2} 会依次接收三个参数，每次都返回行为相同的
+函数。传入有限多个参数后，求值会结束并得到函数值；这里并没有发生无限求值。
+这个简单例子展示了递归类型也能形成无限展开的函数类型，并为下一小节的流类型
+作铺垫。}
 
 \subsection*{流}
 
@@ -220,6 +225,7 @@ $\blacktriangleright$ hd : Stream -> Nat
 tl = lambda s:Stream. (s unit).2;
 $\blacktriangleright$ tl : Stream -> Stream
 \end{lstlisting}
+\Needspace{8\baselineskip}
 构造流时仍使用 \texttt{fix}：
 \begin{lstlisting}[mathescape=true]
 upfrom0 =
@@ -234,6 +240,18 @@ hd (tl (tl (tl upfrom0)));
 $\blacktriangleright$ 3 : Nat
 \end{lstlisting}
 
+\translatornote{\texttt{lambda \_:Unit.} 把一个流节点的计算封装成等待调用的
+函数。这里的 \texttt{unit} 不携带数据；它只有一个可能的值，作用是通知流
+“现在展开一层”。例如，向 \texttt{upfrom0} 传入 \texttt{unit}，才会得到当前
+数字 \(0\) 和从 \(1\) 开始的后续流。
+
+这种封装对于本章采用的按值调用求值策略很重要。若直接把流写成递归二元组
+\(\mu A.\{\tapltype{Nat},A\}\)，为了构造当前二元组，求值器必须先求出第二
+分量；第二分量又会立即要求构造再下一个节点，计算将无限展开，连第一个节点也
+无法返回。加入 \texttt{Unit} 参数后，后续节点先成为一个 lambda 抽象，也就是
+一个已经完成求值的函数值；只有 \texttt{hd} 或 \texttt{tl} 以
+\texttt{s unit} 调用它时，下一层计算才会发生。}
+
 \begin{exercise}[推荐，\(\star\star\)]
 \label{ex:20.1.2}
 定义一个流，依次产生 Fibonacci 数列的元素
@@ -243,7 +261,8 @@ $\blacktriangleright$ 3 : Nat
 
 \phantomsection\label{exm:20.1-process}
 还可以把流推广成一种简单的\termfirst{进程}{process}：它接受一个数，再返回
-一个数和一个新进程。
+一个数和一个新进程。这里的“进程”泛指能够反复接收输入、产生输出并返回
+后继状态的计算对象，不特指操作系统管理的进程。
 \begin{lstlisting}[mathescape=true]
 Process = $\mu$A. Nat->{Nat,A};
 \end{lstlisting}
@@ -311,10 +330,12 @@ $\blacktriangleright$ 2 : Nat
 \end{exercise}
 \taplauthorsolutionlink{sol:author:20.1.3}{20.1.3}
 
+\Needspace{13\baselineskip}
 \subsection*{由递归类型构造递归值}
 
 递归类型还有一种更令人意外的用途，也最能显示它的表达能力：为不动点组合子
-给出良类型实现。对于任意类型 \(T\)，可以把 \(T\) 上函数的不动点组合子定义为
+给出良类型实现。对于任意类型 \(T\)，可以为输入类型和输出类型都是 \(T\) 的
+函数定义如下不动点组合子：
 \begin{lstlisting}[mathescape=true]
 fixT = lambda f:T->T.
          (lambda x:($\mu$A.A->T). f (x x))
@@ -324,8 +345,12 @@ $\blacktriangleright$ fixT : (T->T) -> T
 关键技巧是用递归类型为两处 \texttt{x x} 赋型。\taplnamedref{ex:9.3.2}{练习}
 已经指出，要给
 这一项赋型，\texttt{x} 必须具有箭头类型，而且其参数类型恰好就是
-\texttt{x} 自己的类型。有限类型不可能满足这个方程，无限类型
-\(\mu A.\,A\to T\) 却恰好可以。
+\texttt{x} 自己的类型。令 \(R=\mu A.\,A\to T\)，展开一层可得
+\(R=R\to T\)。因此，当 \(x:R\) 时，\texttt{x x} 左边的 \(x\) 可以
+作为 \(R\to T\) 型函数使用，右边的 \(x\) 则恰好可以作为它所需的
+\(R\) 型参数，于是 \texttt{x x} 具有类型 \(T\)。普通有限类型无法满足
+\(R=R\to T\)；递归类型 \(\mu A.\,A\to T\) 则用有限记法表示了这个
+无限展开的类型。
 
 \translatornote{作者勘误澄清：上面的项擦除类型后得到的是按名调用不动点
 组合子，而不是第 5 章给出的按值调用版本；按值版本还需要在自应用处加入额外的
@@ -340,10 +365,10 @@ $\blacktriangleright$ divergeT : Unit -> T
 \end{lstlisting}
 对每个类型都能构造这样的项，所以，与简单类型 lambda 演算
 \(\lambda_{\to}\) 不同，这个系统中的每个类型都有居留元。
-\footnote{这也意味着带递归类型的系统不适合作为逻辑。按照 Curry--Howard
-对应（见\taplsecref{9.4}{sec:9.4}），若把“类型 \(T\) 有居留元”理解为“命题
-\(T\) 可证”，那么每个类型都有居留元，就意味着每个命题都可证，因而该逻辑
-不一致。}
+\footnote{这一事实使带递归类型的系统无法用作有意义的逻辑系统。按照
+Curry--Howard 对应（见\taplsecref{9.4}{sec:9.4}），若把“类型 \(T\)
+有居留元”理解为“命题 \(T\) 可证”，那么每个类型都有居留元，就意味着每个
+命题都可证，因而这样的逻辑是不一致的。}
 
 \subsection*{再次考察无类型 lambda 演算}
 
@@ -360,14 +385,28 @@ D = $\mu$X. X->X;
 lam = lambda f:D->D. f as D;
 $\blacktriangleright$ lam : (D->D) -> D
 \end{lstlisting}
+\Needspace{7\baselineskip}
 要把一个 \(D\) 的元素应用于另一个，只需把前者的类型展开成函数类型，再应用
 于后者：
 \begin{lstlisting}[mathescape=true]
 ap = lambda f:D. lambda a:D. f a;
 $\blacktriangleright$ ap : D -> D -> D
 \end{lstlisting}
-设 \(M\) 是只含变量、抽象和应用的闭 lambda 项。可以用下面的统一方式构造
-表示 \(M\) 的 \(D\) 型元素，记作 \(M^*\)：
+\translatornote{下面将构造一种从纯无类型 lambda 演算到带递归类型语言的
+统一嵌入。直接目标是让任意无类型 lambda 项 \(M\) 经过翻译后都能通过目标
+语言的静态类型检查，即得到 \(\vdash M^*:D\)。无类型演算允许同一个项出现在
+函数位置和参数位置，甚至写成 \(x\,x\)；若原样放进普通简单类型系统，类型
+检查器无法为这类项赋型。为了统一处理所有情况，翻译规定每个源项及其子项都
+取得类型 \(D\)。这样一来，应用左边的 \(D\) 型项还必须能作为
+\(D\to D\) 型函数使用，而应用右边和应用结果仍须具有类型 \(D\)，所需的类型
+方程正是 \(D=D\to D\)。递归类型 \(D=\mu X.\,X\to X\) 满足这个方程；
+\texttt{lam} 负责把 \(D\to D\) 型抽象封装成 \(D\) 型项，\texttt{ap} 则把
+\(D\) 型项展开成函数后完成应用。因此，下述三条翻译规则产生的项都能通过
+类型检查。这个构造也表明递归类型足以表达无类型 lambda 演算的全部计算；由于
+所有源项最终都归入 \(D\)，它不会保留更精细的类型区别。}
+
+设 \(M\) 是只含变量、抽象和应用的闭 lambda 项。可以按照下面的规则，把
+\(M\) 翻译成一个类型为 \(D\) 的项，记作 \(M^*\)：
 \[
 \begin{aligned}
 x^* &= x\\
@@ -375,7 +414,7 @@ x^* &= x\\
 (M\,N)^* &= \mathit{ap}\,M^*\,N^*
 \end{aligned}
 \]
-例如，无类型不动点组合子可表示为 \(D\) 的元素：
+例如，无类型不动点组合子可翻译成如下 \(D\) 型项：
 \begin{lstlisting}[mathescape=true]
 fixD = lam (lambda f:D.
          ap (lam (lambda x:D. ap f (ap x x)))
@@ -458,7 +497,9 @@ D = $\mu$X. <nat:Nat, fn:X->X, rcd:Nat->X>;
 时，另一个类型的项也可以传入，其他场景同理。
 
 这种方法的优点是，声明式系统只需允许类型表达式表示无限的正则结构。只要已有
-定义、安全性定理和证明不依赖对类型表达式作归纳，它们都可以保持不变。实现却
+定义、安全性定理和证明不依赖对类型表达式作归纳，它们都可以保持不变（这里特指
+对类型表达式本身作结构归纳；对项、求值推导或类型推导等有限对象的归纳仍可照常
+使用）。实现却
 需要额外工作，因为类型检查算法不能直接操作真正的无限结构；\chapref{21}将
 说明怎样用有限表示完成检查。
 
@@ -489,7 +530,7 @@ D = $\mu$X. <nat:Nat, fn:X->X, rcd:Nat->X>;
 \mathsf{fold}[\mu X.T]&:\taplsubst{X}{\mu X.T}{T}\to\mu X.T
 \end{aligned}
 \]
-它们在两个类型之间来回映射值，从而见证这项同构。
+它们分别完成两个方向的转换，具体给出了这两个类型之间的同构关系。
 
 \begin{center}
 \begin{tikzpicture}[>=stealth,baseline=(current bounding box.center)]
@@ -558,8 +599,25 @@ T&::=&\cdots&\text{类型}\\
 
 语言把 \texttt{fold} 与 \texttt{unfold} 作为基本构造。
 \textsc{E-UnfldFld} 规定，对刚按某递归类型折叠起来的值再作展开，会消去这对
-操作。求值规则不要求两个类型标注相同，因为运行时验证这一约束会迫使求值器
-调用类型检查器；但在良类型程序的求值中，每次应用该规则时两个标注必然相同。
+操作。这里先由 \textsc{T-Fold} 与 \textsc{T-Unfold} 共同保证两个类型标注
+相同：内层 \texttt{fold[T]} 的结果
+具有类型 \(T\)，而外层 \texttt{unfold[S]} 又要求参数具有类型 \(S\)，所以在
+任何良类型程序中必有 \(S=T\)。求值规则因而无须重复检查这一条件；否则求值器
+还要额外执行类型比较。
+
+\translatornote{同构递归系统把递归类型 \(T\) 与 \(T\) 展开一层后得到的类型
+视为两个不同类型。\texttt{fold[T]} 完成从“展开一层后的类型”到 \(T\) 的显式
+转换，\texttt{unfold[T]} 则完成反方向的转换。\cref{fig:20-1}的值语法也直接
+体现了这种区别：只有内部项已经是值的 \texttt{fold[T] v} 被列为值，
+\texttt{unfold[T] t} 没有被列为值。前者所表示的转换已经完成，没有后续计算；
+后者的目的则是取出当前这一层的内容，所以仍是一项需要执行的计算。
+
+以 \texttt{NatList} 为例，假设 \texttt{nil} 已经具有 \texttt{NatList} 类型，
+那么 \texttt{<cons=\{0,nil\}>} 给出的是列表展开一层后的结构，
+\texttt{fold[NatList] <cons=\{0,nil\}>} 再把它转为 \texttt{NatList} 类型。
+这里每次只处理当前一层，表尾 \texttt{nil} 不会被继续展开。反过来，
+\texttt{unfold[NatList]} 会取出这一层结构；因此
+\texttt{unfold[T] (fold[T] v)} 会继续求值为 \(v\)，而不会成为值。}
 
 两种方法都广泛用于理论研究和程序语言设计。等递归写法较为直观，却对类型
 检查器要求更高：检查器实际上要推断应在何处加入折叠和展开。等递归类型与有界
@@ -571,7 +629,9 @@ T&::=&\cdots&\text{类型}\\
 这些标注在实际语言中常能与其他构造合并。例如，ML 家族中的数据类型定义可能
 隐式引入递归类型；用构造子建立该类型的值时，构造子隐含一次折叠；在模式匹配中
 出现构造子时，则隐含一次展开。类似地，Java 的类定义隐式引入递归类型，调用
-对象方法也隐含展开。机制恰好重合，使同构递归方式在实践中并不难用。
+对象方法也隐含展开。这些语言原有的构造子、模式匹配和方法调用正好可以承担
+\texttt{fold} 与 \texttt{unfold} 的作用，程序员通常无须再显式写出这些操作。
+因此，同构递归类型在实际语言中不会带来太重的书写负担。
 
 下面把 \texttt{NatList} 改写成同构递归形式。先为其展开形式定义缩写：
 \begin{lstlisting}
@@ -645,8 +705,26 @@ tl = lambda l:NatList.
 \begin{tikzpicture}[
   >=stealth,
   every node/.style={font=\small},
-  tree/.style={level distance=11mm,sibling distance=20mm},
-  compare/.style={->,densely dashed,gray!75,thick}
+  tree/.style={
+    level distance=12mm,
+    sibling distance=20mm,
+    edge from parent/.style={draw=black!70,line width=0.5pt}
+  },
+  compare/.style={
+    ->,
+    densely dashed,
+    draw=black!55,
+    line width=0.6pt,
+    shorten <=2pt,
+    shorten >=2pt
+  },
+  relation/.style={
+    fill=white,
+    text=black,
+    font=\scriptsize,
+    inner xsep=3pt,
+    inner ysep=1pt
+  }
 ]
 \node[tree] (l0) at (-3.5,0) {$\to$}
   child {node (ln0) {$\tapltype{Nat}$}}
@@ -672,21 +750,49 @@ tl = lambda l:NatList.
       }
     }
   };
-\draw[compare] (l0) -- node[above] {$\subtype$} (r0);
-\draw[compare] (re0) -- node[above] {$\subtype$} (ln0);
-\draw[compare] (lp0) -- node[above] {$\subtype$} (rp0);
-\draw[compare] (le0) -- node[above] {$\subtype$} (rn0);
-\draw[compare] (l1) -- node[above] {$\subtype$} (r1);
-\draw[compare] (re1) -- node[above] {$\subtype$} (ln1);
-\draw[compare] (lp1) -- node[above] {$\subtype$} (rp1);
-\draw[compare] (le1) -- node[above] {$\subtype$} (rn1);
+% 同一层常有两组比较；分别向上、向下弯曲，避免比较线和标签彼此重叠。
+\draw[compare] (l0) to[bend left=13]
+  node[relation,above=1pt] {$\subtype$} (r0);
+\draw[compare] (re0) to[bend right=12]
+  node[relation,above=1pt] {$\subtype$} (ln0);
+\draw[compare] (lp0) to[bend right=10]
+  node[relation,below=1pt] {$\subtype$} (rp0);
+\draw[compare] (le0) to[bend left=12]
+  node[relation,above=1pt] {$\subtype$} (rn0);
+\draw[compare] (l1) to[bend right=10]
+  node[relation,below=1pt] {$\subtype$} (r1);
+\draw[compare] (re1) to[bend right=12]
+  node[relation,above=1pt] {$\subtype$} (ln1);
+\draw[compare] (lp1) to[bend right=10]
+  node[relation,below=1pt] {$\subtype$} (rp1);
+\draw[compare] (le1) to[bend left=10]
+  node[relation,above=1pt] {$\subtype$} (rn1);
 \end{tikzpicture}
 \end{center}
 
-函数参数位置按逆变方向比较，结果中的数和后继进程则按协变方向比较；同一
-比较模式会在后继进程处不断重复。
+\translatornote{图中的黑色实线表示类型展开后形成的树，灰色虚线表示对应节点
+之间需要成立的子类型关系。令
+\[
+A=\mu X.\tapltype{Nat}\to(\tapltype{Even}\times X),
+\qquad
+B=\mu X.\tapltype{Even}\to(\tapltype{Nat}\times X)
+\]
+图最上方表示要说明 \(A\subtype B\)。根据箭头类型的子类型规则，这一目标分解为
+\[
+\tapltype{Even}\subtype\tapltype{Nat}
+\qquad\text{和}\qquad
+\tapltype{Even}\times A\subtype\tapltype{Nat}\times B
+\]
+第一项的比较方向与整体相反，因为函数参数位置是逆变的。第二项再由二元积的
+子类型规则分解为
+\[
+\tapltype{Even}\subtype\tapltype{Nat}
+\qquad\text{和}\qquad
+A\subtype B
+\]
+后一项恰好回到最初的目标，因此同一比较会沿递归类型无限重复。}
 
-\chapref{21}将用余归纳把这项直观论证精确化。
+这种直观论证能否得到严格表述？可以。\chapref{21}将用余归纳给出严格论证。
 
 \section{说明}
 \label{sec:20.4}
