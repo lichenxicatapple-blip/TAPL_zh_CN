@@ -185,6 +185,9 @@
 % Source-only marker: the preceding OCaml block illustrates OCaml-specific
 % syntax, naming, or tooling and intentionally has no Rust counterpart.
 \newcommand{\taplocamlsyntaxonly}{}
+% Source-only marker: the named Rust counterpart is displayed later in the
+% same continuous solution so that each host language can be read as a group.
+\newcommand{\taplocamlgroupedcounterpart}[1]{}
 \newcommand{\authornote}[1]{%
   \begin{taplauthornotebox}
     #1
@@ -270,6 +273,38 @@
   \endgroup
   \par\medskip
 }
+% Flowing variants for long implementations inside a breakable solution box.
+% Each source fragment remains short enough to paginate safely, but does not
+% force a new box segment (and hence a mostly empty page) before every chunk.
+\newcommand{\taplrustsupportflowchunk}[3]{%
+  \par\smallskip
+  \begingroup
+    \inputminted[firstline=#2,lastline=#3]{rust}{../build/code-snippets/#1.rs}%
+  \endgroup
+  \par\medskip
+}
+\newcommand{\taplrustsupportflowchunkfirst}[3]{%
+  \par\Needspace{30\baselineskip}\smallskip
+  \begingroup
+    \noindent
+    {\footnotesize\bfseries Rust 实现（译者增补）\par}
+    \nobreak\smallskip
+    \inputminted[firstline=#2,lastline=#3]{rust}{../build/code-snippets/#1.rs}%
+  \endgroup
+  \par\medskip
+}
+% Compact first fragment for solutions where a short code segment can use the
+% remainder of the current page without separating its heading from the code.
+\newcommand{\taplrustsupportflowchunkfirstcompact}[3]{%
+  \par\Needspace{20\baselineskip}\smallskip
+  \begingroup
+    \noindent
+    {\footnotesize\bfseries Rust 实现（译者增补）\par}
+    \nobreak\smallskip
+    \inputminted[firstline=#2,lastline=#3]{rust}{../build/code-snippets/#1.rs}%
+  \endgroup
+  \par\medskip
+}
 \newcommand{\taplocamlfilechunk}[3]{%
   \tcbbreak
   \par\smallskip
@@ -281,6 +316,23 @@
 \newcommand{\taplocamlfilechunkfirst}[3]{%
   \tcbbreak
   \par\Needspace{8\baselineskip}\smallskip
+  \begingroup
+    \noindent
+    {\footnotesize\bfseries OCaml 实现\par}
+    \nobreak\smallskip
+    \inputminted[firstline=#2,lastline=#3]{ocaml}{#1}%
+  \endgroup
+  \par\medskip
+}
+\newcommand{\taplocamlfileflowchunk}[3]{%
+  \par\smallskip
+  \begingroup
+    \inputminted[firstline=#2,lastline=#3]{ocaml}{#1}%
+  \endgroup
+  \par\medskip
+}
+\newcommand{\taplocamlfileflowchunkfirst}[3]{%
+  \par\Needspace{30\baselineskip}\smallskip
   \begingroup
     \noindent
     {\footnotesize\bfseries OCaml 实现\par}

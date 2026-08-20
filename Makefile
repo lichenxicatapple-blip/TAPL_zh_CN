@@ -61,11 +61,23 @@ rust-check: rust-snippets
 
 ocaml-check:
 	@command -v ocamlc >/dev/null || { echo "ocamlc is required"; exit 1; }
+	@command -v ocamllex >/dev/null || { echo "ocamllex is required"; exit 1; }
+	@command -v ocamlyacc >/dev/null || { echo "ocamlyacc is required"; exit 1; }
+	mkdir -p build/ocaml/chapter04 build/ocaml/chapter07
+	cp code/ocaml/chapter04/evaluators.ml build/ocaml/chapter04/
+	cp code/ocaml/chapter07/evaluators.ml build/ocaml/chapter07/
+	cd build/ocaml/chapter04 && ocamlc -o evaluators.byte evaluators.ml && ./evaluators.byte
+	cd build/ocaml/chapter07 && ocamlc -o evaluators.byte evaluators.ml && ./evaluators.byte
 	mkdir -p build/ocaml/chapter17
+	cp code/ocaml/chapter17/core.ml build/ocaml/chapter17/
+	cp code/ocaml/chapter17/join.ml build/ocaml/chapter17/
 	cp code/ocaml/chapter17/diagnostics.ml build/ocaml/chapter17/
 	cp code/ocaml/chapter17/coercion.ml build/ocaml/chapter17/
+	cd build/ocaml/chapter17 && ocamlc -o core.byte core.ml && ./core.byte
+	cd build/ocaml/chapter17 && ocamlc -o join.byte join.ml && ./join.byte
 	cd build/ocaml/chapter17 && ocamlc -o diagnostics.byte diagnostics.ml && ./diagnostics.byte
 	cd build/ocaml/chapter17 && ocamlc -o coercion.byte coercion.ml && ./coercion.byte
+	scripts/check_official_ocaml.sh
 
 check-terms:
 	$(PYTHON) scripts/check_term_first_use.py

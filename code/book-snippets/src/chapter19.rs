@@ -2,7 +2,6 @@
 
 use std::collections::{HashMap, HashSet};
 
-// TAPL-SNIPPET-BEGIN: ch19-fj-syntax
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Term {
     Variable(String),
@@ -35,9 +34,7 @@ pub struct Class {
     pub constructor: Constructor,
     pub methods: Vec<Method>,
 }
-// TAPL-SNIPPET-END: ch19-fj-syntax
 
-// TAPL-SNIPPET-BEGIN: ch19-fj-class-table
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FjError {
     DuplicateClass(String),
@@ -228,9 +225,7 @@ impl ClassTable {
         Ok(())
     }
 }
-// TAPL-SNIPPET-END: ch19-fj-class-table
 
-// TAPL-SNIPPET-BEGIN: ch19-fj-typecheck
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CastWarning {
     StupidCast { source: String, target: String },
@@ -335,9 +330,7 @@ impl ClassTable {
         }
     }
 }
-// TAPL-SNIPPET-END: ch19-fj-typecheck
 
-// TAPL-SNIPPET-BEGIN: ch19-fj-eval
 fn is_value(term: &Term) -> bool {
     matches!(term, Term::New(_, arguments) if arguments.iter().all(is_value))
 }
@@ -481,9 +474,7 @@ impl ClassTable {
         Err(FjError::StepLimit)
     }
 }
-// TAPL-SNIPPET-END: ch19-fj-eval
 
-// TAPL-SNIPPET-BEGIN: ch19-store-cast
 pub type Store = HashMap<usize, Term>;
 
 /// Implements the essential check in E-CastStore: a location's static name is
@@ -512,9 +503,8 @@ pub fn eval_location_cast(
         })
     }
 }
-// TAPL-SNIPPET-END: ch19-store-cast
 
-// TAPL-SNIPPET-BEGIN: ch19-gj
+// TAPL-SNIPPET-BEGIN: ch19-gj-syntax
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum GType {
     Variable(String),
@@ -553,6 +543,7 @@ pub struct GClass {
     pub fields: Vec<(GType, String)>,
     pub methods: Vec<GMethod>,
 }
+// TAPL-SNIPPET-END: ch19-gj-syntax
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum GjError {
@@ -581,6 +572,7 @@ pub struct GenericTable {
     classes: HashMap<String, GClass>,
 }
 
+// TAPL-SNIPPET-BEGIN: ch19-gj-type-substitution
 fn substitute_type(ty: &GType, substitution: &HashMap<String, GType>) -> GType {
     match ty {
         GType::Variable(name) => substitution
@@ -596,6 +588,7 @@ fn substitute_type(ty: &GType, substitution: &HashMap<String, GType>) -> GType {
         ),
     }
 }
+// TAPL-SNIPPET-END: ch19-gj-type-substitution
 
 fn normalized_method_signature(method: &GMethod) -> (Vec<GType>, GType, Vec<GType>) {
     // These internal names cannot be confused with source-level identifiers in
@@ -670,6 +663,7 @@ impl GenericTable {
             .ok_or_else(|| GjError::UnknownType(name.to_owned()))
     }
 
+    // TAPL-SNIPPET-BEGIN: ch19-gj-subtyping
     pub fn is_subtype(
         &self,
         source: &GType,
@@ -754,6 +748,7 @@ impl GenericTable {
             }
         }
     }
+    // TAPL-SNIPPET-END: ch19-gj-subtyping
 
     fn extend_bounds(
         &self,
@@ -1085,6 +1080,7 @@ impl GenericTable {
         }
     }
 
+    // TAPL-SNIPPET-BEGIN: ch19-gj-erasure-term
     fn insert_erasure_cast(term: Term, actual: &str, expected: String) -> Term {
         if actual == expected {
             term
@@ -1143,6 +1139,7 @@ impl GenericTable {
         };
         Ok((erased, source_type))
     }
+    // TAPL-SNIPPET-END: ch19-gj-erasure-term
 
     fn erase_method(
         &self,
@@ -1233,7 +1230,6 @@ impl GenericTable {
         table.eval(erased, limit).map_err(GjError::ErasedProgram)
     }
 }
-// TAPL-SNIPPET-END: ch19-gj
 
 #[cfg(test)]
 mod tests {

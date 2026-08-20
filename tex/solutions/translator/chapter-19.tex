@@ -53,12 +53,7 @@ FJ 原本把对象值直接写成
 若 \(C\nsubtype D\)，这项转换没有可用规则，仍按 FJ 的约定卡住。缺少这条规则
 会使对象一经分配成位置后，所有本来可以成功的类型转换都无法继续。
 
-下面的 Rust 片段实现并测试了这条规则的关键检查：查出位置中对象的运行期类，
-再判断它是否为目标类的子类型。
-
-\taplrustsupport[implementation]{ch19-store-cast}
-
-赋值先求值接收者，再求值右侧；两者均为值后，更新对应字段并返回写入的值：
+赋值先求值接收者，再求值右侧；两者均为值后，按照以下规则更新对应字段：
 \[
 \inferrule*[right=\textsc{E-Assign}]
  {\mu(l)=\mathsf{new}\ C(v_1,\ldots,v_i,\ldots,v_n)\\
@@ -67,8 +62,9 @@ FJ 原本把对象值直接写成
   \trans
   (v,\mu[l\mapsto\mathsf{new}\ C(v_1,\ldots,v,\ldots,v_n)])}
 \]
-这里返回 \(v\)，与 Java 赋值表达式的行为一致；若希望赋值只是一条命令，也可
-加入 \texttt{Unit} 并返回 \texttt{unit}。
+规则结论右侧配置的第一分量是 \(v\)，表示赋值表达式本身的求值结果就是刚写入
+的值；第二分量则是完成字段更新后的存储。这与 Java 赋值表达式的行为一致。若
+希望赋值只是一条命令，也可加入 \texttt{Unit} 并返回 \texttt{unit}。
 
 所有同余规则都要改成携带存储。可以用求值上下文一次写全：在
 \cref{def:19.5.3}的上下文语法中加入
@@ -107,16 +103,17 @@ FJ 原本把对象值直接写成
 \label{sol:translator:19.4.4}
 \textbf{练习19.4.4}
 
-加入 Java 表面语法中的 \texttt{throw}，以及处理异常的 \texttt{try}：
+加入 Java 中用于抛出异常的 \texttt{throw}，以及用于捕获异常的
+\texttt{try}--\texttt{catch} 构造：
 \[
  t::=\cdots
  \mid \mathsf{throw}\ t
  \mid \mathsf{try}\ t\ \mathsf{catch}\ (C\ x)\ t
 \]
 并约定可抛出的对象都是某个根类 \texttt{Throwable} 的子类。异常本身仍是普通
-对象值；\(\mathsf{throw}\ v\) 表示正在传播的异常。实现内部也可以另设专用
-传播状态，但这里直接沿用 \texttt{throw} 项，以免把 Java 构造误称为
-\texttt{raise}。
+对象值。当被抛出的项已经求值为对象值 \(v\) 时，\(\mathsf{throw}\ v\) 表示
+异常已经产生；接下来会跳过外层尚未完成的计算，向外寻找类型匹配的
+\texttt{catch}。
 
 先求值 \texttt{throw} 的参数与 \texttt{try} 的受保护项：
 \[
@@ -151,12 +148,19 @@ FJ 原本把对象值直接写成
 传播规则；一旦当前求值位置产生 \(\mathsf{throw}\ v\)，就停止求值同一构造中
 尚未处理的部分，并把异常传到外层。
 
-一种简单的类型设计是让 \(\mathsf{throw}\ t\) 可以取得任意预期类型：
+\(\mathsf{throw}\ t\) 一旦执行，就不会向当前计算返回普通值，而会中断正常
+求值并向外寻找处理器；因此，它不可能产生一个类型不符合外层预期的正常结果。
+这使它可以出现在任何预期类型的位置，例如类型声明为 \(C\) 但总是抛出异常的
+方法体。相应的类型规则让 \(\mathsf{throw}\ t\) 可以取得任意预期类型：
 \[
 \inferrule*[right=\textsc{T-Throw}]
  {\Gamma\vdash t:D\\D\subtype\mathsf{Throwable}}
  {\Gamma\vdash\mathsf{throw}\ t:C}
 \]
+前提只要求被抛出的对象具有 \texttt{Throwable} 的子类型；结论中的 \(C\) 与
+异常对象的类型 \(D\) 无关，可以由 \(\mathsf{throw}\ t\) 所在位置的类型要求
+决定。
+
 处理器的两个正常出口必须具有相容类型。采用 FJ 的算法式风格，可要求处理器
 结果是受保护项结果类型的子类型，或反过来，再选择较大的类型；采用带包容规则的
 声明式系统，则可先把两个分支都提升到共同超类型 \(T\)：
@@ -205,7 +209,9 @@ FJ 原本把对象值直接写成
 若实参的最小类型为 \(C_i\subtype D_i\)，先由其声明式规则取得 \(C_i\)，再用
 T-Sub 提升为 \(D_i\)，即可满足这些规则。
 
-转换规则仍须查看被转换项的最小类型：
+向上、向下和荒谬转换必须依据同一个确定的源类型分类；否则，T-Sub 可以先改变
+被转换项的类型，再让同一转换落入另一条规则。因此，三条转换规则都以算法检查器
+算出的最小类型为准：
 \[
 \inferrule*[right=\textsc{T-UCastD}]
  {\Gamma\vdash_{\min}t_0:D\\D\subtype C}
@@ -216,15 +222,17 @@ T-Sub 提升为 \(D_i\)，即可满足这些规则。
  {\Gamma\vdash_{\min}t_0:D\\C\subtype D\\C\ne D}
  {\Gamma\vdash_{\mathrm d}(C)t_0:C}
 \]
-荒谬转换规则同样以 \(\Gamma\vdash_{\min}t_0:D\) 为前提，并检查
-\(C\) 与 \(D\) 互不为子类型。这里不能把 \(\vdash_{\min}\) 换成普通声明式
-判断。否则可以先把 \(\mathsf{new}\ B():B\) 用 T-Sub 提升为
-\texttt{Object}，再把 \((A)\mathsf{new}\ B()\) 误分为合法向下转换，从而绕过
-荒谬转换警告。
+第三条荒谬转换规则不再另列；它也使用前提
+\(\Gamma\vdash_{\min}t_0:D\)，并要求 \(C\) 与 \(D\) 互不为子类型。
 
 实现仍先运行原书的算法检查器求最小类型；声明式推导只说明此后允许把结果用于
-任何超类型位置。由此可以证明：若算法得到 \(S\)，声明式系统恰好能赋予该项
-所有满足 \(S\subtype T\) 的类型 \(T\)，同时三类转换的划分与原 FJ 保持一致。
+任何超类型位置。若算法为项 \(t\) 算出最小类型 \(S\)，声明式系统便可将
+\(t\) 赋予 \(S\) 或 \(S\) 的任意超类型 \(T\)；反过来，声明式系统能够赋予
+\(t\) 的每个类型 \(T\) 都满足 \(S\subtype T\)。这样，T-Sub 只会增加项可以
+取得的超类型，不会改变类型转换的判断。例如，虽然
+\(\mathsf{new}\ B():B\) 可以通过 T-Sub 提升为 \texttt{Object}，转换
+\((A)\mathsf{new}\ B()\) 仍依据最小类型 \(B\) 检查，因此依旧是荒谬转换，
+不会被误判为从 \texttt{Object} 到 \(A\) 的普通向下转换。
 
 \taplsolutionbacklink{ex:19.4.5}{返回练习19.4.5}
 \end{taplsolutionentrybox}
@@ -234,81 +242,68 @@ T-Sub 提升为 \(D_i\)，即可满足这些规则。
 \label{sol:translator:19.5.5}
 \textbf{练习19.5.5}
 
-本工程的可执行实现分成类表、静态检查与求值三层；各层直接对应正文的规则。
+下面给出一个可执行的 FJ 实现。完整程序由类表、静态检查和求值三部分组成；
+完整源码位于
+\path{code/book-snippets/src/chapter19.rs}。这道工程题的实现较长，书中不再
+逐页展开 Rust 源码，而是交代数据模型、关键检查、求值顺序和端到端例子，
+使读者可以先理解实现结构，需要时再到工程中逐函数核对。
 
-\textbf{一、抽象语法与类表。}
-分别为类声明、构造函数、方法声明和五类项定义数据类型。类表是从类名到类声明
-的映射。载入类表时先检查：类名唯一；除 \texttt{Object} 外所有被引用的类均有
-定义；\texttt{Object} 不得在类表中重复声明；继承图无环；字段不遮蔽继承字段；
-同一类中字段名、方法名与方法形参名均不重复。
-
-\taplrustsupport[implementation-break]{ch19-fj-syntax}
-
-类表实现如下。它负责继承链查询，并在建立类表时检查构造函数、字段和方法覆盖。
-
-\taplrustsupportchunkfirst{ch19-fj-class-table}{1}{30}
-\taplrustsupportchunk{ch19-fj-class-table}{31}{60}
-\taplrustsupportchunk{ch19-fj-class-table}{61}{90}
-\taplrustsupportchunk{ch19-fj-class-table}{91}{120}
-\taplrustsupportchunk{ch19-fj-class-table}{121}{150}
-\taplrustsupportchunk{ch19-fj-class-table}{151}{190}
-
-\textbf{二、辅助查询。}
-实现以下四个函数：
+\textbf{一、数据模型与类表。}
+项的数据类型直接对应\cref{fig:19-1}中的五种形式：变量、字段访问、方法调用、
+对象创建和类型转换；类声明则保存类名、超类、字段、构造函数与方法。类表是
+从类名到类声明的映射，并提供四项基本查询：
 \begin{description}
-\item[\(\mathit{subtype}(C,D)\)] 从 \(C\) 沿超类链向上查找，遇到 \(D\)
-返回真；\(C=D\) 时立即为真。
-\item[\(\mathit{fields}(C)\)] 先递归取得超类字段，再追加 \(C\) 自己声明的
-字段；\texttt{Object} 返回空序列。
-\item[\(\mathit{mtype}(m,C)\)] 先在 \(C\) 中查找方法；没有则递归查超类，
-返回形参类型序列与结果类型。
-\item[\(\mathit{mbody}(m,C)\)] 使用相同查找次序，返回形参名序列与方法体。
+\item[\(\mathit{subtype}(C,D)\)] 从 \(C\) 沿超类链向上查找，判断是否能到达
+\(D\)。
+\item[\(\mathit{fields}(C)\)] 先取得继承字段，再追加 \(C\) 自己声明的字段。
+\item[\(\mathit{mtype}(m,C)\)] 沿继承链查找方法 \(m\)，返回形参类型序列与
+结果类型。
+\item[\(\mathit{mbody}(m,C)\)] 按相同次序查找方法，返回形参名序列与方法体。
 \end{description}
-另实现 \(\mathit{override}\)，若超类链已有同名方法，就检查新旧方法类型完全
-相同。
+载入类表时还要检查类名和成员名不重复、引用的类已经定义、继承图无环、子类
+不遮蔽继承字段，以及覆盖方法的形参与结果类型和原方法完全相同。
 
-\textbf{三、类表检查。}
-构造函数的形参必须恰好由“继承字段、当前类字段”依次组成；
-\texttt{super} 的实参必须恰好是继承字段；赋给
-\texttt{this.f} 的必须恰好是当前类同名字段。检查方法时建立环境
-\(\overline x:\overline C,\mathsf{this}:C\)，计算方法体类型 \(E\)，验证
-\(E\subtype C_0\)，再检查覆盖条件。
+\textbf{二、类声明检查。}
+构造函数的形参必须依次列出继承字段与当前类字段；传给 \texttt{super} 的实参
+必须恰好是继承字段；随后每个当前类字段都由同名形参赋给 \texttt{this.f}。
+检查方法时，在包含各形参和 \texttt{this} 的环境中求出方法体类型，确认它是
+声明结果类型的子类型，再检查方法覆盖是否满足上述约束。
 
-\textbf{四、项的类型检查。}
-\(\mathit{typeof}(\Gamma,t)\) 按\cref{fig:19-4}递归：变量查环境；字段访问先取得接收
-者类型并查字段序列；方法调用查 \(\mathit{mtype}\)，逐项检查实参；对象创建
-查 \(\mathit{fields}\)，逐项检查构造实参；类型转换根据两个类之间的子类型
-关系分类。实现可以把荒谬转换记录为警告而继续返回目标类型；若要模拟 Java
-前端，则把该警告提升为静态错误。
+\textbf{三、项的类型检查。}
+类型检查函数按\cref{fig:19-4}递归处理项。变量从环境取类型；字段访问先求出
+接收者类型，再从该类的完整字段序列中查找字段；方法调用先查询方法签名，然后
+逐项检查实参与形参；对象创建则用完整字段序列检查构造实参。类型转换依据源类与
+目标类的子类型关系分为向上转换、向下转换和荒谬转换；实现记录荒谬转换警告，
+但仍按原 FJ 规则返回目标类型。
 
-\taplrustsupportchunkfirst{ch19-fj-typecheck}{1}{30}
-\taplrustsupportchunk{ch19-fj-typecheck}{31}{60}
-\taplrustsupportchunk{ch19-fj-typecheck}{61}{90}
-\taplrustsupportchunk{ch19-fj-typecheck}{91}{104}
+\textbf{四、单步求值。}
+求值函数按\cref{fig:19-3}从左到右寻找下一项待求值的子项。接收者已经成为
+\(\mathsf{new}\ C(\overline v)\) 后，字段访问按字段在完整字段序列中的位置
+取值；方法调用查询方法体，并同时完成替换
+\(\{x_i\mapsto v_i,\mathsf{this}\mapsto v_0\}\)。这里必须使用同时替换，
+否则某个实参中恰好出现另一形参名时，后续替换会错误地再次改写它。运行期对象的
+类是目标类的子类型时，类型转换可以删去；否则该项卡住。多步解释器反复执行一次
+单步求值，直到得到对象值或再无规则可用。
 
-\textbf{五、单步求值。}
-\(\mathit{eval1}(t)\) 先按\cref{fig:19-3}的同余规则从左到右找到下一项待求值的子项。
-接收者已经是 \(\mathsf{new}\ C(\overline v)\) 时：字段访问按字段序号取值；
-方法调用查 \(\mathit{mbody}\)，同时替换形参与 \texttt{this}；转换在
-\(C\subtype D\) 时删去。没有规则可用时区分“已经是值”与“失败转换或非法
-字段、方法导致卡住”。反复调用 \(\mathit{eval1}\) 直至得到值或卡住，即为
-多步解释器。
+\textbf{五、端到端例子。}
+正文中的 \texttt{Pair.setfst} 调用依次求值为
+\[
+\begin{aligned}
+ &\mathsf{new}\ \mathsf{Pair}(\mathsf{new}\ A(),\mathsf{new}\ B()).
+   \mathsf{setfst}(\mathsf{new}\ B())\\
+ \trans{}&\mathsf{new}\ \mathsf{Pair}
+   (\mathsf{new}\ B(),
+    (\mathsf{new}\ \mathsf{Pair}(\mathsf{new}\ A(),\mathsf{new}\ B())).\mathsf{snd})\\
+ \trans{}&\mathsf{new}\ \mathsf{Pair}(\mathsf{new}\ B(),\mathsf{new}\ B())
+\end{aligned}
+\]
+第一步把实参替换给 \texttt{newfst}，并把接收者替换给 \texttt{this}；第二步
+再从接收者对象中投影出 \texttt{snd} 字段。这条路径同时经过方法查询、同步替换
+和字段投影，因而可以作为整份实现的最小端到端检查。
 
-替换只需处理变量，因为 FJ 的项中没有绑定构造；同时替换时应一次完成，避免
-某个实参中的变量又被后续替换。可以把替换映射建立为
-\(\{x_i\mapsto v_i,\mathsf{this}\mapsto v_0\}\)，遍历方法体时遇到变量便查表。
-
-\taplrustsupportchunkfirst{ch19-fj-eval}{1}{30}
-\taplrustsupportchunk{ch19-fj-eval}{31}{60}
-\taplrustsupportchunk{ch19-fj-eval}{61}{90}
-\taplrustsupportchunk{ch19-fj-eval}{91}{120}
-\taplrustsupportchunk{ch19-fj-eval}{121}{143}
-
-配套测试覆盖正文的 \texttt{Pair.setfst}、字段访问、合法向上与向下转换、
-运行时失败的向下转换、荒谬转换警告、方法参数数量错误、构造函数错误、覆盖类型
-错误、继承环、未定义的类名、重复方法形参、保留名称 \texttt{this}，以及非法重定义
-\texttt{Object}。源码与测试共同参与整书构建，因而书内片段与实际验证的实现保持
-一致。
+配套测试还覆盖合法与失败的类型转换、荒谬转换警告、构造函数和方法参数错误、
+非法覆盖、继承环，以及重复或保留名称。完整源码参加 \texttt{make rust-check}
+的编译和测试；书中只保留理解实现所需的结构、算法与完整求值路径。
 
 \taplsolutionbacklink{ex:19.5.5}{返回练习19.5.5}
 \end{taplsolutionentrybox}
@@ -319,7 +314,7 @@ T-Sub 提升为 \(D_i\)，即可满足这些规则。
 \textbf{练习19.5.6}
 
 GJ 风格扩展的核心，是让类、方法和类型都可以带有受上界约束的类型变量。下面
-说明本工程如何扩展\cref{ex:19.5.5}的实现。
+说明如何扩展\cref{ex:19.5.5}的实现，并列出新增机制的关键代码。
 
 \textbf{语法。}
 类型从类名扩展为类型变量或带实参的类类型：
@@ -331,10 +326,17 @@ GJ 风格扩展的核心，是让类、方法和类型都可以带有受上界�
 转换也携带相应的类型实参。上界 \(N\) 可以提到先前声明的类型变量，从而表达
 F-有界约束，例如 \(X\subtype\mathit{Comparable}\langle X\rangle\)。
 
+\taplrustsupportflowchunkfirstcompact{ch19-gj-syntax}{1}{20}
+\taplrustsupportflowchunk{ch19-gj-syntax}{21}{38}
+
 \textbf{环境。}
 在变量环境 \(\Gamma\) 之外增加类型变量环境 \(\Delta\)，记录每个类型变量的
 上界。先定义类型良构判断 \(\Delta\vdash T\ \mathsf{OK}\)：类类型的实参数量
 必须正确，且把实际类型代入声明上界后，每个实参都必须是对应上界的子类型。
+
+类或方法的形式类型变量换成实际类型实参时，递归使用下面的类型替换函数。
+
+\taplrustsupportflowchunkfirstcompact{ch19-gj-type-substitution}{1}{15}
 
 \textbf{子类型。}
 增加变量规则
@@ -356,10 +358,18 @@ F-有界约束，例如 \(X\subtype\mathit{Comparable}\langle X\rangle\)。
 类型参数本身保持不变；GJ 的类类型并不会仅因实参之间有子类型关系就自动形成
 协变关系。
 
+下面的实现同时处理类型变量的上界、沿继承链进行的子类型查询，以及类类型实参
+是否满足声明上界的检查。
+
+\taplrustsupportflowchunkfirstcompact{ch19-gj-subtyping}{1}{25}
+\taplrustsupportflowchunk{ch19-gj-subtyping}{26}{55}
+\taplrustsupportflowchunk{ch19-gj-subtyping}{56}{84}
+
 \textbf{字段与方法查询。}
 \(\mathit{fields}\)、\(\mathit{mtype}\) 和 \(\mathit{mbody}\) 沿继承链查找
 时，都必须累积并应用类型替换。泛型方法调用还要先检查显式类型实参满足方法的
-上界，再把它们代入形参类型、返回类型与方法体中的类型标注。
+上界，再把它们代入形参类型、返回类型与方法体中的类型标注。它们和上一题的查询
+框架相同，主要差别就是多了这一步替换，故不再重复列出整段实现。
 
 \textbf{类型检查与求值。}
 类型判断改写为 \(\Delta;\Gamma\vdash t:T\)。对象创建和方法调用先检查类型
@@ -376,6 +386,16 @@ F-有界约束，例如 \(X\subtype\mathit{Comparable}\langle X\rangle\)。
 \texttt{A} 的位置时便插入到 \texttt{A} 的转换。最后以同样方式擦除待求值项，
 并交给上一题的 FJ 解释器实际执行。
 
+下面的代码给出擦除的关键步骤。\texttt{erase\_type} 递归把类型变量替换成其上界
+的擦除；该函数只有这一条递归和类名保持不变两种情形，故不再单独列出。
+\texttt{erase\_typed\_term} 先保留源项的静态类型，再在字段访问或方法调用
+的擦除结果过于宽泛时插入 FJ 转换。它调用的字段类型与方法结果类型查询只负责沿
+擦除后的继承链查找声明，前文已经说明其算法，故不再重复列出。对象创建和原有转换
+只需递归擦除类型参数。
+
+\taplrustsupportflowchunkfirstcompact{ch19-gj-erasure-term}{1}{30}
+\taplrustsupportflowchunk{ch19-gj-erasure-term}{31}{58}
+
 \Needspace{14\baselineskip}
 \textbf{验证顺序。}
 先测试无泛型 FJ 程序在扩展后行为不变；再测试单一泛型容器、带界类型变量、泛型
@@ -384,35 +404,12 @@ F-有界约束，例如 \(X\subtype\mathit{Comparable}\langle X\rangle\)。
 上下文的程序检验转换插入。最后比较擦除前后的求值结果。这样既覆盖 GJ 扩展新增
 的静态机制，也验证它没有改变 FJ 原有程序的可观察行为。
 
-下面给出参与编译和测试的泛型语法、类表检查、带界类型检查及擦除执行实现。配套
-测试覆盖无泛型程序回归、泛型容器、泛型方法、通过上界查询成员、继承时改变类型
-实参、递归上界、上界违反、方法体类型错误、非法泛型覆盖、保留类名，以及擦除后
-需要插入转换的方法体和链式成员调用。
-
-\taplrustsupportchunkfirst{ch19-gj}{1}{30}
-\taplrustsupportchunk{ch19-gj}{31}{60}
-\taplrustsupportchunk{ch19-gj}{61}{90}
-\taplrustsupportchunk{ch19-gj}{91}{120}
-\taplrustsupportchunk{ch19-gj}{121}{150}
-\taplrustsupportchunk{ch19-gj}{151}{180}
-\taplrustsupportchunk{ch19-gj}{181}{210}
-\taplrustsupportchunk{ch19-gj}{211}{240}
-\taplrustsupportchunk{ch19-gj}{241}{270}
-\taplrustsupportchunk{ch19-gj}{271}{300}
-\taplrustsupportchunk{ch19-gj}{301}{330}
-\taplrustsupportchunk{ch19-gj}{331}{360}
-\taplrustsupportchunk{ch19-gj}{361}{390}
-\taplrustsupportchunk{ch19-gj}{391}{420}
-\taplrustsupportchunk{ch19-gj}{421}{450}
-\taplrustsupportchunk{ch19-gj}{451}{480}
-\taplrustsupportchunk{ch19-gj}{481}{510}
-\taplrustsupportchunk{ch19-gj}{511}{540}
-\taplrustsupportchunk{ch19-gj}{541}{570}
-\taplrustsupportchunk{ch19-gj}{571}{600}
-\taplrustsupportchunk{ch19-gj}{601}{630}
-\taplrustsupportchunk{ch19-gj}{631}{660}
-\taplrustsupportchunk{ch19-gj}{661}{690}
-\taplrustsupportchunk{ch19-gj}{691}{718}
+完整实现中的 \texttt{GenericTable::check\_classes} 检查类和方法声明；
+\texttt{fields}、\texttt{method}、\texttt{type\_of} 与
+\texttt{check\_arguments} 完成成员查询和类型检查；\texttt{erase\_method}、
+\texttt{erase\_table} 与 \texttt{eval\_erased} 把整个程序交给 FJ 解释器执行。
+测试覆盖无泛型程序回归、泛型容器和方法、上界成员查询、改变类型实参的继承、
+递归上界、上界违反、非法覆盖，以及擦除后需要插入转换的方法体和链式成员调用。
 
 \taplsolutionbacklink{ex:19.5.6}{返回练习19.5.6}
 \end{taplsolutionentrybox}

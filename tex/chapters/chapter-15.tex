@@ -13,8 +13,8 @@
 其他语言特性相互作用。
 
 子类型化常见于面向对象语言，也常被视为面向对象风格的核心特性。\chapref{18}
-将详细讨论这层联系。本章先在只有函数和记录的精简语言中介绍子类型化；主要
-问题在这里已经会出现。\footnote{本章研究带子类型化
+将详细讨论这层联系。本章先在一个只含函数和记录的精简语言中介绍子类型化；
+这样的框架已经足以呈现大多数关键问题。\footnote{本章研究带子类型化
 （\cref{fig:15-1}）和记录（\cref{fig:15-3}）的简单类型 lambda 演算
 \(\lambda_{<:}\)。对应的 OCaml 实现是 \texttt{rcdsub}；含自然数的例子
 需要用 \texttt{fullsub} 检查。}\taplsecref{15.5}{sec:15.5}讨论它与前几章若干特性的
@@ -82,7 +82,9 @@
 T&::=&\cdots\mid\tapltype{Top}&\text{最大类型}
 \end{array}
 \]
-\textbf{求值}\quad 与\cref{fig:9-1}相同
+\textbf{求值}\quad 仍采用\cref{fig:9-1}的
+\textsc{E-App1}、\textsc{E-App2} 与 \textsc{E-AppAbs}；
+子类型化不增加新的求值规则
 }{
 \scriptsize
 \textbf{子类型化}\quad \(S\subtype T\)
@@ -123,7 +125,7 @@ T&::=&\cdots\mid\tapltype{Top}&\text{最大类型}
 处理函数类型、记录类型等各种类型形式，为每种形式规定：何时可以把一种类型
 的元素安全地用于需要另一种类型的地方。
 
-在讨论具体的类型构造子之前，先作两项一般规定。子类型关系具有反身性和传递性：
+在讨论具体的类型构造子之前，先作两项一般规定。子类型关系具有自反性和传递性：
 \[
 \inferrule*[right=\textsc{S-Refl}]{ }{S\subtype S}
 \qquad
@@ -155,8 +157,8 @@ T&::=&\cdots\mid\tapltype{Top}&\text{最大类型}
 \(\{x=3,z=100\}\) 则不属于。字段更多的记录类型提出了更严格、信息量
 更大的要求，因而描述更小的值集合。
 
-宽度规则要求两边共有字段的类型完全相同。只要对应字段的类型之间也满足子类型
-关系，允许字段类型变化同样安全。
+宽度规则要求两边共有字段的类型完全相同。还可以进一步放宽这一要求：只要两个
+记录中各对应字段的类型满足子类型关系，共有字段的类型就不必完全相同。
 \termfirst{深度子类型规则}{depth subtyping rule}表达这一点：
 \[
 \inferrule*[right=\textsc{S-RcdDepth}]
@@ -207,8 +209,9 @@ T&::=&\cdots\mid\tapltype{Top}&\text{最大类型}
 
 宽度、深度和排列规则分别表达记录使用中的三种灵活性。为了说明概念，把它们
 分成三条规则很有帮助；有些语言确实只允许其中一部分。例如，Abadi 与
-Cardelli（1996）的多数对象演算省略的是深度子类型化。实现时则更方便把三条
-规则合并成一条宏规则，\chapref{16}会这样处理。
+Cardelli（1996）提出的对象演算有多个变体，其中大多数不采用宽度子类型化。
+实际实现时，把三者合并成一条同时处理宽度、深度和排列的宏规则更为方便；
+\chapref{16}将采用这种做法。
 
 因为当前语言是高阶语言，函数本身也可以作为参数传递，所以还必须规定函数
 类型之间何时存在子类型关系：
@@ -217,14 +220,29 @@ Cardelli（1996）的多数对象演算省略的是深度子类型化。实现�
  {T_1\subtype S_1\\S_2\subtype T_2}
  {S_1\to S_2\subtype T_1\to T_2}
 \]
-左侧前提中的方向与整体箭头类型相反，称为参数类型上的
-\termfirst{逆变}{contravariance}；结果类型与整体方向相同，称为
-\termfirst{协变}{covariance}。若函数 \(f:S_1\to S_2\)，它能接收每个
+其中，参数类型的前提 \(T_1\subtype S_1\) 与结论
+\(S_1\to S_2\subtype T_1\to T_2\) 中的子类型方向相反，称为参数类型上的
+\termfirst{逆变}{contravariance}；结果类型的前提 \(S_2\subtype T_2\)
+与结论中的方向相同，\mbox{称为\termfirst{协变}{covariance}}。若函数
+\(f:S_1\to S_2\)，它能接收每个
 \(S_1\) 型值，自然也能接收 \(S_1\) 的任意子类型 \(T_1\) 的值；它返回
 \(S_2\) 型值，这些结果也可以被看作任意超类型 \(T_2\) 的值。因此，
 \(f\) 也能具有类型 \(T_1\to T_2\)。换一种说法，传给函数的任何实参都
 不能超出它的接收能力（\(T_1\subtype S_1\)），函数返回的任何结果也不能
 超出上下文的接收能力（\(S_2\subtype T_2\)）。
+
+\translatornote{把类型理解为它所包含的值的集合。若
+\(T_1\subtype S_1\)，就有
+\(\sembracket{T_1}\subseteq\sembracket{S_1}\)。固定结果
+类型 \(U\) 后，\(S_1\to U\) 型函数必须能处理集合
+\(\sembracket{S_1}\) 中的每个输入；\(T_1\to U\) 型函数只须处理
+较小集合 \(\sembracket{T_1}\) 中的输入。前一条件更严格，因此满足
+它的函数也一定满足后一条件，即
+\(\sembracket{S_1\to U}\subseteq\sembracket{T_1\to U}\)，从而
+\(S_1\to U\subtype T_1\to U\)。换言之，能处理 \(S_1\) 中所有输入的
+函数，一定也能处理其子集 \(T_1\) 中的所有输入；反过来则未必。因此，
+\(S_1\to U\) 型函数都属于 \(T_1\to U\)，参数位置上的子类型方向由此发生
+反转。}
 
 最后，引入最大类型 \(\tapltype{Top}\)，并规定每个类型都是它的子类型：
 \[
@@ -232,7 +250,7 @@ Cardelli（1996）的多数对象演算省略的是深度子类型化。实现�
 \]
 \taplsecref{15.4}{sec:15.4}还会讨论这个类型。
 
-形式上，子类型关系是由上述规则闭合生成的最小关系。反身性与传递性使它成为
+形式上，子类型关系是由上述规则闭合生成的最小关系。自反性与传递性使它成为
 预序；记录排列规则又使不同类型可能互为子类型，所以它不是偏序。
 
 \begin{figure}[!ht]
@@ -354,7 +372,7 @@ R_{xy}&\triangleq&\{x:\tapltype{Nat},y:\tapltype{Nat}\}
 \begin{exercise}[\(\star\star\)]
 \label{ex:15.2.5}
 设演算加入\taplsecref{11.6}{sec:11.6}的积类型构造子 \(T_1\times T_2\)。
-与记录深度规则相应，自然会加入
+仿照记录的 \textsc{S-RcdDepth} 规则，可以为积类型加入下面的子类型规则：
 \[
 \inferrule*[right=\textsc{S-ProdDepth}]
  {S_1\subtype T_1\\S_2\subtype T_2}
@@ -382,11 +400,13 @@ lambda 演算的保持性和进展性在加入子类型化后仍然成立。
 \end{exercise}
 \taplauthorsolutionlink{sol:author:15.3.1}{15.3.1}
 
-先记录子类型关系的一项关键性质，它对应简单类型 lambda 演算中类型关系的
-反演引理（\cref{lem:9.3.1}）。若 \(S\) 是某个箭头类型的子类型，子类型
+下面先给出子类型关系的一项关键性质；它与简单类型 lambda 演算中类型关系的
+反演引理（\cref{lem:9.3.1}）相对应。若 \(S\) 是某个箭头类型的子类型，子类型
 反演引理说明 \(S\) 本身也必须是箭头类型，并给出两个参数类型间的逆变关系
-与两个结果类型间的协变关系。对于记录类型，类似结论说明 \(S\) 至少含有
-目标记录的所有字段，字段可以采用不同次序，共有字段的类型满足子类型关系。
+与两个结果类型间的协变关系。对于记录类型，若
+\(S\subtype\{l_i:T_i\}^{i\in1..n}\)，类似结论说明 \(S\) 至少含有
+\(\{l_i:T_i\}^{i\in1..n}\) 列出的所有字段；字段可以采用不同次序，共有
+字段的类型满足子类型关系。
 
 \begin{lemma}[子类型关系的反演]
 \label{lem:15.3.2}
@@ -416,7 +436,8 @@ lambda 演算的保持性和进展性在加入子类型化后仍然成立。
   \(T_1\subtype S_1\)，且 \(\Gamma,x:S_1\vdash s_2:T_2\)。
 \item 若
   \(\Gamma\vdash\{k_a=s_a\}^{a\in1..m}:\{l_i:T_i\}^{i\in1..n}\)，
-  则目标记录的标签集合包含于项的标签集合；对每对相同标签
+  则类型中列出的每个标签 \(l_i\) 都出现在记录项的标签 \(k_a\) 中，即
+  \(\{l_i\}^{i\in1..n}\subseteq\{k_a\}^{a\in1..m}\)；对每对相同标签
   \(k_a=l_i\)，都有 \(\Gamma\vdash s_a:T_i\)。
 \end{enumerate}
 \end{lemma}
@@ -473,7 +494,8 @@ lambda 演算的保持性和进展性在加入子类型化后仍然成立。
 \emph{情形 \textsc{T-Proj}。}若末条求值规则为 \textsc{E-Proj}，由归纳
 假设和 \textsc{T-Proj} 得证。若为 \textsc{E-ProjRcd}，则
 \(t_1=\{k_a=v_a\}^{a\in1..m}\)、\(l_j=k_b\)，且 \(t'=v_b\)。由
-\cref{lem:15.3.3}第 2 项，目标记录类型的标签都出现在 \(t_1\) 中，并且
+\cref{lem:15.3.3}第 2 项，类型 \(\{l_i:T_i\}^{i\in1..n}\) 要求的标签都
+出现在 \(t_1\) 中，并且
 相同标签对应的值具有所需字段类型；特别地，\(\Gamma\vdash v_b:T_j\)。
 
 \emph{情形 \textsc{T-Sub}。}由前提得
@@ -491,8 +513,8 @@ lambda 演算的保持性和进展性在加入子类型化后仍然成立。
 \item 若闭值 \(v\) 具有类型 \(T_1\to T_2\)，则
   \(v=\lambda x:S_1.\,t_2\)。
 \item 若闭值 \(v\) 具有类型 \(\{l_i:T_i\}^{i\in1..n}\)，则
-  \(v=\{k_a=v_a\}^{a\in1..m}\)，且目标类型中的每个标签都出现在
-  该记录值中。
+  \(v=\{k_a=v_a\}^{a\in1..m}\)，且类型
+  \(\{l_i:T_i\}^{i\in1..n}\) 中列出的每个标签都出现在该记录值中。
 \end{enumerate}
 \end{lemma}
 \begin{proof}
@@ -535,8 +557,15 @@ lambda 演算的保持性和进展性在加入子类型化后仍然成立。
 而该编码关键依赖 \(\tapltype{Top}\)。最后，它的行为简单，例子里又常有用，
 所以没有多少理由把它删掉。
 
-自然会继续追问：能否也为子类型关系加入最小元素，即作为每个类型之子类型的
-\(\tapltype{Bot}\)？答案是可以，见\cref{fig:15-4}。
+既然已经有了最大类型 \(\tapltype{Top}\)，一个相应的问题是：能否再加入
+最小类型 \(\tapltype{Bot}\)，使它成为所有类型的子类型？答案是肯定的，
+\cref{fig:15-4}给出了相应规则。
+
+\translatornote{\cref{ex:15.2.4}考察的是加入 \(\tapltype{Bot}\) 之前的类型
+语法，结论是其中没有任何现成类型能够成为所有类型的共同子类型。本节随后
+扩展类型语法，新增 \(\tapltype{Bot}\)，并用 \textsc{S-Bot} 规定
+\(\tapltype{Bot}\subtype T\) 对任意 \(T\) 成立。最小类型来自这次扩展，
+因此与该练习的结论并不矛盾。}
 
 \begin{figure}[!ht]
 \centering
@@ -581,12 +610,63 @@ T::=\cdots\mid\tapltype{Bot}
 它通过实例化为任意类型达到与 \(\tapltype{Bot}\) 相似的效果；两者虽然原理
 不同，都是空类型。}
 
+\newpage
+\translatornote{续延（\textit{continuation}）首先是描述普通程序求值过程的
+概念。考虑下面的程序：
+\[
+\begin{array}{l}
+x=f();\\
+\mathsf{print}(x+1)
+\end{array}
+\]
+执行 \(f\) 时，运行时系统必须记住：\(f\) 返回以后，还要把返回值赋给
+\(x\)，计算 \(x+1\)，再打印结果。这段“当前计算得到一个值以后，接下来要
+完成的全部工作”就是当前续延；机器通常用调用栈和返回地址保存它。普通的
+\(\mathsf{return}\ 5\) 可以理解为把 \(5\) 交给这段续延，让程序恢复调用者
+的计算并执行 \(\mathsf{print}(5+1)\)。因此，即使一门语言没有把续延直接
+暴露给程序员，它的运行时仍然需要维护类似的信息。
+
+同一概念也可以用带洞的求值上下文表示。例如，程序正在计算
+\[
+1+(2\times\Box)
+\]
+时，\(\Box\) 表示当前等待结果的子表达式位置。若这里得到 \(x\)，余下的
+计算便是 \(1+(2\times x)\)。所以带洞的上下文
+\(1+(2\times\Box)\) 描述了此处的续延；当子表达式求得 \(5\) 时，普通
+求值会把 \(5\) 填入洞中，继续得到 \(11\)。
+
+通常，程序只能沿着当前续延继续执行。Scheme 的
+\texttt{call-with-current-continuation}（\texttt{call/cc}，也见
+\cref{ex:14.3.3}）进一步允许程序把当前续延捕获为一个可调用的值，保存起来
+并在以后恢复。设 \(k\) 保存了上面的续延
+\(1+(2\times\Box)\)。调用 \(k(5)\) 的含义是：放弃调用时正在使用的续延，
+恢复 \(k\) 保存的续延，并让保存位置像是刚刚得到了值 \(5\)。例如，程序后来
+正在计算
+\[
+100+k(5)
+\]
+时，当前续延是 \(100+\Box\)。调用 \(k(5)\) 会丢弃这个当前续延，恢复
+\(1+(2\times\Box)\)，于是程序继续得到 \(11\)，外围的加 \(100\) 不会
+执行。相比之下，若 \(h(x)=1+(2\times x)\) 只是普通函数，
+\(100+h(5)\) 会正常返回并得到 \(111\)。这个差别说明，捕获的续延代表一条
+可以恢复的控制路径；调用它是在替换当前控制路径。
+
+把续延开放给程序后，非局部返回、异常、回溯、协程、生成器和任务调度等控制
+结构都可以在它的基础上表达。完整续延的能力很强，许多语言只提供用途更明确
+的受限形式，例如异常、生成器和 \texttt{async}/\texttt{await}。
+
+本节只需要其中一个性质：调用这种已捕获的续延不会返回当前调用位置。若续延
+等待一个 \(T\) 型值，就可以把它理解成具有类似
+\(T\to\tapltype{Bot}\) 的类型；它接收一个值并把控制转移到保存的计算，
+当前调用点不会产生正常结果。这正是此处把调用续延与抛出异常并列的原因。}
+
 但 \(\tapltype{Bot}\) 会显著增加类型检查的复杂度。没有它时，若应用
 \(t_1\,t_2\) 良类型，就能推断 \(t_1\) 具有箭头类型；有了它，只能推断
 \(t_1\) 具有箭头类型或 \(\tapltype{Bot}\)。
 \taplsecref{16.4}{sec:16.4}会展开这一点；在有界量化系统中，困难还会被放大，
 见\taplsecref{28.8}{sec:28.8}。因此，加入 \(\tapltype{Bot}\) 比加入
-\(\tapltype{Top}\) 更重，本书后续系统不再保留它。
+\(\tapltype{Top}\) 更重。本书后续章节的主体系统不再把它作为默认组成部分；
+上述两节只在局部扩展中考察加入它所带来的问题。
 
 \section{子类型化与其他特性}
 \label{sec:15.5}
@@ -619,7 +699,8 @@ T::=\cdots\mid\tapltype{Bot}
    {\Gamma\vdash t:T}}
  {\Gamma\vdash t\ \mathsf{as}\ T:T}
 \]
-其中类型断言规则本身是：
+上图最下面的一步使用的 \textsc{T-Ascribe}，就是\taplsecref{11.4}{sec:11.4}
+定义的类型断言规则：
 \[
 \inferrule*[right=\textsc{T-Ascribe}]
  {\Gamma\vdash t:T}{\Gamma\vdash t\ \mathsf{as}\ T:T}
@@ -689,8 +770,34 @@ f=\lambda x:\tapltype{Top}.\,(x\ \mathsf{as}\
   \trans t_3}
 \]
 
-Java 一类语言经常使用向下类型转换。一个重要用途，是用它实现一种简陋的
-多态。旧式 Java 集合类（如 \texttt{Set} 和 \texttt{List}）是单态的：Java
+\translatornote{
+这里的 \(x\) 是程序员在类型测试表达式中写下的变量名，用来给通过运行时
+检查的值命名。可以把
+\[
+\mathsf{if}\ t_1\ \mathsf{in}\ T\ \mathsf{then}\ x\mapsto t_2\
+\mathsf{else}\ t_3
+\]
+读作：“先求出 \(t_1\) 的值；若该值具有类型 \(T\)，就把它命名为 \(x\)，
+然后执行 \(t_2\)；否则执行 \(t_3\)。”箭头 \(\mapsto\) 在这里标记变量
+绑定，\(x\) 的作用域仅限于成功分支 \(t_2\)。
+
+静态检查时，只知道 \(t_1\) 具有某个类型 \(S\)。运行时若得到值 \(v_1\)，
+并确认 \(v_1:T\)，成功分支便可以在 \(x:T\) 的假设下使用这个值；
+\textsc{E-TypeTest1} 通过替换 \([x\mapsto v_1]t_2\) 落实这一绑定。
+这个过程不会复制该值，也不会再次求值 \(t_1\)。若检查失败，
+\textsc{E-TypeTest2} 直接选择 \(t_3\)，所以失败分支中没有变量 \(x\)。
+
+例如，
+\[
+\mathsf{if}\ obj\ \mathsf{in}\ \{a:\tapltype{Nat}\}\
+\mathsf{then}\ x\mapsto x.a\ \mathsf{else}\ 0
+\]
+会在 \(obj\) 的实际值含有自然数字段 \(a\) 时，用 \(x\) 表示这个值并读取
+\(x.a\)；若检查失败，则返回 \(0\)。
+}
+
+Java 一类语言经常使用向下类型转换，其中一个重要用途是模拟一种简陋的
+多态机制。旧式 Java 集合类（如 \texttt{Set} 和 \texttt{List}）是单态的：Java
 没有为每个类型 \(T\) 提供“元素类型为 \(T\) 的列表”\(\texttt{List}\ T\)，
 只有一个 \texttt{List} 类型，其元素统一属于最大类型 \texttt{Object}。
 由于每个对象类型都是 \texttt{Object} 的子类型，任意对象都可以先通过包容
@@ -699,8 +806,8 @@ Java 一类语言经常使用向下类型转换。一个重要用途，是用它
 对象共有的通用方法，不能保证对象拥有更具体的方法；要实际使用它，程序必须
 先把它向下转换成所预期的类型 \(T\)。
 
-Pizza（Odersky 与 Wadler，1997）、GJ（Bracha、Odersky、Stoutamire 与
-Wadler，1998）、PolyJ（Myers、Bank 与 Liskov，1997）以及 NextGen
+Pizza（Odersky 与 Wadler，1997）、Generic Java（GJ；Bracha、Odersky、
+Stoutamire 与 Wadler，1998）、PolyJ（Myers、Bank 与 Liskov，1997）以及 NextGen
 （Cartwright 与 Steele，1998）的设计者主张，为 Java 类型系统加入真正的
 参数多态（见\chapref{23}）。参数多态比上述向下转换惯用法更安全、更高效，
 也不需要运行时测试。另一方面，这种扩展会使本已庞大的语言明显复杂化，并与
@@ -720,7 +827,8 @@ Wadler，1998）、PolyJ（Myers、Bank 与 Liskov，1997）以及 NextGen
 动态检查的类型检查器。真实语言通常用\termfirst{类型标签}{type tag}避免这样
 做：每个值携带一个机器字大小的标签，保存编译期类型在运行时留下的必要信息。
 这种标签在某些方面类似于 ML 数据类型的构造子和\taplsecref{11.10}{sec:11.10}
-的变体标签，已经足以完成动态子类型测试。\chapref{19}会详细发展一个实例。
+的变体标签，已经足以完成动态子类型测试。\chapref{19}将详细说明这种机制的
+一种具体形式。
 
 \subsection*{变体}
 
@@ -773,8 +881,9 @@ Wadler，1998）、PolyJ（Myers、Bank 与 Liskov，1997）以及 NextGen
 
 \subsection*{列表}
 
-前面已经见过多种协变的类型构造子：记录、变体，以及函数类型的结果位置；
-函数类型的参数位置则是逆变的。列表构造子也是协变的：若
+前面已经见过多种协变关系：记录字段和变体分支所携带的类型都是协变的，
+函数的返回类型也是协变的；函数的参数类型则是逆变的。列表的元素类型同样
+是协变的：若
 \(S_1\subtype T_1\)，则元素类型为 \(S_1\) 的列表可以安全地看作元素类型
 为 \(T_1\) 的列表。
 \[
@@ -792,8 +901,9 @@ Wadler，1998）、PolyJ（Myers、Bank 与 Liskov，1997）以及 NextGen
  {S_1\subtype T_1\\T_1\subtype S_1}
  {\tapltype{Ref}\ S_1\subtype\tapltype{Ref}\ T_1}
 \]
-两边元素类型必须在子类型关系下等价。这仍允许在 \(\tapltype{Ref}\) 内重排
-记录字段，却不允许更强的改变。
+只有当引用中存放的类型 \(S_1\) 与 \(T_1\) 互为子类型时，才能建立
+\(\tapltype{Ref}\ S_1\) 与 \(\tapltype{Ref}\ T_1\) 之间的子类型关系。
+这允许记录字段的排列顺序不同，却不允许改变引用实际能够保存的值。
 
 限制来自引用的读写两种用途。读取 \(\tapltype{Ref}\ T_1\) 时，上下文期望
 得到 \(T_1\)；若引用实际存放 \(S_1\)，必须有 \(S_1\subtype T_1\)。写入
@@ -837,10 +947,11 @@ Wadler，1998）、PolyJ（Myers、Bank 与 Liskov，1997）以及 NextGen
 \subsection*{再次考察引用}
 
 Reynolds 在 Forsythe（1988）中率先提出更精细的引用分析：引入
-\(\tapltype{Source}\) 和 \(\tapltype{Sink}\) 两个构造子。
-\(\tapltype{Source}\ T\) 只允许从单元读取 \(T\) 型值，
-\(\tapltype{Sink}\ T\) 只允许写入；\(\tapltype{Ref}\ T\) 同时具备两种
-能力。相应类型规则只要求所需能力：
+\(\tapltype{Source}\) 和 \(\tapltype{Sink}\) 两个构造子，分别表示对
+引用单元的读取权限和写入权限。具体而言，\(\tapltype{Source}\ T\) 只允许
+从单元读取 \(T\) 型值，\(\tapltype{Sink}\ T\) 只允许向单元写入 \(T\)
+型值；原有的 \(\tapltype{Ref}\ T\) 则同时保留这两种权限，既可读取，也可
+写入。相应类型规则只要求所需能力：
 \[
 \inferrule*[right=\textsc{T-Deref}]
  {\Gamma\vdash t_1:\tapltype{Source}\ T_{11}}
@@ -861,6 +972,25 @@ Reynolds 在 Forsythe（1988）中率先提出更精细的引用分析：引入
  {T_1\subtype S_1}
  {\tapltype{Sink}\ S_1\subtype\tapltype{Sink}\ T_1}
 \]
+
+\translatornote{
+可以把 \(\tapltype{Source}\ T\) 看作一个返回 \(T\) 型值的函数
+\(\tapltype{Unit}\to T\)，把 \(\tapltype{Sink}\ T\) 看作一个接收
+\(T\) 型值的函数 \(T\to\tapltype{Unit}\)。因此，前者与函数的返回类型
+一样协变，后者与函数的参数类型一样逆变。
+
+例如，若 \(\tapltype{Dog}\subtype\tapltype{Animal}\)，那么
+\[
+\tapltype{Sink}\ \tapltype{Animal}
+\subtype
+\tapltype{Sink}\ \tapltype{Dog}
+\]
+一个能够接收任意动物的写入口，可以安全地交给只会写入狗的程序使用。反方向
+并不安全：若把只能接收狗的入口当作能够接收任意动物的入口，使用者便可能向
+其中写入一只猫。\(\tapltype{Sink}\) 中的类型参数因而反转了原来的子类型
+方向。
+}
+
 引用则可以降为其中任一种能力：
 \[
 \inferrule*[right=\textsc{S-RefSource}]
@@ -872,11 +1002,17 @@ Reynolds 在 Forsythe（1988）中率先提出更精细的引用分析：引入
 
 \subsection*{信道}
 
-Pict 等并发语言中的信道类型采用完全相同的思路。从类型角度看，通信信道与
-引用单元一样可读可写；静态地确定哪次读对应哪次写通常很难，最简单的安全办法
-是要求信道上传递的所有值属于同一类型。只把写能力交给别人时，接收者再把它
-交给承诺只写更小类型值的人是安全的，所以输出信道构造子逆变；只交出读能力
-时，可以把它降为读取任意更大类型值的能力，所以输入信道构造子协变。
+Pict 等并发语言中的信道类型也区分读写权限，并采用与
+\(\tapltype{Source}\)、\(\tapltype{Sink}\) 相同的子类型规则。从类型角度
+看，通信信道与引用单元类似：程序既可以向信道写入（发送）值，也可以从信道
+读取（接收）值。静态分析通常很难确定某次读取会接收到哪次写入的值，因此，
+保证安全的一种简单办法是要求同一信道上传递的所有值具有相同的类型。
+
+两种信道权限的变型方向也与引用相同。若某个信道允许写入 \(S\) 型值，而
+\(T\subtype S\)，那么它可以安全地交给只会写入 \(T\) 型值的程序使用，
+因此输出信道类型构造子是逆变的。若从某个信道读出的值保证具有类型 \(S\)，
+而 \(S\subtype T\)，那么这些值也可以作为 \(T\) 型值读取，因此输入信道
+类型构造子是协变的。
 关于这种信道类型的进一步讨论，见 Pierce 与 Turner（2000）以及 Pierce 与
 Sangiorgi（1993）。
 
@@ -900,7 +1036,8 @@ Sangiorgi（1993）。
 \subsection*{子集语义的性能问题}
 
 设加入 \(\tapltype{Int}\subtype\tapltype{Float}\)，允许把整数直接用于浮点
-运算，如写 \(4.5+6\) 而不写 \(4.5+\mathit{intToFloat}(6)\)。子集语义要求
+运算。例如，原本需要写成 \(4.5+\mathit{intToFloat}(6)\) 的表达式，现在可以
+简写为 \(4.5+6\)。子集语义要求
 整数值集合确实是浮点值集合的子集。但真实机器通常用补码表示整数，用尾数、
 指数和符号位表示浮点数，还为 \(\mathsf{NaN}\)（非数）等特殊值保留编码；
 两者的具体表示完全不同。
@@ -972,10 +1109,11 @@ Sangiorgi（1993）。
 为该判断的子类型推导树；写 \(\mathcal D::\Gamma\vdash t:T\)，表示
 \(\mathcal D\) 是相应类型推导树。
 
-对子类型推导 \(\mathcal C::S\subtype T\)，翻译
-\(\llbracket\mathcal C\rrbracket\) 是目标语言中从
-\(\llbracket S\rrbracket\) 到 \(\llbracket T\rrbracket\) 的函数。
-它按 \(\mathcal C\) 的最后一条规则定义：
+设 \(\mathcal C\) 是一棵证明 \(S\subtype T\) 的子类型推导树。翻译时，
+我们把这棵推导树编译成目标语言中的一个显式转换函数
+\(\llbracket\mathcal C\rrbracket\)。该函数接收一个
+\(\llbracket S\rrbracket\) 型值，返回一个 \(\llbracket T\rrbracket\) 型值。
+具体生成什么函数，取决于推导树 \(\mathcal C\) 最后一步所用的子类型规则：
 \[
 \begin{array}{rcl}
 \llbracket\textsc{S-Refl}_T\rrbracket
@@ -1005,16 +1143,25 @@ Sangiorgi（1993）。
 
 \begin{lemma}
 \label{lem:15.6.1}
-若 \(\mathcal C::S\subtype T\)，则
-\(\vdash\llbracket\mathcal C\rrbracket:
-\llbracket S\rrbracket\to\llbracket T\rrbracket\)。
+若 \(\mathcal C\) 是 \(S\subtype T\) 的一棵合法推导树，那么由它生成的
+强制转换 \(\llbracket\mathcal C\rrbracket\) 也是目标语言中的良类型函数：
+它接收一个 \(\llbracket S\rrbracket\) 型的值，返回一个
+\(\llbracket T\rrbracket\) 型的值。即
+\[
+\vdash\llbracket\mathcal C\rrbracket:
+\llbracket S\rrbracket\to\llbracket T\rrbracket
+\]
 \end{lemma}
 \begin{proof}
 对 \(\mathcal C\) 作直接归纳。
 \end{proof}
 
-类型推导的翻译方式相似：变量翻译成自身；抽象、应用、记录和投影递归翻译
-子推导；\textsc{T-Sub} 的翻译把子类型推导生成的强制转换应用于子项翻译：
+接下来定义如何根据类型推导树生成目标语言程序。若
+\(\mathcal D::\Gamma\vdash t:T\)，则 \(\llbracket\mathcal D\rrbracket\)
+表示根据整棵推导树 \(\mathcal D\) 生成的目标语言项。普通类型规则只需递归
+翻译程序的各个子项：变量仍是自身，抽象、应用、记录和投影仍保留原有结构。
+关键是 \textsc{T-Sub}：源程序中没有写出的子类型转换会记录在这个推导节点中，
+因此翻译到不带子类型化的目标语言时，必须在这里插入相应的显式强制转换：
 \[
 \begin{array}{rcl}
 \llbracket\textsc{T-Var}_x\rrbracket&=&x\\
@@ -1035,9 +1182,18 @@ Sangiorgi（1993）。
 
 \begin{theorem}
 \label{thm:15.6.2}
-若 \(\mathcal D::\Gamma\vdash t:T\)，则
-\(\llbracket\Gamma\rrbracket\vdash
-\llbracket\mathcal D\rrbracket:\llbracket T\rrbracket\)。其中上下文逐点翻译：
+若推导树 \(\mathcal D\) 证明源语言中的项 \(t\) 在上下文 \(\Gamma\) 下
+具有类型 \(T\)，那么根据 \(\mathcal D\) 生成的目标语言项
+\(\llbracket\mathcal D\rrbracket\)，在翻译后的上下文
+\(\llbracket\Gamma\rrbracket\) 下也具有翻译后的类型
+\(\llbracket T\rrbracket\)。即
+\[
+\mathcal D::\Gamma\vdash t:T
+\quad\Longrightarrow\quad
+\llbracket\Gamma\rrbracket\vdash
+\llbracket\mathcal D\rrbracket:\llbracket T\rrbracket
+\]
+换言之，这项翻译会保持程序的类型正确性。其中，上下文中的绑定分别翻译：
 \(\llbracket\varnothing\rrbracket=\varnothing\)，且
 \(\llbracket\Gamma,x:T\rrbracket=
 \llbracket\Gamma\rrbracket,x:\llbracket T\rrbracket\)。
@@ -1047,8 +1203,8 @@ Sangiorgi（1993）。
 \cref{lem:15.6.1}。
 \end{proof}
 
-有了这些翻译，可以不再给高层语言直接定义求值规则。求值一个项时，先用高层
-类型规则和子类型规则检查它，再把类型推导翻译到低层目标语言，最后使用目标
+有了这些翻译，可以不再给高级语言直接定义求值规则。求值一个项时，先用高级
+语言的类型规则和子类型规则检查它，再把类型推导翻译到低层目标语言，最后使用目标
 语言的求值关系。某些高性能子类型语言实现确实采用这种策略（League、Shao 与
 Trifonov，1999；League、Trifonov 与 Shao，2001）。
 
@@ -1083,7 +1239,7 @@ Trifonov，1999；League、Trifonov 与 Shao，2001）。
 \((\lambda x:\tapltype{String}.\,x)\ \tapltrue\) 可以沿两条路径赋型：把
 \(\tapltype{Bool}\) 先提升到 \(\tapltype{Int}\) 再到
 \(\tapltype{String}\)，或先提升到 \(\tapltype{Float}\) 再到
-\(\tapltype{String}\)。两棵类型推导翻译出的程序分别得到
+\(\tapltype{String}\)。两棵类型推导树翻译出的程序分别得到
 \texttt{"1"} 和 \texttt{"1.000"}。程序员只写项，不写推导；若编译器内部
 选择的推导能改变程序行为，语言的行为便无法由程序员预测。
 
@@ -1129,7 +1285,7 @@ T_1\wedge T_2\subtype T_2
  {S\subtype T_1\\S\subtype T_2}
  {S\subtype T_1\wedge T_2}
 \]
-交类型还与箭头类型自然相互作用：
+交类型与箭头类型之间还满足下面的子类型关系：
 \[
 (S\to T_1)\wedge(S\to T_2)\subtype S\to(T_1\wedge T_2)
 \qquad\textsc{(S-Inter4)}
@@ -1137,9 +1293,29 @@ T_1\wedge T_2\subtype T_2
 如果一项同时具有函数类型 \(S\to T_1\) 和 \(S\to T_2\)，那么给它一个
 \(S\) 型实参后，结果同时具有 \(T_1\) 和 \(T_2\)。
 
-交类型很强：在按名调用的带子类型化和交类型的简单类型 lambda 演算中，能够
-赋型的无类型 lambda 项恰好是可规范化项，即恰好是求值会终止的项。于是，带
-交类型演算的类型重构问题（\chapref{22}）不可判定。
+下面这个事实说明了交类型的能力：在按名调用的、带子类型化和交类型的简单类型
+lambda 演算中，可以获得类型的无类型 lambda 项恰好就是可规范化项——也就
+是说，一个无类型 lambda 项能够获得某种类型，当且仅当其求值会终止。由此
+立即可知，带交类型演算的类型重构问题（\chapref{22}）不可判定。
+
+\translatornote{这里的关键是，交类型把类型重构与终止性连成了同一个判定
+问题。类型重构接收一个没有类型标注的 lambda 项，并尝试为它找到一种类型；
+若不存在这样的类型，也应给出否定答案。普通简单类型系统只能保证“能够找到
+类型的项一定会终止”，反方向并不成立。例如，\(\lambda x.\,x\,x\) 已经是
+正规形式，因为 \(x\,x\) 左侧的 \(x\) 只是变量，不会触发 \(\beta\) 规约；
+但同一个 \(x\) 在这里既要作为函数又要作为参数，普通简单类型系统无法为它
+找到一种同时满足两种用法的类型。交类型允许令
+\(x:(A\to B)\wedge A\)，于是整个抽象可获得类型
+\(((A\to B)\wedge A)\to B\)。更一般地，书中引用的结果表明：
+\[
+\text{一个无类型 lambda 项能够获得交类型}
+\quad\Longleftrightarrow\quad
+\text{它的求值会终止}
+\]
+因此，若存在一个总能完成的交类型重构算法，只需观察它能否找到类型，就能
+判断任意无类型 lambda 项的求值是否会终止。终止性不可判定，所以一般交类型
+的类型重构也不可判定。一般交类型强大的描述能力与这里的不可判定性正是同一
+件事的两个方面。}
 
 在实践中，交类型支持有限重载。例如，可以把
 \[
@@ -1153,6 +1329,14 @@ T_1\wedge T_2\subtype T_2
 type}可能更易管理（Freeman 与 Pfenning，1991；Pfenning，1993b；
 Davies，1997）。
 
+\translatornote{“精化类型”（refinement type，也常译作“细化类型”）在已有
+类型之上描述更精确的静态性质。例如，可以把一般列表类型进一步区分为非空列表
+或单元素列表，使类型检查器能够排除只会在空列表上发生的错误。不同系统表达这些
+性质的方式并不相同；现代系统常见 \(\{x:T\mid P(x)\}\) 这样的写法，表示
+满足条件 \(P\) 的 \(T\) 型值。本段所引 Freeman--Pfenning 系统只为原本已经
+通过 ML 类型检查的程序增加由程序员声明的精化信息，从而保留类型推断的可判定性；
+这正是它比一般交类型更易于实现和使用之处。}
+
 对偶的\termfirst{并类型}{union type} \(T_1\vee T_2\) 也很有用。它与和类型
 和带标签变体不同：\(T_1\vee T_2\) 只是 \(T_1\) 与 \(T_2\) 的普通值集合
 之并，不增加标明来源的标签，所以 \(\tapltype{Nat}\vee\tapltype{Nat}\)
@@ -1162,11 +1346,12 @@ Algol 68（参见 van Wijngaarden 等，1975）。近来，它还被用于 XML �
 半结构化数据库格式的类型系统（Buneman 与 Pierce，1998；Hosoya、Vouillon
 与 Pierce，2001）。
 
-互不相交的并类型与非互斥并类型在形式上的主要区别是：后者没有
-\(\mathsf{case}\) 构造。若只
+不交并类型（即和类型与带标签变体）同这里的无标签并类型相比，形式上的主要
+区别是：后者没有 \(\mathsf{case}\) 构造。若只
 知道 \(v:T_1\vee T_2\)，唯一安全的操作是对 \(T_1\) 和 \(T_2\) 都适用的
 操作。例如，若二者都是记录，只能投影共有字段。C 的无标签 union 允许执行只
-适用于任一分支的操作，正因忽略这项限制而成为类型安全漏洞的来源。
+适用于其中一种类型的操作，即使其中实际存放的值来自另一种类型；这种做法忽略
+了上述限制，因而会破坏类型安全。
 
 \section{说明}
 \label{sec:15.8}

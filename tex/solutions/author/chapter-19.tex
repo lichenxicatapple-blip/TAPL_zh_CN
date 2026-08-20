@@ -76,6 +76,17 @@ Java 使用以下两条受限规则：
 \]
 这些规则看起来合理，却无法与 FJ 所用的小步操作语义良好配合：类型保持性
 实际上不成立，很容易构造反例。
+
+\translatornote{这里所说的是求值前后保留完全相同类型的通常形式。设
+\(B\subtype A\)，则
+\[
+\mathsf{true}\ ?\ \mathsf{new}\ B()\ :\ \mathsf{new}\ A()
+\]
+由第一条规则取得类型 \(A\)，却会单步求值为 \(\mathsf{new}\ B()\)。算法式
+类型关系只能为后者算出最小类型 \(B\)；由于系统没有 T-Sub，无法再导出它具有
+类型 \(A\)，所以通常形式的保持性失败。\cref{thm:19.5.1}采用了较弱的结论，
+允许求值后的类型 \(C'\) 是原类型 \(C\) 的子类型；在这种表述下，上述例子得到
+的 \(B\subtype A\) 正好满足要求。}
 \end{enumerate}
 
 \taplsolutionbacklink{ex:19.4.6}{返回练习19.4.6}
@@ -106,6 +117,12 @@ Java 使用以下两条受限规则：
 证明主定理前，先建立几个辅助引理。与以往一样，关键是把类型判断与替换联系
 起来的引理 A.14。
 
+\translatornote{这份证明分为两层。引理 A.13 保证继承不会改变已有方法的类型；
+引理 A.14 说明把类型符合要求的实参替换进项以后，所得项仍然良类型；引理 A.15
+与 A.16 则为方法调用准备环境和方法体所需的条件。主证明随后对单步求值规则作
+归纳。除方法调用与类型转换外，各情形基本都是对发生求值的子项使用归纳假设，
+再应用原来的外层类型规则。}
+
 \medskip
 \textbf{引理 A.13}
 若
@@ -115,9 +132,10 @@ Java 使用以下两条受限规则：
 
 \textit{证明。}
 对 \(C\subtype D\) 的推导作直接归纳。若
-\(CT(C)=\mathsf{class}\ C\ \mathsf{extends}\ E\{\ldots\}\)，无论
-\(m\) 是否在 \(CT(C)\) 中定义，
-\(\mathit{mtype}(m,C)\) 都应与 \(\mathit{mtype}(m,E)\) 相同。
+\(CT(C)=\mathsf{class}\ C\ \mathsf{extends}\ E\{\ldots\}\)，则分两种情况。
+若 \(m\) 未在 \(C\) 中定义，方法类型查找会继续到父类 \(E\)；若 \(m\) 在
+\(C\) 中重新定义，类表的良构条件要求它保持从 \(E\) 继承的方法签名。因此两种
+情况下都有 \(\mathit{mtype}(m,C)=\mathit{mtype}(m,E)\)，再应用归纳假设即可。
 
 \medskip
 \textbf{引理 A.14（项替换保持类型）}
@@ -153,8 +171,10 @@ Java 使用以下两条受限规则：
  \qquad D=C_i
 \]
 由归纳假设，存在 \(C_0\subtype D_0\)，使
-\(\Gamma\vdash[\overline x\mapsto\overline s]t_0:C_0\)。容易验证，对某个
-字段类型序列 \(\overline D\)，有
+\(\Gamma\vdash[\overline x\mapsto\overline s]t_0:C_0\)。因为
+\(C_0\subtype D_0\)，\(C_0\) 会继承 \(D_0\) 的全部字段，并且这些字段的
+标签和类型保持不变；\(C_0\) 只能在其后增加字段。因此对某个字段类型序列
+\(\overline D\)，有
 \[
  \mathit{fields}(C_0)=
  \mathit{fields}(D_0),\overline D\ \overline g
@@ -219,18 +239,20 @@ Java 使用以下两条受限规则：
 \(\Gamma,\overline x:\overline B\vdash t_0:C\)、\(D\subtype C\)、
 \(D\ne C\)。归纳假设给出 \(E\subtype C\)，满足
 \(\Gamma\vdash[\overline x\mapsto\overline s]t_0:E\)。若
-\(E\subtype D\) 或 \(D\subtype E\)，分别用 T-UCast 或 T-DCast 得到结果；
-若 \(D\nsubtype E\) 且 \(E\nsubtype D\)，则由 T-SCast 得到结果，并产生一条
-荒谬转换警告。
+\(E\subtype D\)，使用 T-UCast；否则，若 \(D\subtype E\)，使用 T-DCast
+（此时由 \(E\nsubtype D\) 可知 \(D\ne E\)）；若两个方向都不存在子类型关系，
+则由 T-SCast 得到结果，并产生一条荒谬转换警告。
 
 \textbf{情形 T-SCast：}
 \(t=(D)t_0\)，且
 \(\Gamma,\overline x:\overline B\vdash t_0:C\)、\(D\nsubtype C\)、
 \(C\nsubtype D\)。归纳假设给出 \(E\subtype C\)，满足
-\(\Gamma\vdash[\overline x\mapsto\overline s]t_0:E\)。由 FJ 中每个类只有
-一个直接超类可知 \(E\nsubtype D\)：否则若同时有 \(E\subtype C\) 和
-\(E\subtype D\)，则 \(C\subtype D\) 与 \(D\subtype C\) 中必有一个成立，
-与前提矛盾。因此可用 T-SCast 得到结果，并产生荒谬转换警告。
+\(\Gamma\vdash[\overline x\mapsto\overline s]t_0:E\)。首先，
+\(D\nsubtype E\)：否则由 \(E\subtype C\) 和传递性就会得到
+\(D\subtype C\)，与前提矛盾。其次，\(E\nsubtype D\)：若同时有
+\(E\subtype C\) 和 \(E\subtype D\)，由于 FJ 采用单继承，\(E\) 的所有祖先类
+位于同一条继承链上，因而 \(C\) 与 \(D\) 必有一个是另一个的子类型，同样与前提
+矛盾。因此可用 T-SCast 得到结果，并产生荒谬转换警告。
 
 \medskip
 \textbf{引理 A.15（弱化）}
@@ -256,11 +278,15 @@ Java 使用以下两条受限规则：
 \textit{证明。}
 对 \(\mathit{mbody}(m,C_0)\) 的推导作归纳。基例中 \(m\) 就定义在
 \(C_0\) 内；类表良构保证 T-Method 已经导出
-\(\overline x:\overline D,\mathsf{this}:C_0\vdash t:C\)。归纳步骤同样
-直接。
+\(\overline x:\overline D,\mathsf{this}:C_0\vdash t:C\)，此时取
+\(D_0=C_0\) 即可。归纳步骤中，若 \(m\) 未在 \(C_0\) 中定义，方法体查找会
+转向其父类 \(E\)，方法类型查找同样满足
+\(\mathit{mtype}(m,C_0)=\mathit{mtype}(m,E)\)。因此可以对
+\(\mathit{mbody}(m,E)\) 应用归纳假设；再结合 \(C_0\subtype E\) 与传递性，
+就得到所需的 \(C_0\subtype D_0\)。
 
-现在证明类型安全性定理。对 \(t\trans t'\) 的推导作归纳，并按最后使用的规则
-分类。倒数第二个 T-DCast 子情形会产生荒谬转换警告。
+现在证明保持性定理。对 \(t\trans t'\) 的推导作归纳，并按最后使用的规则
+分类。倒数第二个子情形（T-DCast）可能产生新的荒谬转换警告。
 
 \textbf{情形 E-ProjNew：}
 设
@@ -316,7 +342,9 @@ T-DCast 结束，就会与 \(C_0\subtype D\) 矛盾。T-UCast 的前提给出
 \(\Gamma\vdash\mathsf{new}\ C_0(\overline v):C_0\) 与 \(D=C\)，所以取
 \(C'=C_0\) 即可。
 
-同余规则的情形都很直接，只展示 E-Cast。设
+对于同余规则，对发生求值的子项使用归纳假设，再重新应用相应的外层类型规则
+即可。类型转换稍有不同：子项求值后可能得到更具体的类型，因而适用的转换规则
+也可能改变。这里只展示 E-Cast。设
 \(t=(D)t_0\)、\(t'=(D)t_0'\)、\(t_0\trans t_0'\)。根据原推导最后使用
 的类型规则，分三种子情形。
 
@@ -329,15 +357,18 @@ T-DCast 结束，就会与 \(C_0\subtype D\) 矛盾。T-UCast 的前提给出
 \textbf{子情形 T-DCast：}
 已知 \(\Gamma\vdash t_0:C_0\)、\(D\subtype C_0\)、\(D=C\)。归纳假设
 给出 \(C_0'\subtype C_0\)，使 \(\Gamma\vdash t_0':C_0'\)。若
-\(C_0'\subtype C\) 或 \(C\subtype C_0'\)，分别用 T-UCast 或 T-DCast，
-不增加荒谬转换警告；若两边都不是子类型，则用 T-SCast，并产生一条荒谬转换
-警告。
+\(C_0'\subtype C\)，使用 T-UCast；否则，若 \(C\subtype C_0'\)，使用
+T-DCast（此时 \(C\ne C_0'\)）；这两种情况都不增加荒谬转换警告。若两个方向
+都不存在子类型关系，则用 T-SCast，并产生一条荒谬转换警告。
 
 \textbf{子情形 T-SCast：}
 已知 \(\Gamma\vdash t_0:C_0\)、\(D\nsubtype C_0\)、\(C_0\nsubtype D\)、
 \(D=C\)。归纳假设给出 \(C_0'\subtype C_0\)，使
-\(\Gamma\vdash t_0':C_0'\)。于是仍有
-\(C_0'\nsubtype C\) 与 \(C\nsubtype C_0'\)，所以 T-SCast 导出
+\(\Gamma\vdash t_0':C_0'\)。若 \(C\subtype C_0'\)，由
+\(C_0'\subtype C_0\) 和传递性会得到 \(C\subtype C_0\)，与原前提矛盾，
+所以 \(C\nsubtype C_0'\)。若 \(C_0'\subtype C\)，那么 \(C_0'\) 同时以
+\(C_0\) 和 \(C\) 为祖先；由单继承可知 \(C_0\) 与 \(C\) 必可比较，也与原
+前提矛盾，所以 \(C_0'\nsubtype C\)。因此 T-SCast 导出
 \(\Gamma\vdash(C)t_0':C\)，并保留荒谬转换警告。
 
 \taplsolutionbacklink{thm:19.5.1}{返回定理19.5.1}

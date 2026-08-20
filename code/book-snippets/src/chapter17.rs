@@ -149,6 +149,9 @@ pub enum JoinTypeError {
 // TAPL-SNIPPET-END: sol-author-17-join-support
 
 // TAPL-SNIPPET-BEGIN: sol-author-17-join
+/// 计算两个类型的最小公共超类型（并）。
+/// 结果同时是两个输入类型的超类型，并且在所有公共超类型中尽可能小；
+/// 条件式用它合并两个分支的类型。
 pub fn join(left: &JoinType, right: &JoinType) -> JoinType {
     match (left, right) {
         (JoinType::Bool, JoinType::Bool) => JoinType::Bool,
@@ -174,6 +177,9 @@ pub fn join(left: &JoinType, right: &JoinType) -> JoinType {
 // TAPL-SNIPPET-END: sol-author-17-join
 
 // TAPL-SNIPPET-BEGIN: sol-author-17-meet
+/// 计算两个类型的最大公共子类型（交）。
+/// 结果同时是两个输入类型的子类型，并且在所有公共子类型中尽可能大；
+/// 当前类型语言无法表示这样的类型时返回 `None`。
 pub fn meet(left: &JoinType, right: &JoinType) -> Option<JoinType> {
     match (left, right) {
         (JoinType::Top, other) | (other, JoinType::Top) => Some(other.clone()),
@@ -204,6 +210,8 @@ pub fn meet(left: &JoinType, right: &JoinType) -> Option<JoinType> {
 // TAPL-SNIPPET-END: sol-author-17-meet
 
 // TAPL-SNIPPET-BEGIN: sol-author-17-conditional-type
+/// 计算布尔值与条件式扩展中的项类型。
+/// 条件式的守卫必须具有 `Bool` 类型，整个条件式的类型是两个分支类型的并。
 pub fn extended_type_of(term: &JoinTerm) -> Result<JoinType, JoinTypeError> {
     match term {
         JoinTerm::True | JoinTerm::False => Ok(JoinType::Bool),
@@ -222,39 +230,47 @@ pub fn extended_type_of(term: &JoinTerm) -> Result<JoinType, JoinTypeError> {
 }
 // TAPL-SNIPPET-END: sol-author-17-conditional-type
 
-// TAPL-SNIPPET-BEGIN: sol-translator-17-diagnostics
+// TAPL-SNIPPET-BEGIN: sol-translator-17-diagnostic-error
+/// 描述子类型检查和类型检查失败的准确位置与原因。
+///
+/// 与只返回 `false` 的子类型判断不同，这些变体会保存沿嵌套记录或函数类型
+/// 走过的路径，以及出错位置的实际类型和预期类型。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DiagnosticError {
+    /// 源记录缺少目标记录要求的字段。
     MissingSubtypeField {
         path: Vec<String>,
         label: String,
         source: Type,
         target: Type,
     },
+    /// 对应位置的类型构造不同，例如一侧是记录而另一侧是函数。
     ShapeMismatch {
         path: Vec<String>,
         source: Type,
         target: Type,
     },
-    UnboundVariable {
-        index: usize,
-        context_len: usize,
-    },
-    MissingProjectionField {
-        label: String,
-        record: Type,
-    },
+    /// de Bruijn 索引超出了当前上下文。
+    UnboundVariable { index: usize, context_len: usize },
+    /// 投影所选字段不存在。
+    MissingProjectionField { label: String, record: Type },
+    /// 投影的左侧不是记录。
     ExpectedRecord(Type),
+    /// 应用的左侧不是函数。
     ExpectedFunction(Type),
+    /// 应用实参不满足函数参数类型；内部错误保留具体的子类型失败原因。
     ParameterMismatch(Box<DiagnosticError>),
 }
+// TAPL-SNIPPET-END: sol-translator-17-diagnostic-error
 
+/// 在嵌套类型路径后追加一个分量，并保持调用者传入的路径不变。
 fn extend_path(path: &[String], part: impl Into<String>) -> Vec<String> {
     let mut extended = path.to_vec();
     extended.push(part.into());
     extended
 }
 
+/// 把诊断路径格式化为面向读者的字段路径。
 fn diagnostic_path(path: &[String]) -> String {
     if path.is_empty() {
         "<root>".to_owned()
@@ -311,6 +327,11 @@ impl std::fmt::Display for DiagnosticError {
     }
 }
 
+// TAPL-SNIPPET-BEGIN: sol-translator-17-diagnostic-subtype
+/// 检查 `source <: target`，并在首次失败的位置返回结构化诊断。
+///
+/// `path` 记录递归检查已经进入的字段或函数位置；调用入口通常传入空切片。
+/// 函数参数沿逆变方向递归，函数结果和记录字段沿协变方向递归。
 pub fn check_subtype(path: &[String], source: &Type, target: &Type) -> Result<(), DiagnosticError> {
     if source == target {
         return Ok(());
@@ -343,7 +364,35 @@ pub fn check_subtype(path: &[String], source: &Type, target: &Type) -> Result<()
         }),
     }
 }
+// TAPL-SNIPPET-END: sol-translator-17-diagnostic-subtype
 
+// TAPL-SNIPPET-BEGIN: sol-translator-17-diagnostic-app
+/// 检查一个应用项并返回其结果类型。
+///
+/// 这里先分别计算函数与实参的类型，再用带路径的子类型检查验证实参；失败时
+/// `ParameterMismatch` 会保留内部的字段路径或类型构造差异。
+fn diagnostic_application_type(
+    context: &Context,
+    function: &Term,
+    argument: &Term,
+) -> Result<Type, DiagnosticError> {
+    let function_type = diagnostic_type_of(context, function)?;
+    let argument_type = diagnostic_type_of(context, argument)?;
+    match function_type {
+        Type::Arrow(parameter_type, result_type) => {
+            check_subtype(&[], &argument_type, &parameter_type)
+                .map_err(|error| DiagnosticError::ParameterMismatch(Box::new(error)))?;
+            Ok(*result_type)
+        }
+        other => Err(DiagnosticError::ExpectedFunction(other)),
+    }
+}
+// TAPL-SNIPPET-END: sol-translator-17-diagnostic-app
+
+/// 计算项的类型，并把变量、投影、应用和子类型失败转换为精确诊断。
+///
+/// 返回值与本章正文的 `type_of` 相同；区别只在于错误分支保留了足以定位问题的
+/// 类型和路径信息。
 pub fn diagnostic_type_of(context: &Context, term: &Term) -> Result<Type, DiagnosticError> {
     match term {
         Term::Record(fields) => fields
@@ -380,20 +429,10 @@ pub fn diagnostic_type_of(context: &Context, term: &Term) -> Result<Type, Diagno
             ))
         }
         Term::Application(function, argument) => {
-            let function_type = diagnostic_type_of(context, function)?;
-            let argument_type = diagnostic_type_of(context, argument)?;
-            match function_type {
-                Type::Arrow(parameter_type, result_type) => {
-                    check_subtype(&[], &argument_type, &parameter_type)
-                        .map_err(|error| DiagnosticError::ParameterMismatch(Box::new(error)))?;
-                    Ok(*result_type)
-                }
-                other => Err(DiagnosticError::ExpectedFunction(other)),
-            }
+            diagnostic_application_type(context, function, argument)
         }
     }
 }
-// TAPL-SNIPPET-END: sol-translator-17-diagnostics
 
 // TAPL-SNIPPET-BEGIN: sol-translator-17-coercion-support
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -422,6 +461,12 @@ pub enum TranslationError {
     ExpectedFunction(Type),
 }
 
+/// 把源语言类型递归映射为不含子类型关系的目标语言类型。
+///
+/// 翻译结果用于目标项的类型标注、目标语言上下文，以及 `coerce` 所生成函数的
+/// 输入和输出类型。这个函数只改变类型的表示，不构造实际的值转换；`Top` 被
+/// 擦除为只有一个值的 `Unit`，箭头与记录则递归翻译其组成部分。实际的值转换
+/// 由 `coerce` 生成。
 pub fn translate_type(source: &Type) -> TargetType {
     match source {
         Type::Top => TargetType::Unit,
@@ -440,8 +485,13 @@ pub fn translate_type(source: &Type) -> TargetType {
 // TAPL-SNIPPET-END: sol-translator-17-coercion-support
 
 // TAPL-SNIPPET-BEGIN: sol-translator-17-coercion
+/// 根据 `source <: target` 构造一个显式强制转换函数。
+///
+/// 返回的目标项具有 `translate_type(source) -> translate_type(target)` 类型。
+/// 若源类型并非目标类型的子类型，则返回 `TranslationError::NotSubtype`。
 pub fn coerce(source: &Type, target: &Type) -> Result<TargetTerm, TranslationError> {
     let source_target_type = translate_type(source);
+    // 相同类型之间的强制转换就是恒等函数。
     if source == target {
         return Ok(TargetTerm::Abstraction(
             source_target_type,
@@ -449,13 +499,30 @@ pub fn coerce(source: &Type, target: &Type) -> Result<TargetTerm, TranslationErr
         ));
     }
     match (source, target) {
+        // `Top` 翻译成 `Unit`，因此转换只需丢弃输入并返回 `unit`。
         (_, Type::Top) => Ok(TargetTerm::Abstraction(
             source_target_type,
             Box::new(TargetTerm::Unit),
         )),
         (Type::Arrow(source_in, source_out), Type::Arrow(target_in, target_out)) => {
+            // 要把原函数 f : source_in -> source_out 包装成
+            // target_in -> target_out，箭头子类型规则要求：
+            //
+            //   target_in <: source_in
+            //   source_out <: target_out
+            //
+            // 因此生成的包装函数具有以下结构：
+            //
+            //   lambda f. lambda x.
+            //     output_coercion (f (input_coercion x))
+            //
+            // 新函数收到 target_in 型参数 x，先把它转换成原函数能够接受的
+            // source_in；原函数返回 source_out 后，再转换成承诺的 target_out。
             let input_coercion = coerce(target_in, source_in)?;
             let output_coercion = coerce(source_out, target_out)?;
+
+            // 两层抽象依次绑定 f 和 x。在最内层函数体中，Variable(0) 是 x，
+            // Variable(1) 是外层的 f。
             Ok(TargetTerm::Abstraction(
                 translate_type(source),
                 Box::new(TargetTerm::Abstraction(
@@ -474,16 +541,32 @@ pub fn coerce(source: &Type, target: &Type) -> Result<TargetTerm, TranslationErr
             ))
         }
         (Type::Record(source_fields), Type::Record(target_fields)) => {
+            // 目标语言没有记录子类型规则，因此不能直接把带有额外字段的源记录
+            // 当作目标记录使用。这里生成如下形式的包装函数：
+            //
+            //   lambda r. {
+            //     l1 = c1 (r.l1),
+            //     ...
+            //   }
+            //
+            // 输出必须恰好提供目标类型要求的字段，所以遍历 target_fields；
+            // 源记录的额外字段被丢弃，这对应记录宽度子类型化。
             let translated_fields = target_fields
                 .iter()
                 .map(|(label, target_type)| {
+                    // 每个目标字段都必须能在源记录中找到同名字段。
                     let (_, source_type) = source_fields
                         .iter()
                         .find(|(source_label, _)| source_label == label)
                         .ok_or_else(|| TranslationError::MissingField(label.clone()))?;
+
+                    // 保留下来的字段也可能需要从 source_type 转成 target_type；
+                    // 这对应记录深度子类型化。
                     let field_coercion = coerce(source_type, target_type)?;
                     Ok((
                         label.clone(),
+                        // 当前只有一层 lambda，Variable(0) 就是源记录 r。
+                        // 这一项表示 c_i (r.l_i)。
                         TargetTerm::Application(
                             Box::new(field_coercion),
                             Box::new(TargetTerm::Projection(
@@ -508,6 +591,45 @@ pub fn coerce(source: &Type, target: &Type) -> Result<TargetTerm, TranslationErr
 // TAPL-SNIPPET-END: sol-translator-17-coercion
 
 // TAPL-SNIPPET-BEGIN: sol-translator-17-translate
+/// 翻译函数应用，并在实参外显式插入所需的强制转换。
+///
+/// 返回值同时给出目标语言中的结果类型和应用项。其余项构造由
+/// `translate_term` 逐层递归翻译。
+fn translate_application(
+    context: &Context,
+    function: &Term,
+    argument: &Term,
+) -> Result<(TargetType, TargetTerm), TranslationError> {
+    let source_function_type =
+        type_of(context, function).map_err(|_| TranslationError::ExpectedFunction(Type::Top))?;
+    let source_argument_type =
+        type_of(context, argument).map_err(|_| TranslationError::ExpectedFunction(Type::Top))?;
+    let (_, function_term) = translate_term(context, function)?;
+    let (_, argument_term) = translate_term(context, argument)?;
+    match source_function_type {
+        Type::Arrow(parameter_type, result_type) => {
+            // 把实参从其实际类型显式转换为函数要求的参数类型。
+            let argument_coercion = coerce(&source_argument_type, &parameter_type)?;
+            Ok((
+                translate_type(&result_type),
+                TargetTerm::Application(
+                    Box::new(function_term),
+                    Box::new(TargetTerm::Application(
+                        Box::new(argument_coercion),
+                        Box::new(argument_term),
+                    )),
+                ),
+            ))
+        }
+        other => Err(TranslationError::ExpectedFunction(other)),
+    }
+}
+// TAPL-SNIPPET-END: sol-translator-17-translate
+
+/// 翻译一个源语言项，同时返回其目标类型与插入强制转换后的目标项。
+///
+/// 结构相同的语法形式递归翻译；函数应用是关键情形，其中实参会先被转换为
+/// 函数参数所要求的类型。
 pub fn translate_term(
     context: &Context,
     term: &Term,
@@ -571,35 +693,11 @@ pub fn translate_term(
                 TargetTerm::Abstraction(parameter_target_type, Box::new(body_term)),
             ))
         }
-        Term::Application(function, argument) => {
-            let source_function_type = type_of(context, function)
-                .map_err(|_| TranslationError::ExpectedFunction(Type::Top))?;
-            let source_argument_type = type_of(context, argument)
-                .map_err(|_| TranslationError::ExpectedFunction(Type::Top))?;
-            let (_, function_term) = translate_term(context, function)?;
-            let (_, argument_term) = translate_term(context, argument)?;
-            match source_function_type {
-                Type::Arrow(parameter_type, result_type) => {
-                    let argument_coercion = coerce(&source_argument_type, &parameter_type)?;
-                    Ok((
-                        translate_type(&result_type),
-                        TargetTerm::Application(
-                            Box::new(function_term),
-                            Box::new(TargetTerm::Application(
-                                Box::new(argument_coercion),
-                                Box::new(argument_term),
-                            )),
-                        ),
-                    ))
-                }
-                other => Err(TranslationError::ExpectedFunction(other)),
-            }
-        }
+        Term::Application(function, argument) => translate_application(context, function, argument),
     }
 }
-// TAPL-SNIPPET-END: sol-translator-17-translate
 
-// TAPL-SNIPPET-BEGIN: sol-translator-17-target-eval-support
+/// 在目标项中移动自由变量索引；`cutoff` 以下的索引受当前绑定子保护。
 fn target_shift_walk(distance: isize, cutoff: usize, term: &TargetTerm) -> TargetTerm {
     match term {
         TargetTerm::Unit => TargetTerm::Unit,
@@ -631,10 +729,12 @@ fn target_shift_walk(distance: isize, cutoff: usize, term: &TargetTerm) -> Targe
     }
 }
 
+/// 从最外层开始移动目标项中的自由变量索引。
 fn target_shift(distance: isize, term: &TargetTerm) -> TargetTerm {
     target_shift_walk(distance, 0, term)
 }
 
+/// 在目标项中执行避免捕获的 de Bruijn 替换。
 fn target_substitute_walk(
     variable: usize,
     replacement: &TargetTerm,
@@ -693,12 +793,14 @@ fn target_substitute_walk(
     }
 }
 
+/// 用给定项替换目标函数体最外层绑定的变量。
 fn target_substitute_top(replacement: &TargetTerm, body: &TargetTerm) -> TargetTerm {
     let lifted = target_shift(1, replacement);
     let substituted = target_substitute_walk(0, &lifted, 0, body);
     target_shift(-1, &substituted)
 }
 
+/// 判断目标项是否已是按值求值策略下的值。
 fn target_is_value(term: &TargetTerm) -> bool {
     match term {
         TargetTerm::Unit | TargetTerm::Abstraction(_, _) => true,
@@ -706,9 +808,8 @@ fn target_is_value(term: &TargetTerm) -> bool {
         _ => false,
     }
 }
-// TAPL-SNIPPET-END: sol-translator-17-target-eval-support
 
-// TAPL-SNIPPET-BEGIN: sol-translator-17-target-eval
+/// 对翻译后的目标项执行一步按值求值。
 pub fn target_eval1(term: &TargetTerm) -> Option<TargetTerm> {
     match term {
         TargetTerm::Application(function, argument) => {
@@ -752,6 +853,7 @@ pub fn target_eval1(term: &TargetTerm) -> Option<TargetTerm> {
     }
 }
 
+/// 反复执行单步求值，直到目标项成为值或无法继续求值。
 pub fn target_eval(term: &TargetTerm) -> TargetTerm {
     let mut current = term.clone();
     while let Some(next) = target_eval1(&current) {
@@ -759,8 +861,8 @@ pub fn target_eval(term: &TargetTerm) -> TargetTerm {
     }
     current
 }
-// TAPL-SNIPPET-END: sol-translator-17-target-eval
 
+/// 检查目标项的类型；测试用它验证翻译确实消除了子类型规则。
 fn target_type_of(context: &[TargetType], term: &TargetTerm) -> Option<TargetType> {
     match term {
         TargetTerm::Unit => Some(TargetType::Unit),
@@ -975,6 +1077,7 @@ mod tests {
         );
     }
 
+    // TAPL-SNIPPET-BEGIN: sol-translator-17-example
     #[test]
     fn coercion_translation_is_typed_and_evaluates() {
         let function = Term::Abstraction(
@@ -995,4 +1098,5 @@ mod tests {
         );
         assert_eq!(target_eval(&translated_term), TargetTerm::Unit);
     }
+    // TAPL-SNIPPET-END: sol-translator-17-example
 }

@@ -11,9 +11,10 @@
 \label{sec:16-overview}
 
 上一章定义的带子类型化简单类型 lambda 演算还不适合直接实现。与此前的演算
-不同，这套规则不是\termfirst{语法导向的}{syntax directed}：不能简单地从
-结论向前提读取规则，直接得到类型检查算法。主要问题来自类型关系中的包容规则
-\textsc{T-Sub} 和子类型关系中的传递规则 \textsc{S-Trans}。
+不同，这套规则不是\termfirst{语法导向的}{syntax directed}：给定一个待检查的
+结论时，无法总是唯一确定应采用哪条规则，也无法总是由结论直接确定其前提。
+因此，不能直接把这些推导规则倒着执行，将其作为类型检查算法。主要问题来自
+类型关系中的包容规则 \textsc{T-Sub} 和子类型关系中的传递规则 \textsc{S-Trans}。
 
 \textsc{T-Sub} 的结论只把项写成不带任何结构限制的元变量 \(t\)：
 \[
@@ -52,8 +53,9 @@
 
 \taplsecref{16.1}{sec:16.1}构造算法子类型关系，
 \taplsecref{16.2}{sec:16.2}构造算法类型关系。
-\taplsecref{16.3}{sec:16.3}处理\cref{fig:8-1}中的布尔值、条件式等多分支构造；它们还需要子类型关系
-具有最小公共超类型，即并。\taplsecref{16.4}{sec:16.4}讨论最小类型
+\taplsecref{16.3}{sec:16.3}加入\cref{fig:8-1}中的布尔值与条件式。为条件式
+赋型时，还需要计算两个分支类型的最小公共超类型；这个类型称为二者的并。
+\taplsecref{16.4}{sec:16.4}讨论最小类型
 \(\tapltype{Bot}\)。\footnote{本章研究\cref{fig:15-1,fig:15-3}中的演算。
 原书相应 OCaml 实现为 \texttt{rcdsub}；\taplsecref{16.3}{sec:16.3}
 加入布尔值与条件式，相应实现为 \texttt{joinsub}；
@@ -72,9 +74,11 @@
 \[
   \algturnstile S\subtype T
 \]
-读作“\(S\) 在算法关系下是 \(T\) 的子类型”。该关系按类型结构即可判定，
-而且包含的类型对与声明式子类型关系完全相同。两者最明显的区别是：算法关系
-没有 \textsc{S-Trans} 和 \textsc{S-Refl}。
+读作“\(S\) 在算法关系下是 \(T\) 的子类型”。算法可以根据 \(S\) 与 \(T\)
+的类型结构选择规则，再递归检查它们的组成部分。虽然算法关系使用的规则与
+声明式关系不同，但二者给出的判断结果完全相同：声明式关系能够证明
+\(S\subtype T\)，当且仅当算法关系也能判定 \(S\subtype T\)。两者最明显的
+区别是，算法关系没有 \textsc{S-Trans} 和 \textsc{S-Refl}。
 
 不过，在删去传递规则之前，先要重组记录子类型规则。如
 \taplsecref{15.2}{sec:15.2}所见，宽度、深度和
@@ -109,7 +113,6 @@
 \small
 \taplfigureheader{{\Large \(<:\)}}
   {\cref{fig:15-1,fig:15-3}}
-\taplformalsystemcolumns{
 \[
 \inferrule*[right=\textsc{S-Refl}]{ }{S\subtype S}
 \]
@@ -120,7 +123,6 @@
 \[
 \inferrule*[right=\textsc{S-Top}]{ }{S\subtype\tapltype{Top}}
 \]
-}{
 \[
 \inferrule*[right=\textsc{S-Arrow}]
  {T_1\subtype S_1\\S_2\subtype T_2}
@@ -133,21 +135,21 @@
  {\{k_j:S_j\}^{j\in1..m}\subtype
   \{l_i:T_i\}^{i\in1..n}}
 \]
-}
 \end{minipage}
 \caption{带记录的子类型关系（紧凑版本）}
 \label{fig:16-1}
 \end{figure}
 \FloatBarrier
 
-下面证明，在\cref{fig:16-1}的系统中，反身和传递规则并非必需。
+下面证明，在\cref{fig:16-1}的系统中，自反规则和传递规则并非必需。
 
 \begin{lemma}
 \label{lem:16.1.2}
 \begin{enumerate}
 \item 对每个类型 \(S\)，不用 \textsc{S-Refl} 也能导出
   \(S\subtype S\)。
-\item 若 \(S\subtype T\) 可导出，则不用 \textsc{S-Trans} 也能导出它。
+\item 若判断 \(S\subtype T\) 能由\cref{fig:16-1}中的规则导出，那么还存在
+  一份不使用 \textsc{S-Trans} 的推导，其结论仍为 \(S\subtype T\)。
 \end{enumerate}
 \end{lemma}
 \begin{proof}
@@ -173,12 +175,10 @@
 \small
 \taplfigureheaderplain{\(\algturnstile S\subtype T\)}
   {\tapltranslateditalic{算法子类型关系}}
-\taplformalsystemcolumns{
 \[
 \inferrule*[right=\textsc{SA-Top}]
  { }{\algturnstile S\subtype\tapltype{Top}}
 \]
-}{
 \[
 \inferrule*[right=\textsc{SA-Rcd}]
  {\{l_i\mid i\in1..n\}\subseteq\{k_j\mid j\in1..m\}\\
@@ -192,16 +192,16 @@
   \algturnstile S_2\subtype T_2}
  {\algturnstile S_1\to S_2\subtype T_1\to T_2}
 \]
-}
 \end{minipage}
 \caption{算法子类型关系}
 \label{fig:16-2}
 \end{figure}
 \FloatBarrier
 
-算法规则称为\emph{可靠的}，因为它导出的每个判断也能由声明式规则导出，
-不会证明任何新增判断；称为\emph{完备的}，因为声明式规则能导出的每个判断，
-算法规则也能导出。
+算法规则的\emph{可靠性}是指：它导出的每个判断也能由声明式规则导出；换言之，
+算法不会错误接受声明式规则无法证明的判断。算法规则的\emph{完备性}是指：
+声明式规则能够导出的每个判断，算法规则也能导出；换言之，声明式系统认可的
+判断不会被算法遗漏。
 
 \begin{proposition}[可靠性与完备性]
 \label{prop:16.1.5}
@@ -215,7 +215,7 @@
 两个方向都对推导作归纳，分别使用\cref{lem:16.1.1,lem:16.1.2}。
 \end{proof}
 
-算法规则已经可以直接读成子类型检查算法：
+现在可以把这些算法规则逐条转写为子类型检查算法：
 \begin{lstlisting}
 subtype(S, T) =
   if T = Top then true
@@ -237,10 +237,18 @@ subtype(S, T) =
 \(\mathsf{subtype}(S,T)\) 返回 \texttt{true}；否则返回 \texttt{false}。
 \end{proposition}
 \begin{proof}
-若算法返回 \texttt{true}，按算法分支作直接归纳即可构造
-\(\algturnstile S\subtype T\) 的推导；反方向同理。因此只需排除算法发散。
-每次递归调用都会让两个输入类型的大小之和严格减小，而该和始终为正，所以
-不可能产生无限递归调用序列。
+首先，若算法子类型判断 \(\algturnstile S\subtype T\) 可导出，则对这份
+推导作归纳，可以验证 \(\mathsf{subtype}(S,T)\) 会沿着相应的算法分支执行并
+返回 \texttt{true}。反过来，若 \(\mathsf{subtype}(S,T)\) 返回
+\texttt{true}，根据它所经过的分支递归构造推导，也能得到
+\(\algturnstile S\subtype T\)。
+
+现在考虑该判断不可导出的情况。根据上面的结论，算法不可能返回
+\texttt{true}；要证明它一定返回 \texttt{false}，还需排除无限递归。把类型
+的大小理解为其语法树中构造节点的数量。算法每次递归调用时，传入的都是原类型的
+组成部分，因此两个输入类型的大小之和都会严格减小。这个和始终是正整数，所以
+不可能存在无限的递归调用序列。算法必定终止；既然不能返回 \texttt{true}，
+就只能返回 \texttt{false}。
 \end{proof}
 
 \cref{prop:16.1.5,prop:16.1.6}共同说明
@@ -249,14 +257,14 @@ subtype(S, T) =
 
 也可以一开始就把算法关系当作子类型关系的正式定义，完全不提声明式版本。
 不过，这并不能省去多少工作：为了证明依赖子类型关系的类型系统具有良好性质，
-仍需证明算法子类型关系具有反身性和传递性，工作量与本节相近。实际语言定义
+仍需证明算法子类型关系具有自反性和传递性，工作量与本节相近。实际语言定义
 有时确实直接采用算法式类型规则；\chapref{19}就是一个例子。
 
 \section{算法类型关系}
 \label{sec:16.2}
 
 处理好子类型关系后，还要以同样方式处理类型关系。如
-\taplnamedref{sec:16-overview}{本章概述}所见，唯一不语法导向的类型规则是
+\hyperref[sec:16-overview]{本章概述}所见，唯一不语法导向的类型规则是
 \textsc{T-Sub}。它不能简单删掉；必须先找出包容规则在类型推导中不可替代的
 用途，再把这种用途嵌入其他类型规则。
 
@@ -268,7 +276,16 @@ subtype(S, T) =
 离开包容规则便无法赋型。
 
 稍微出人意料的是，这也是包容规则唯一不可替代的用途。在其他位置，可以重排
-类型推导，把 \textsc{T-Sub} 沿推导树向结论方向下移。
+类型推导，把 \textsc{T-Sub} 的使用逐步推迟到更靠近最终结论的位置。
+
+\translatornote{这里重排 \textsc{T-Sub}，是为了从声明式类型规则中提取可直接
+执行的类型检查算法。\textsc{T-Sub} 可以在推导的任意位置把已经得到的类型提升为
+任意超类型；如果它散落在推导各处，类型检查器就无法只根据项的语法确定下一步。
+把它尽量移到推导末端后，末端的 \textsc{T-Sub} 只会把已经算出的类型换成信息
+更少的超类型，算法可以省略这一步，保留更小、更精确的类型。唯一无法完全消除的
+情形是函数应用中实参类型与参数类型的匹配；这项必要的子类型检查随后会被吸收到
+增强后的应用规则 \textsc{TA-App} 中。下面的推导重排正是在说明，经过这样的整理，
+原来能够赋型的项仍然能够通过类型检查。}
 
 先看以 \textsc{T-Abs} 结束、而其直接子推导以 \textsc{T-Sub} 结束的推导：
 \[
@@ -282,17 +299,35 @@ subtype(S, T) =
 \[
 \inferrule*[right=\textsc{T-Sub}]
  {\inferrule*[right=\textsc{T-Abs}]
-   {\Gamma,x:S_1\vdash s_2:S_2}
+  {\Gamma,x:S_1\vdash s_2:S_2}
    {\Gamma\vdash\lambda x:S_1.\,s_2:S_1\to S_2}
   \\
   \inferrule*[right=\textsc{S-Arrow}]
-   {S_1\subtype S_1\\S_2\subtype T_2}
+   {\inferrule*[right=\textsc{S-Refl}]
+     { }{S_1\subtype S_1}
+    \\
+    S_2\subtype T_2}
    {S_1\to S_2\subtype S_1\to T_2}}
  {\Gamma\vdash\lambda x:S_1.\,s_2:S_1\to T_2}
 \]
 
-应用规则有两棵直接子推导。若左侧函数子推导最后使用包容规则，把
-\(S_{11}\to S_{12}\) 提升为 \(T_{11}\to T_{12}\)，则子类型反演给出
+应用规则有两个直接子推导，其中任意一个都可能以 \textsc{T-Sub} 结束。先看
+包容规则出现在左侧函数子推导末尾的情形。重排前的推导为：
+\[
+\inferrule*[right=\textsc{T-App}]
+ {\inferrule*[right=\textsc{T-Sub}]
+   {\Gamma\vdash s_1:S_{11}\to S_{12}
+    \\
+    \inferrule*[right=\textsc{S-Arrow}]
+     {T_{11}\subtype S_{11}\\S_{12}\subtype T_{12}}
+     {S_{11}\to S_{12}\subtype T_{11}\to T_{12}}}
+   {\Gamma\vdash s_1:T_{11}\to T_{12}}
+  \\
+  \Gamma\vdash s_2:T_{11}}
+ {\Gamma\vdash s_1\,s_2:T_{12}}
+\]
+这里先用 \textsc{T-Sub} 把函数类型从 \(S_{11}\to S_{12}\) 提升为
+\(T_{11}\to T_{12}\)，再应用于 \(T_{11}\) 型实参。子类型反演给出
 \(T_{11}\subtype S_{11}\) 和 \(S_{12}\subtype T_{12}\)。重排后，前一项
 用来把实参类型提升到 \(S_{11}\)，后一项则在应用完成后把结果从
 \(S_{12}\) 提升到 \(T_{12}\)：
@@ -315,14 +350,67 @@ subtype(S, T) =
 \(\Gamma\vdash s_2:T_{11}\) 的子推导，则被嵌入新的实参推导中，再由
 \(T_{11}\subtype S_{11}\) 把实参提升为函数真正接受的类型。
 
-若包容规则出现在 \textsc{T-App} 的右侧实参子推导末尾，只能把它移入左侧：
-把函数的参数类型从 \(T_{11}\) 逆变为实参原有的 \(T_2\)。这部分包容无法
-彻底消除：要么把实参类型提升到函数的参数类型，要么把函数类型调整为可接收
-实参的类型。两种写法都在弥合相同的类型差距。
+再看包容规则出现在 \textsc{T-App} 的右侧实参子推导末尾的情形。重排前的
+推导为：
+\[
+\inferrule*[right=\textsc{T-App}]
+ {\Gamma\vdash s_1:T_{11}\to T_{12}
+  \\
+  \inferrule*[right=\textsc{T-Sub}]
+   {\Gamma\vdash s_2:T_2\\T_2\subtype T_{11}}
+   {\Gamma\vdash s_2:T_{11}}}
+ {\Gamma\vdash s_1\,s_2:T_{12}}
+\]
+若仍要移动右侧实参子推导末尾的这次 \textsc{T-Sub}，唯一可行的做法是把它
+转移到左侧函数子推导中。它与前一种重排的方向恰好相反：前面把“使函数
+与实参的类型相匹配”这项调整从函数一侧移到了实参一侧，这里则将它移回
+函数一侧。具体做法是利用参数类型的逆变性，把函数的参数类型从 \(T_{11}\)
+改为实参原有的 \(T_2\)：
+{\small
+\[
+\inferrule*[right=\textsc{T-App}]
+ {\inferrule*[right=\textsc{T-Sub}]
+   {\Gamma\vdash s_1:T_{11}\to T_{12}
+    \\
+    \inferrule*[right=\textsc{S-Arrow}]
+     {T_2\subtype T_{11}
+      \\
+      \inferrule*[right=\textsc{S-Refl}]
+       { }{T_{12}\subtype T_{12}}}
+     {T_{11}\to T_{12}\subtype T_2\to T_{12}}}
+   {\Gamma\vdash s_1:T_2\to T_{12}}
+  \quad
+  \Gamma\vdash s_2:T_2}
+ {\Gamma\vdash s_1\,s_2:T_{12}}
+\]
+}
+由此可见，这次包容可以在应用的两个前提之间移动，却无法彻底消除：既可以把
+实参提升到函数要求的参数类型，也可以把函数调整为接受实参的实际类型。为了得到
+统一的标准形式，下面固定采用“提升实参类型”的写法，把这次包容保留在应用的
+右侧实参子推导末尾。
 
 若一条 \textsc{T-Sub} 的直接子推导也以 \textsc{T-Sub} 结束，则两次使用
-可以合并。由 \(S\subtype U\) 和 \(U\subtype T\) 先以
-\textsc{S-Trans} 得到 \(S\subtype T\)，再只使用一次 \textsc{T-Sub}。
+可以合并。重排前的推导为：
+\[
+\inferrule*[right=\textsc{T-Sub}]
+ {\inferrule*[right=\textsc{T-Sub}]
+   {\Gamma\vdash s:S\\S\subtype U}
+   {\Gamma\vdash s:U}
+  \\
+  U\subtype T}
+ {\Gamma\vdash s:T}
+\]
+由 \(S\subtype U\) 和 \(U\subtype T\) 先以 \textsc{S-Trans} 得到
+\(S\subtype T\)，便可把相邻的两次 \textsc{T-Sub} 合并为一次：
+\[
+\inferrule*[right=\textsc{T-Sub}]
+ {\Gamma\vdash s:S
+  \\
+  \inferrule*[right=\textsc{S-Trans}]
+   {S\subtype U\\U\subtype T}
+   {S\subtype T}}
+ {\Gamma\vdash s:T}
+\]
 
 \begin{exercise}[\(\star\star\), \(\nrightarrow\)]
 \label{ex:16.2.1}
@@ -331,8 +419,8 @@ subtype(S, T) =
 \end{exercise}
 \taplsolutionlink{sol:translator:16.2.1}{16.2.1}
 
-反复应用这些变换，可以把任意类型推导改写成一种特殊形式：
-\textsc{T-Sub} 只会出现在应用的右侧子推导末尾，以及整棵推导的最末端。
+固定上述重排方向后，反复应用这些变换，可以把任意类型推导整理成一种特殊形式：
+\textsc{T-Sub} 只会出现在应用的右侧实参子推导末尾，以及整个推导的最后一步。
 删掉最末端那次包容仍会为同一项留下一个类型，只是这个类型可能更小，也就是
 携带更多信息。现在只有应用中的包容无法消除。把它吸收到应用规则中：
 \[
@@ -342,7 +430,7 @@ subtype(S, T) =
   T_2\subtype T_{11}}
  {\Gamma\vdash t_1\,t_2:T_{12}}
 \]
-便能替换“应用之前先包容”的每棵子推导，并完全删去 \textsc{T-Sub}。这条
+便能替换每个“应用之前先包容”的子推导，并完全删去 \textsc{T-Sub}。这条
 增强后的应用规则仍然语法导向，因为结论中的项明确是一项应用。
 
 \begin{definition}
@@ -358,7 +446,6 @@ subtype(S, T) =
 \small
 \taplfigureheaderplain{\(\Gamma\algturnstile t:T\)}
   {\tapltranslateditalic{算法类型关系}}
-\taplformalsystemcolumns{
 \[
 \inferrule*[right=\textsc{TA-Var}]
  {x:T\in\Gamma}{\Gamma\algturnstile x:T}
@@ -370,12 +457,12 @@ subtype(S, T) =
 \]
 \[
 \inferrule*[right=\textsc{TA-App}]
- {\Gamma\algturnstile t_1:T_1\\T_1=T_{11}\to T_{12}\\
+ {\Gamma\algturnstile t_1:T_1\\
+  T_1=T_{11}\to T_{12}\\
   \Gamma\algturnstile t_2:T_2\\
   \algturnstile T_2\subtype T_{11}}
  {\Gamma\algturnstile t_1\,t_2:T_{12}}
 \]
-}{
 \[
 \inferrule*[right=\textsc{TA-Rcd}]
  {\Gamma\algturnstile t_i:T_i\quad(\text{对每个 }i)}
@@ -388,7 +475,6 @@ subtype(S, T) =
   R_1=\{l_i:T_i\}^{i\in1..n}}
  {\Gamma\algturnstile t_1.l_j:T_j}
 \]
-}
 \end{minipage}
 \caption{算法类型关系}
 \label{fig:16-3}
@@ -411,6 +497,12 @@ subtype(S, T) =
 \end{exercise}
 \taplsolutionlink{sol:translator:16.2.3}{16.2.3}
 
+\translatornote{这里的 \(S\) 与 \(T\) 分别是两个不同项 \(s\) 与 \(t\) 的
+最小类型。求值后得到的项 \(t\) 可能暴露出更多类型信息，所以它的最小类型
+\(T\) 可以严格小于 \(s\) 的最小类型 \(S\)。这并不破坏声明式关系的保持性：
+由 \(T\subtype S\) 和 \textsc{T-Sub}，声明式关系仍可给 \(t\) 赋予原来的类型
+\(S\)。发生变化的只是算法为求值结果算出的最精确类型。}
+
 下面正式证明算法规则与声明式规则对应。上面的推导重排只用于说明思路；把它
 发展成完整证明会很冗长，直接对推导作归纳更简单。
 
@@ -423,9 +515,10 @@ subtype(S, T) =
 \end{proof}
 
 完备性的陈述稍有不同。声明式关系可为同一项赋予许多类型，算法关系至多赋予
-一个类型，所以不能简单把\cref{thm:16.2.4}倒过来。可以证明：若声明式规则
-赋予 \(t\) 类型 \(T\)，算法规则会赋予它一个更小的类型 \(S\)，且
-\(S\subtype T\)。也就是说，算法规则会为每个可赋型项给出其
+一个类型，所以不能简单把\cref{thm:16.2.4}倒过来。可以证明：算法规则为
+\(t\) 算出的唯一类型 \(S\)，是声明式规则能够赋予 \(t\) 的任意类型 \(T\)
+的子类型，即 \(S\subtype T\)。再由可靠性定理，\(S\) 本身也是声明式关系
+认可的类型。因此，\(S\) 位于 \(t\) 的所有可赋类型之下，正是 \(t\) 的
 \termfirst{最小类型}{minimal type}。
 
 \begin{theorem}[完备性，也称最小类型定理]
@@ -494,7 +587,8 @@ subtype(S, T) =
 \(\tapltype{Bool}\)。没有为 \(\tapltype{Bool}\) 增加声明式子类型规则，
 所以它唯一的严格超类型是 \(\tapltype{Top}\)。}具有并，却不具有交。例如，\(\{\}\) 与
 \(\tapltype{Top}\to\tapltype{Top}\) 连公共子类型都没有，自然也没有最大
-公共子类型。不过，更弱的性质成立。若存在 \(L\)，使
+公共子类型。不过，若只要求那些拥有共同下界的类型对存在交，这一较弱的性质仍然成立。
+若存在 \(L\)，使
 \(L\subtype S\) 且 \(L\subtype T\)，就称 \(S,T\)
 \termfirst{有共同下界}{bounded below}。若每对有共同下界的类型都有交，
 就说子类型关系具有\termfirst{有界交}{bounded meets}。
@@ -504,7 +598,8 @@ subtype(S, T) =
 \(\{y:\tapltype{Top},x:\tapltype{Top}\}\) 都是
 \(\{x:\tapltype{Top},y:\tapltype{Top},z:\tapltype{Top}\}\) 和
 \(\{x:\tapltype{Top},y:\tapltype{Top},w:\tapltype{Top}\}\) 的并。
-不过，同一对类型的任意两个并必然互为子类型；交也一样。
+不过，对于固定的一对类型，若 \(J_1\) 和 \(J_2\) 都是它们的并，则
+\(J_1\subtype J_2\) 且 \(J_2\subtype J_1\)；交也具有同样的性质。
 
 \begin{proposition}[并与有界交的存在性]
 \label{prop:16.3.2}
@@ -539,7 +634,7 @@ subtype(S, T) =
 
 \begin{exercise}[\(\star\star\star\)]
 \label{ex:16.3.4}
-把计算并与交的算法扩展到\taplsecref{15.5}{sec:15.5}中的命令式引用是否
+把计算并与交的算法扩展到\taplsecref{15.5}{sec:15.5}所述那类带引用的命令式语言中，是否
 容易？若再把不变的 \(\tapltype{Ref}\) 分解为协变的
 \(\tapltype{Source}\) 与逆变的 \(\tapltype{Sink}\)，情况如何？
 \end{exercise}

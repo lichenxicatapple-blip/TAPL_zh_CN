@@ -9,30 +9,30 @@
 
 下面的实现让子类型检查失败时携带两类信息：比较进行到记录的哪一层，以及
 该处究竟是缺少字段，还是两侧类型的构造不同。\texttt{subtype\_error}
-保存这些数据，\texttt{Subtype\_error} 才是交给 \texttt{raise} 的异常；
-这样既能保留结构化错误信息，也符合 OCaml 对异常值类型的要求。
+保存这些数据，\texttt{Subtype\_error} 则把数据包装成可由 \texttt{raise}
+抛出的异常。这样既保留了结构化错误信息，也符合 OCaml 对异常值类型的要求。
 
 \texttt{typeof} 完整处理记录、投影、变量、抽象和应用。应用分支先分别求出
-函数与实参的类型，再以空路径调用 \texttt{check\_subtype}；投影和变量分支
-也报告缺失字段、越界索引及上下文长度。错误消息会打印出错路径，以及实际类型
-和预期类型。文件末尾的测试覆盖成功检查、嵌套字段缺失、类型构造不匹配、变量
-越界、投影缺少字段、投影非记录项和应用非函数项。
+函数与实参的类型，再从两个类型的最外层开始调用 \texttt{check\_subtype}；
+递归检查进入记录字段或函数类型内部时，会逐步记录所经过的位置。投影和变量
+分支也报告缺失字段、越界索引及上下文长度。错误消息会打印出错路径，以及实际
+类型和预期类型。完整源码还实现错误消息格式化，并用测试覆盖成功检查、嵌套字段
+缺失、类型构造不匹配、变量越界、投影缺少字段、投影非记录项和应用非函数项。
+下面省略本章正文已经展示过的项、类型和上下文定义，以及结构未变的类型检查
+分支，只列出错误数据、带路径的子类型检查和应用分支。
 
-\taplocamlfilechunkfirst{../code/ocaml/chapter17/diagnostics.ml}{1}{30}
-\taplocamlfilechunk{../code/ocaml/chapter17/diagnostics.ml}{31}{60}
-\taplocamlfilechunk{../code/ocaml/chapter17/diagnostics.ml}{61}{90}
-\taplocamlfilechunk{../code/ocaml/chapter17/diagnostics.ml}{91}{120}
-\taplocamlfilechunk{../code/ocaml/chapter17/diagnostics.ml}{121}{150}
-\taplocamlfilechunk{../code/ocaml/chapter17/diagnostics.ml}{151}{175}
+\taplocamlfileflowchunkfirst{../code/ocaml/chapter17/diagnostics.ml}{13}{26}
+\taplocamlfileflowchunk{../code/ocaml/chapter17/diagnostics.ml}{28}{48}
+\taplocamlfileflowchunk{../code/ocaml/chapter17/diagnostics.ml}{69}{79}
 
-\taplrustsupportreuse[implementation-break]{ch17-syntax}
-\taplrustsupportreusecontinuation{ch17-support}
-\taplrustsupportchunkfirst{sol-translator-17-diagnostics}{1}{30}
-\taplrustsupportchunk{sol-translator-17-diagnostics}{31}{60}
-\taplrustsupportchunk{sol-translator-17-diagnostics}{61}{90}
-\taplrustsupportchunk{sol-translator-17-diagnostics}{91}{120}
-\taplrustsupportchunk{sol-translator-17-diagnostics}{121}{150}
-\taplrustsupportchunk{sol-translator-17-diagnostics}{151}{170}
+Rust 对照实现沿用本章正文的 \texttt{Type}、\texttt{Term} 和
+\texttt{Context}。三个代码段分别给出诊断数据、带路径的子类型检查，以及把
+诊断接入函数应用类型检查的入口。
+
+\taplrustsupportflowchunkfirst{sol-translator-17-diagnostic-error}{1}{30}
+\taplrustsupportflowchunk{sol-translator-17-diagnostic-subtype}{1}{20}
+\taplrustsupportflowchunk{sol-translator-17-diagnostic-subtype}{21}{36}
+\taplrustsupportflowchunk{sol-translator-17-diagnostic-app}{1}{20}
 
 \taplsolutionbacklink{ex:17.3.3}{返回练习17.3.3}
 \end{taplsolutionentrybox}
@@ -42,8 +42,8 @@
 \label{sol:translator:17.3.4}
 \textbf{练习17.3.4}
 
-先区分源语言类型与目标语言类型。类型翻译记作
-\(\llbracket T\rrbracket\)，其中
+强制转换语义把隐含的子类型使用编译成普通函数调用。先区分源语言类型与
+目标语言类型。类型翻译记作 \(\llbracket T\rrbracket\)，其中
 
 \[
   \llbracket\tapltype{Top}\rrbracket = \tapltype{Unit},\qquad
@@ -53,52 +53,58 @@
     = \{l_i:\llbracket T_i\rrbracket\}^{i\in1..n}
 \]
 
-因此，\texttt{coerce S T} 在确认 \(S\subtype T\) 后生成的函数类型是
+因此，\texttt{coerce S T} 在确认 \(S\subtype T\) 后，生成的函数具有类型
 \(\llbracket S\rrbracket\to\llbracket T\rrbracket\)，并非未经翻译的
 \(S\to T\)。特别地，目标为 \(\tapltype{Top}\) 时生成
 \(\lambda x:\llbracket S\rrbracket.\,\texttt{unit}\)，其结果确实具有
 \(\tapltype{Unit}\) 类型。函数类型的参数位置反向生成强制转换，结果位置沿原方向
 生成；记录类型则只重建目标类型要求的字段。
 
+例如，把
+\[
+  \{x=\{\},y=\{\}\}
+\]
+传给只接受 \(\{x:\tapltype{Top}\}\) 的函数时，类型检查使用记录宽度
+子类型化。翻译器会插入一个显式转换函数，其目标语言形式为
+\[
+  \lambda r:\{x:\tapltype{Unit},y:\tapltype{Unit}\}.\,\{x=r.x\}
+\]
+这个函数丢弃字段 \(y\)，把实参变成函数实际要求的记录。翻译后的程序因而
+不再需要子类型规则。
+
 项翻译同时返回目标类型与目标项。应用 \(t_1\ t_2\) 若得到源类型
 \(S_1\to S_2\) 和 \(T_1\)，便在实参与函数之间插入从
 \(\llbracket T_1\rrbracket\) 到 \(\llbracket S_1\rrbracket\) 的强制转换。
-抽象中的类型标注、上下文中
-保存的类型以及记录字段类型也都经过同一类型翻译。下面的完整 OCaml 实现还
-包含目标语言的移位、替换与求值器；末尾测试把一个带额外字段的记录传给只
-需要字段 \texttt{x} 的函数，验证翻译结果求值为 \texttt{unit}。
+抽象中的类型标注、上下文中保存的类型以及记录字段类型也都经过同一类型翻译。
 
-\taplocamlfilechunkfirst{../code/ocaml/chapter17/coercion.ml}{1}{30}
-\taplocamlfilechunk{../code/ocaml/chapter17/coercion.ml}{31}{60}
-\taplocamlfilechunk{../code/ocaml/chapter17/coercion.ml}{61}{90}
-\taplocamlfilechunk{../code/ocaml/chapter17/coercion.ml}{91}{120}
-\taplocamlfilechunk{../code/ocaml/chapter17/coercion.ml}{121}{150}
-\taplocamlfilechunk{../code/ocaml/chapter17/coercion.ml}{151}{180}
-\taplocamlfilechunk{../code/ocaml/chapter17/coercion.ml}{181}{210}
-\taplocamlfilechunk{../code/ocaml/chapter17/coercion.ml}{211}{231}
+下面只列出本题新增的核心 OCaml 实现：源语言与目标语言的语法、类型翻译、
+强制转换构造及项翻译。目标语言的移位、替换与求值沿用\chapref{7}的算法，
+完整配套源码中保留这些实现和端到端测试。
 
-下面依次给出同一算法的 Rust 目标语法、强制转换、项翻译和求值实现：
+\tcbbreak\newpage
+\taplocamlfileflowchunkfirst{../code/ocaml/chapter17/coercion.ml}{1}{28}
+\taplocamlfileflowchunk{../code/ocaml/chapter17/coercion.ml}{29}{56}
+\taplocamlfileflowchunk{../code/ocaml/chapter17/coercion.ml}{57}{73}
+\taplocamlfileflowchunk{../code/ocaml/chapter17/coercion.ml}{100}{120}
+\taplocamlfileflowchunk{../code/ocaml/chapter17/coercion.ml}{121}{139}
 
-为使这份实现可以直接从书稿核查，先相邻重列源语言的语法、上下文、子类型判断与
-类型检查器；这些片段与正文使用的是同一份参与编译和测试的源码。
+Rust 对照实现采用相同结构：
 
-\taplrustsupportreuse[page]{ch17-syntax}
-\taplrustsupportreusecontinuation{ch17-support}
-\taplrustsupportreusecontinuation{ch17-subtype}
-\taplrustsupportreusecontinuation{ch17-type-of}
-\taplrustsupportchunkfirst{sol-translator-17-coercion-support}{1}{20}
-\taplrustsupportchunk{sol-translator-17-coercion-support}{21}{41}
-\taplrustsupportchunkfirst{sol-translator-17-coercion}{1}{30}
-\taplrustsupportchunk{sol-translator-17-coercion}{31}{65}
-\taplrustsupportchunkfirst{sol-translator-17-translate}{1}{30}
-\taplrustsupportchunk{sol-translator-17-translate}{31}{60}
-\taplrustsupportchunk{sol-translator-17-translate}{61}{89}
-\taplrustsupportchunkfirst{sol-translator-17-target-eval-support}{1}{30}
-\taplrustsupportchunk{sol-translator-17-target-eval-support}{31}{60}
-\taplrustsupportchunk{sol-translator-17-target-eval-support}{61}{90}
-\taplrustsupportchunk{sol-translator-17-target-eval-support}{91}{106}
-\taplrustsupportchunkfirst{sol-translator-17-target-eval}{1}{30}
-\taplrustsupportchunk{sol-translator-17-target-eval}{31}{50}
+\tcbbreak\newpage
+\taplrustsupportflowchunkfirst{sol-translator-17-coercion-support}{1}{25}
+\taplrustsupportflowchunk{sol-translator-17-coercion-support}{26}{47}
+\taplrustsupportflowchunk{sol-translator-17-coercion}{1}{19}
+\taplrustsupportflowchunk{sol-translator-17-coercion}{20}{38}
+\taplrustsupportflowchunk{sol-translator-17-coercion}{39}{55}
+\taplrustsupportflowchunk{sol-translator-17-coercion}{56}{78}
+\taplrustsupportflowchunk{sol-translator-17-coercion}{79}{103}
+\taplrustsupportflowchunk{sol-translator-17-translate}{1}{18}
+\taplrustsupportflowchunk{sol-translator-17-translate}{19}{33}
+
+端到端测试构造上述宽记录应用，检查翻译后的项仍为良类型，并最终求值为
+\texttt{unit}：
+
+\taplrustsupportflowchunk{sol-translator-17-example}{1}{20}
 
 \taplsolutionbacklink{ex:17.3.4}{返回练习17.3.4}
 \end{taplsolutionentrybox}

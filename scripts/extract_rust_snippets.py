@@ -17,7 +17,10 @@ OUTPUT_ROOT = ROOT / "build" / "code-snippets"
 TEX_ROOT = ROOT / "tex"
 
 BEGIN = re.compile(r"^\s*// TAPL-SNIPPET-BEGIN: ([a-z0-9][a-z0-9-]*)\s*$")
-END = re.compile(r"^\s*// TAPL-SNIPPET-END: ([a-z0-9][a-z0-9-]*)\s*$")
+END = re.compile(
+    r"^(?P<prefix>.*?)// TAPL-SNIPPET-END: "
+    r"(?P<name>[a-z0-9][a-z0-9-]*)\s*$"
+)
 COUNTERPART_REFERENCE = re.compile(
     r"\\taplrustcounterpart(?:\[[^\]]*\])?"
     r"\{([a-z0-9][a-z0-9-]*)\}"
@@ -27,7 +30,7 @@ SUPPORT_REFERENCE = re.compile(
     r"\{([a-z0-9][a-z0-9-]*)\}"
 )
 SUPPORT_CHUNK_REFERENCE = re.compile(
-    r"\\taplrustsupportchunk(?:first)?"
+    r"\\taplrustsupport(?:flow)?chunk(?:first(?:compact)?)?"
     r"\{([a-z0-9][a-z0-9-]*)\}\{\d+\}\{\d+\}"
 )
 EXPLANATION_REFERENCE = re.compile(r"\\taplrustexplanation\{")
@@ -47,6 +50,15 @@ OCAML_WITH_RUST_EXPLANATION = re.compile(
 )
 OCAML_WITH_SYNTAX_ONLY = re.compile(
     r"\\end\{taplocamlcode\}\s*\\taplocamlsyntaxonly\b"
+)
+GROUPED_COUNTERPART_REFERENCE = re.compile(
+    r"\\taplocamlgroupedcounterpart"
+    r"\{([a-z0-9][a-z0-9-]*)\}"
+)
+OCAML_WITH_GROUPED_COUNTERPART = re.compile(
+    r"\\end\{taplocamlcode\}\s*"
+    r"\\taplocamlgroupedcounterpart"
+    r"\{([a-z0-9][a-z0-9-]*)\}"
 )
 
 
@@ -69,11 +81,15 @@ def extract() -> dict[str, tuple[Path, str]]:
                 active_lines = []
                 continue
             if end:
-                if active_name != end.group(1):
+                closing_name = end.group("name")
+                if active_name != closing_name:
                     raise ValueError(
-                        f"{source}:{line_number}: closing {end.group(1)} "
+                        f"{source}:{line_number}: closing {closing_name} "
                         f"while {active_name or 'nothing'} is open"
                     )
+                prefix = end.group("prefix").rstrip()
+                if prefix:
+                    active_lines.append(prefix)
                 if active_name in snippets:
                     raise ValueError(f"duplicate snippet name: {active_name}")
                 body = textwrap.dedent("\n".join(active_lines)).strip() + "\n"
@@ -100,7 +116,9 @@ def references() -> set[str]:
         paired = OCAML_WITH_RUST.findall(contents)
         explained = OCAML_WITH_RUST_EXPLANATION.findall(contents)
         syntax_only = OCAML_WITH_SYNTAX_ONLY.findall(contents)
+        grouped = OCAML_WITH_GROUPED_COUNTERPART.findall(contents)
         counterparts_in_file = COUNTERPART_REFERENCE.findall(contents)
+        grouped_in_file = GROUPED_COUNTERPART_REFERENCE.findall(contents)
         support_in_file = SUPPORT_REFERENCE.findall(contents)
         support_chunks_in_file = SUPPORT_CHUNK_REFERENCE.findall(contents)
         explanations_in_file = EXPLANATION_REFERENCE.findall(contents)
@@ -110,16 +128,17 @@ def references() -> set[str]:
                 f"{source.relative_to(ROOT)}: {begin_count} OCaml starts, "
                 f"{end_count} OCaml ends"
             )
-        if end_count != len(paired) + len(explained) + len(syntax_only):
+        if end_count != len(paired) + len(explained) + len(syntax_only) + len(grouped):
             errors.append(
                 f"{source.relative_to(ROOT)}: every OCaml block must have either "
                 "an immediate Rust counterpart, an explicit Rust explanation "
-                "before the next OCaml block, or an immediate OCaml-syntax-only marker"
+                "before the next OCaml block, an immediate OCaml-syntax-only marker, "
+                "or a named grouped counterpart"
             )
-        if len(counterparts_in_file) != len(paired):
+        if Counter(counterparts_in_file) != Counter(paired + grouped):
             errors.append(
-                f"{source.relative_to(ROOT)}: Rust counterpart found without an "
-                "immediately preceding OCaml block"
+                f"{source.relative_to(ROOT)}: Rust counterparts do not match the "
+                "immediate and grouped OCaml counterpart declarations"
             )
         if len(explanations_in_file) != len(explained):
             errors.append(
@@ -130,6 +149,11 @@ def references() -> set[str]:
             errors.append(
                 f"{source.relative_to(ROOT)}: OCaml-syntax-only marker found without "
                 "an immediately preceding OCaml block"
+            )
+        if len(grouped_in_file) != len(grouped):
+            errors.append(
+                f"{source.relative_to(ROOT)}: grouped Rust counterpart marker found "
+                "without an immediately preceding OCaml block"
             )
         names.extend(counterparts_in_file)
         names.extend(support_in_file)

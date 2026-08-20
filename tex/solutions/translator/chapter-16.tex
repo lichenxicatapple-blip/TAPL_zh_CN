@@ -8,11 +8,12 @@
 
 证明分为两种情形。
 
-\textbf{情形 \textsc{T-Rcd}。}设记录的第 \(i\) 个字段原先由
-\(\Gamma\vdash t_i:T_i\) 得到。对每个字段分别定义 \(S_i\)：若该字段
-推导最后使用了 \textsc{T-Sub}，就取包容前的类型 \(S_i\)，使
-\(\Gamma\vdash t_i:S_i\) 且 \(S_i\subtype T_i\)；若末条规则不是
-\textsc{T-Sub}，则令 \(S_i=T_i\)，并由反身性得到
+\textbf{情形 \textsc{T-Rcd}。}考虑一棵以 \textsc{T-Rcd} 结束的推导。
+它的第 \(i\) 个前提为 \(\Gamma\vdash t_i:T_i\)，表示记录中标签 \(l_i\)
+对应的字段项 \(t_i\) 具有类型 \(T_i\)。对每个字段分别定义 \(S_i\)：若该
+前提的最后一条规则是 \textsc{T-Sub}，就取包容前的类型 \(S_i\)，使
+\(\Gamma\vdash t_i:S_i\) 且 \(S_i\subtype T_i\)；若最后一条规则不是
+\textsc{T-Sub}，则令 \(S_i=T_i\)，并由自反性得到
 \(S_i\subtype T_i\)。先对所有字段应用
 \textsc{T-Rcd}，得到
 \[
@@ -21,17 +22,23 @@
 \]
 再由记录子类型规则得到
 \(\{l_i:S_i\}^{i\in1..n}\subtype
-  \{l_i:T_i\}^{i\in1..n}\)，最后只在整条记录推导的顶部使用一次
+  \{l_i:T_i\}^{i\in1..n}\)，最后在 \textsc{T-Rcd} 之后统一使用一次
 \textsc{T-Sub}。
 
-\textbf{情形 \textsc{T-Proj}。}设投影前的项具有类型
-\(S\)，并经包容规则被看作 \(\{l_i:T_i\}^{i\in1..n}\)。由子类型反演，
-\(S\) 必须是一种记录类型，其中包含字段 \(l_j:S_j\)，且
-\(S_j\subtype T_j\)。因此，可以先直接使用 \textsc{T-Proj} 得到
-\(\Gamma\vdash t.l_j:S_j\)，再在整棵投影推导的顶部使用
-\textsc{T-Sub} 得到 \(\Gamma\vdash t.l_j:T_j\)。
+\textbf{情形 \textsc{T-Proj}。}考虑一棵以 \textsc{T-Proj} 结束、且其
+前提的最后一条规则是 \textsc{T-Sub} 的推导。设包容前已经得到
+\(\Gamma\vdash t:S\)，再由
+\(S\subtype\{l_i:T_i\}^{i\in1..n}\) 推出
+\(\Gamma\vdash t:\{l_i:T_i\}^{i\in1..n}\)，使 \textsc{T-Proj} 能够
+导出 \(\Gamma\vdash t.l_j:T_j\)。由子类型反演，\(S\) 本身也必须是
+记录类型，其中包含字段 \(l_j:S_j\)，且 \(S_j\subtype T_j\)。因此，
+可以直接从 \(\Gamma\vdash t:S\) 使用 \textsc{T-Proj} 得到
+\(\Gamma\vdash t.l_j:S_j\)，再把 \textsc{T-Sub} 作为整个投影推导的
+最后一条规则，得到
+\(\Gamma\vdash t.l_j:T_j\)。
 
-两种情形都把字段内部的 \textsc{T-Sub} 移到了所考察推导的顶部。
+两种情形都把原先位于某个前提末尾的 \textsc{T-Sub} 越过
+\textsc{T-Rcd} 或 \textsc{T-Proj}，使它成为导出相同结论的最后一条规则。
 
 \taplsolutionbacklink{ex:16.2.1}{返回练习16.2.1}
 \end{taplsolutionentrybox}
@@ -49,11 +56,32 @@
   t=\{x=0,y=1\}
 \]
 有 \(s\trans t\)。算法类型规则给 \(s\) 的类型是
-\(S=\{x:\tapltype{Nat}\}\)，给 \(t\) 的类型是
-\(T=\{x:\tapltype{Nat},y:\tapltype{Nat}\}\)。由记录宽度子类型规则，
-\(T\subtype S\)；反向的 \(S\subtype T\) 不成立。这个例子说明：单步
-求值可能使算法计算出的最小类型变得更精确，因此算法类型关系不满足通常形式的
-保持性定理。
+\(S=\{x:\tapltype{Nat}\}\)。具体地说，抽象中的参数标注使函数具有类型
+\[
+  \{x:\tapltype{Nat}\}\to\{x:\tapltype{Nat}\}
+\]
+实参的算法类型虽然是
+\(\{x:\tapltype{Nat},y:\tapltype{Nat}\}\)，却是参数类型
+\(\{x:\tapltype{Nat}\}\) 的子类型，所以 \textsc{TA-App} 可以使用，并以函数的
+结果类型 \(S\) 作为整个应用的类型。
+
+求值时，函数体只是变量 \(r\)，所以一次 \(\beta\) 归约会原样返回实参；参数上的
+类型标注只限制函数体可以怎样使用 \(r\)，并不会在运行时删除字段 \(y\)。因此
+求值结果
+\[
+  t=\{x=0,y=1\}
+\]
+的算法类型为
+\[
+  T=\{x:\tapltype{Nat},y:\tapltype{Nat}\}
+\]
+由记录宽度子类型规则，\(T\subtype S\)；反向的 \(S\subtype T\) 不成立。
+因此，单步求值使算法算出的最小类型从 \(S\) 变成了更精确的 \(T\)，算法类型
+关系不满足“求值前后保持同一类型”这一通常形式的保持性定理。
+
+声明式关系仍然满足通常的保持性。它先给 \(t\) 赋予类型 \(T\)，再由
+\(T\subtype S\) 使用 \textsc{T-Sub}，仍可得到 \(\vdash t:S\)。因此这里失效的
+只是算法类型的精确相等，类型安全并未受到影响。
 
 \taplsolutionbacklink{ex:16.2.3}{返回练习16.2.3}
 \end{taplsolutionentrybox}

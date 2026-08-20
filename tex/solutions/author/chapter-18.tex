@@ -126,15 +126,18 @@ newBackupInstrCounter =
 \label{sol:author:18.13.1}
 \textbf{18.13.1 解答}
 
-可以用引用单元检验对象身份。先在对象的内部表示中加入类型为
-\texttt{Ref (Ref Nat)} 的身份字段：
+可以利用引用的别名关系检验对象身份。每创建一个对象，就分配一条专属的
+\texttt{Ref Nat} 身份标记；同一对象返回同一条引用，不同对象返回不同引用。
+本语言虽不能直接比较引用，却可以通过先写后读判断它们是否指向同一个单元。
+
+内部表示用 \texttt{id} 实例变量保存这条标记。实例变量本身也用引用单元
+表示，所以 \texttt{id} 字段为 \texttt{Ref (Ref Nat)}：外层引用是实例变量，
+内层引用才是身份标记。
 
 \begin{lstlisting}
 IdCounterRep = {x:Ref Nat, id:Ref (Ref Nat)};
-
 IdCounter =
-  {get:Unit->Nat, inc:Unit->Unit, id:Unit->Ref Nat};
-
+  {get:Unit->Nat, inc:Unit->Unit, id:Unit->(Ref Nat)};
 idCounterClass =
   lambda r:IdCounterRep.
     {get = lambda _:Unit. !(r.x),
@@ -142,20 +145,30 @@ idCounterClass =
      id = lambda _:Unit. !(r.id)};
 \end{lstlisting}
 
-\texttt{id} 方法只返回身份字段中保存的引用。\texttt{sameObject} 接受两个
-具有 \texttt{id} 方法的对象，并检查它们返回的引用是否相同：
+\texttt{id} 方法解引用外层的实例变量，返回其中保存的身份标记。
+\texttt{sameObject} 接受两个具有 \texttt{id} 方法的对象，并检查它们返回的
+引用是否指向同一个单元：
 
 \begin{lstlisting}
 sameObject =
-  lambda a:{id:Unit->Ref Nat}.
-  lambda b:{id:Unit->Ref Nat}.
+  lambda a:{id:Unit->(Ref Nat)}.
+  lambda b:{id:Unit->(Ref Nat)}.
     ((b.id unit) := 1;
      (a.id unit) := 0;
      iszero (!(b.id unit)));
 \end{lstlisting}
 
-这里利用别名来检验两条引用是否指向同一单元：先确保第二条引用保存非零值，
-再向第一条写入零，最后检查第二条是否也变成零。
+具体做法是：先通过对象 \texttt{b} 的身份标记写入 \texttt{1}，再通过对象
+\texttt{a} 的身份标记写入 \texttt{0}，最后读取 \texttt{b} 的身份标记。若
+两者是同一对象，后一次写入会把同一单元改为 \texttt{0}，函数返回
+\texttt{true}；若它们是不同对象，\texttt{b} 的单元仍保存 \texttt{1}，函数
+返回 \texttt{false}。
+
+\translatornote{双层引用并非判断对象身份所必需。作者在这里沿用本章的实例
+变量编码：\texttt{id} 的值是一条 \texttt{Ref Nat} 身份标记，而实例变量
+本身又用引用单元保存，因而得到 \texttt{Ref (Ref Nat)}。若直接把身份标记
+放进内部表示，可将字段改为 \texttt{id:Ref Nat}，并令 \texttt{id} 方法返回
+\texttt{r.id}；\texttt{sameObject} 无须改变。}
 
 \taplsolutionbacklink{ex:18.13.1}{返回练习18.13.1}
 \end{taplauthorsolutionentrybox}

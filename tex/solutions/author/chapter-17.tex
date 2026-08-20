@@ -8,8 +8,6 @@
 
 只需把\cref{prop:16.3.2}的证明练习中给出的算法写成程序：
 
-\taplrustsupport{sol-author-17-join-support}
-
 \begin{taplocamlcode}
 let rec join tyS tyT =
   match (tyS,tyT) with
@@ -33,7 +31,7 @@ let rec join tyS tyT =
   | _ ->
       TyTop
 \end{taplocamlcode}
-\taplrustcounterpart[page]{sol-author-17-join}
+\taplocamlgroupedcounterpart{sol-author-17-join}
 
 \begin{taplocamlcode}
 and meet tyS tyT =
@@ -67,7 +65,7 @@ and meet tyS tyT =
   | _ ->
       raise Not_found
 \end{taplocamlcode}
-\taplrustcounterpart[page]{sol-author-17-meet}
+\taplocamlgroupedcounterpart{sol-author-17-meet}
 
 再为条件式补上类型检查分支：
 
@@ -82,7 +80,14 @@ and meet tyS tyT =
     else
       error fi "guard of conditional not a boolean"
 \end{taplocamlcode}
-\taplrustcounterpart{sol-author-17-conditional-type}
+\taplocamlgroupedcounterpart{sol-author-17-conditional-type}
+
+相应的 Rust 对照实现如下。为使代码能够独立阅读，先给出所需的类型定义：
+
+\taplrustsupport{sol-author-17-join-support}
+\taplrustcounterpart[page]{sol-author-17-join}
+\taplrustcounterpart[page]{sol-author-17-meet}
+\taplrustcounterpart[page]{sol-author-17-conditional-type}
 
 \taplsolutionbacklink{ex:17.3.1}{返回练习17.3.1}
 \end{taplauthorsolutionentrybox}
