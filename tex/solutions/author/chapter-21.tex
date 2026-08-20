@@ -33,8 +33,8 @@ E_2(\{c\})&\{a,b\}&E_2(\{a,b,c\})&\{a,b,c\}
 F(X)=\{0\}\cup\{i+1\mid i\in X\}.
 \]
 设谓词（也就是自然数集合）\(P\) 满足 \(P(0)\)，并且
-\(P(i)\Rightarrow P(i+1)\)。由 \(F\) 的定义，\(X\subseteq P\) 蕴含
-\(F(X)\subseteq P\)，所以 \(P\) 是 \(F\)-闭的。归纳原理给出
+\(P(i)\Rightarrow P(i+1)\)。由 \(F\) 的定义和这两个前提，直接有
+\(F(P)\subseteq P\)，所以 \(P\) 是 \(F\)-闭的。归纳原理给出
 \(\mu F\subseteq P\)。而 \(\mu F\) 是全体自然数，故 \(P(n)\) 对所有
 \(n\in\mathbb N\) 成立。
 
@@ -44,8 +44,8 @@ F(X)=\{(m,n)\mid
   \forall(m',n')<(m,n).\ (m',n')\in X\}.
 \]
 设数对上的谓词 \(P\) 满足：若所有 \((m',n')<(m,n)\) 都满足 \(P\)，则
-\((m,n)\) 也满足 \(P\)。同样，\(X\subseteq P\) 蕴含
-\(F(X)\subseteq P\)，所以 \(P\) 是 \(F\)-闭的，归纳原理给出
+\((m,n)\) 也满足 \(P\)。同样，由这个前提直接得到
+\(F(P)\subseteq P\)，所以 \(P\) 是 \(F\)-闭的，归纳原理给出
 \(\mu F\subseteq P\)。最后只需确认 \(\mu F=\mathbb N\times\mathbb N\)。
 全体自然数对显然 \(F\)-闭；若存在更小的 \(F\)-闭集合 \(Y\)，取字典序下不
 属于 \(Y\) 的最小数对 \((m,n)\)。所有更小数对都属于 \(Y\)，故
@@ -102,17 +102,18 @@ F(X)=\{\tapltype{Top}\}
 对任意无限树类型 \(T\)，\((T,T)\) 都属于 \(\nu\mathcal S\)，却不属于
 \(\mu\mathcal S\)。令
 \[
-R=\{(T(\pi),T(\pi))\mid\pi\in\{1,2\}^{*}\}.
+R=\{(Q,Q)\mid Q\text{ 是 }T\text{ 的子树}\}.
 \]
 直接检查 \(\mathcal S\) 的定义可得 \(R\subseteq\mathcal S(R)\)，余归纳给出
 \(R\subseteq\nu\mathcal S\)，故 \((T,T)\in\nu\mathcal S\)。另一方面，
-\(\mu\mathcal S\) 只包含有限类型对：令 \(R'\) 为全部有限类型对的集合，归纳
-原理给出 \(\mu\mathcal S\subseteq R'\)。
+\((T,T)\) 不可能有一份有限的归纳推导：无限树 \(T\) 至少有一条无限路径；沿
+这条路径，每遇到 \(\to\) 或 \(\times\) 节点，推导就必须继续进入相应子树，
+因而永远无法在有限深度内到达公理分支。于是 \((T,T)\notin\mu\mathcal S\)。
 
 不存在属于 \(\nu\mathcal S_f\) 却不属于 \(\mu\mathcal S_f\) 的有限类型对，
 因为两个不动点相等。对任意 \(S,T\in\mathcal T_f\)，命题
-\((S,T)\in\nu\mathcal S_f\Rightarrow(S,T)\in\mu\mathcal S_f\) 可对有限树
-\(T\) 归纳证明，分别讨论 \(\tapltype{Top}\)、积和箭头，并使用
+\((S,T)\in\nu\mathcal S_f\Rightarrow(S,T)\in\mu\mathcal S_f\) 可对
+\(S,T\) 的大小之和归纳证明，分别讨论 \(\tapltype{Top}\)、积和箭头，并使用
 \(\mathcal S_f(\nu\mathcal S_f)=\nu\mathcal S_f\) 与
 \(\mathcal S_f(\mu\mathcal S_f)=\mu\mathcal S_f\)。
 
@@ -132,7 +133,7 @@ I=\{(T,T)\mid T\in\mathcal T\}.
 \(I\subseteq\nu\mathcal S\)，即自反性。任取 \((T,T)\in I\)，对 \(T\) 的
 根分类。若 \(T=\tapltype{Top}\)，按定义
 \((T,T)\in\mathcal S(I)\)。若 \(T=T_1\times T_2\)，由于
-\((T_1,T_1),(T_2,T_2)\in I\)，积分支给出
+\((T_1,T_1),(T_2,T_2)\in I\)，积类型分支给出
 \((T_1\times T_2,T_1\times T_2)\in\mathcal S(I)\)。箭头情形相同。
 
 \taplsolutionbacklink{ex:21.3.8}{返回练习21.3.8}
@@ -235,7 +236,8 @@ F(X)=\{0\}\cup\{n\mid n+1\in X\}.
 
 下面刻画保证算法对有限输入终止的一类生成函数。对有限状态生成函数 \(F\)，令
 偏函数 \(\operatorname{height}_F:U\rightharpoonup\mathbb N\) 为满足以下条件的
-最小偏函数：
+最小偏函数：\footnote{也可以把这个定义改写为一个最小不动点：在表示偏函数的
+关系上定义适当的单调函数，再取其最小不动点。}
 \[
 \operatorname{height}(x)=
 \begin{cases}
@@ -268,7 +270,7 @@ h(Y)=\max\{\operatorname{height}(y)\mid y\in Y\}
 \(\mathcal S_d\) 与 \(\mathcal S_\mu\) 的定义相同，只是最后一项不要求
 \(T\ne\mu X.T_1\) 和 \(T\ne\tapltype{Top}\)。它不可逆，因为
 \(\mathcal G_{(\mu X.\tapltype{Top},\mu Y.\tapltype{Top})}\) 含有两个彼此不
-包含的生成集
+包含的极小生成集
 \[
 \{(\tapltype{Top},\mu Y.\tapltype{Top})\},\qquad
 \{(\mu X.\tapltype{Top},\tapltype{Top})\}.
@@ -280,17 +282,15 @@ h(Y)=\max\{\operatorname{height}(y)\mid y\in Y\}
 的引理得到；该引理说明 \(\nu\mathcal S_d\) 是
 \(\mathcal S_\mu\)-一致的。
 
-\begin{lemma}
-\label{lem:a.17}
+\par\medskip
+\phantomsection\label{lem:a.17}
+\noindent\textbf{引理 A.17.}
 对任意 \(\mu\)-类型 \(S,T\)，若
 \((S,T)\in\nu\mathcal S_d\)，则
 \((S,T)\in\mathcal S_\mu(\nu\mathcal S_d)\)。
-\end{lemma}
 
 \begin{proof}[证明概要]
-对 \((n,k)\) 作字典序归纳，其中
-\(k=\mu\text{-}\operatorname{height}(S)\)，
-\(n=\mu\text{-}\operatorname{height}(T)\)。归纳把
+对 \(k=\mu\text{-}\operatorname{height}(S)\) 归纳。归纳把
 \((S,T)\in\nu\mathcal S_d\) 的任意推导变换为同一判断在
 \(\mathcal S_\mu\) 中的推导。左 \(\mu\)-折叠规则的限制保证，变换后的每段
 折叠序列都先连续应用若干次左折叠，再连续应用若干次右折叠。

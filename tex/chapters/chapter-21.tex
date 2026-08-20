@@ -1,7 +1,7 @@
 % 第 21 章：递归类型的元理论
 % Source: source/split/chapters/ch21-metatheory-of-recursive-types_p267-p300.pdf
 % Original print pages: 281--314
-% Status: 待独立初审
+% Status: 修订中
 
 \chapter{递归类型的元理论}
 \label{chap:21}
@@ -177,7 +177,8 @@ X\subseteq F(X)\subseteq F(P),
 
 接下来要把最大不动点和余归纳证明法用于子类型关系。为此，先精确定义怎样把
 类型视为有限树或无限树。本章只使用三种类型构造子：\(\to\)、\(\times\) 和
-\(\tapltype{Top}\)。树的每个节点都用其中一个符号标记。
+\(\tapltype{Top}\)。树的每个节点都用其中一个符号标记。下面的定义只针对本章
+所需的树；无限带标签树的一般理论可参阅 Courcelle（1983）。
 
 令 \(\{1,2\}^{*}\) 表示由 1 和 2 组成的全部有限序列，空序列记为
 \(\epsilon\)，\(i^k\) 表示 \(k\) 个 \(i\) 连成的序列；若 \(\pi\) 和
@@ -185,7 +186,9 @@ X\subseteq F(X)\subseteq F(P),
 
 \begin{definition}
 \label{def:21.2.1}
-\termfirst{树类型}{tree type}（简称树）是满足以下条件的偏函数
+\termfirst{树类型}{tree type}（简称树）是满足以下条件的偏函数\footnote{“树
+类型”这个说法略显别扭，但有助于和\taplsecref{21.8}{sec:21.8}将要讨论的另一种
+有限表示相区分；后者称为“\(\mu\)-类型”。}
 \[
 T:\{1,2\}^{*}\rightharpoonup\{\to,\times,\tapltype{Top}\}.
 \]
@@ -408,7 +411,8 @@ T ::= \tapltype{Top}\mid T\times T\mid T\to T.
 
 第 16 章已经看到，归纳定义的子类型关系通常有两种表示：声明式系统便于阅读，
 算法式系统则较为直接地对应实现。简单系统中的二者很相近；复杂系统中的差别
-可能很大，证明二者定义同一关系也会成为重要工作。
+可能很大，证明二者定义同一关系也会成为重要工作；\chapref{28}将给出一个
+例子，文献中还研究了许多其他系统。
 
 声明式系统与算法式系统最显眼的区别之一，是前者含有显式传递规则，而后者没有。
 传递规则无法直接用于目标导向算法，因为应用它就必须猜测中间类型 \(U\)。它在
@@ -536,7 +540,7 @@ X,&X\in\mathcal G_x\text{ 且对每个 }X'\in\mathcal G_x\text{ 都有 }X\subset
 \draw[edge] (h)--(a);
 \draw[edge] (a)--(b);
 \draw[edge] (a)--(c);
-\draw[edge] (b)--(d);
+\draw[edge] (d)--(b);
 \draw[edge] (b)--(e);
 \draw[edge] (e)--(d);
 \draw[edge] (c)--(f);
@@ -575,7 +579,8 @@ X,&X\in\mathcal G_x\text{ 且对每个 }X'\in\mathcal G_x\text{ 都有 }X\subset
 \operatorname{gfp}(\operatorname{support}(X)\cup X),&\text{否则}.
 \end{cases}
 \]
-它从 \(X\) 开始不断加入支持集，直到得到一致集合，或发现不受支持的元素。
+它从 \(X\) 开始不断加入支持集，直到得到 \(F\)-一致集合，或发现不受支持的
+元素。
 对单个元素约定 \(\operatorname{gfp}(x)=\operatorname{gfp}(\{x\})\)。
 \end{definition}
 
@@ -665,7 +670,7 @@ X\subseteq P\quad\Longleftrightarrow\quad
 从 \(X\) 沿支持关系可达的全部元素组成
 \[
 \operatorname{reachable}_F(X)=
-\bigcup_{n\ge0}\operatorname{pred}_F^{,n}(X),
+\bigcup_{n\ge0}\operatorname{pred}_F^n(X),
 \qquad
 \operatorname{reachable}_F(x)=\operatorname{reachable}_F(\{x\}).
 \]
@@ -925,8 +930,13 @@ S=\lambda\sigma.\,T(\pi,\sigma),
         \(T=\tapltype{Top}\times(\tapltype{Top}\times
         (\tapltype{Top}\times\cdots))\) 只有 \(T\) 自身和
         \(\tapltype{Top}\) 两棵不同子树。
-  \item 若无限积中相邻的 \(B\) 之间依次夹着越来越多个 \(A\)，所得树不正则。
-        因而，证明 \(T\subtype T\) 所需的可达子类型对也会有无限多个。
+  \item 树
+        \[
+        T=B\times(A\times(B\times(A\times(A\times
+          (B\times(A\times(A\times(A\times(B\times\cdots)))))))))
+        \]
+        中，相邻的 \(B\) 之间依次夹着越来越多个 \(A\)，因此它不正则。证明
+        \(T\subtype T\) 所需的可达子类型对也会有无限多个。
 \end{enumerate}
 \end{example}
 
@@ -939,9 +949,13 @@ S=\lambda\sigma.\,T(\pi,\sigma),
 对任意正则树类型对 \((S,T)\)，
 \[
 \operatorname{reachable}_{\mathcal S_r}(S,T)
-\subseteq\operatorname{subtrees}(S)\times\operatorname{subtrees}(T).
+\subseteq
+\bigl(\operatorname{subtrees}(S)\times\operatorname{subtrees}(T)\bigr)
+\cup
+\bigl(\operatorname{subtrees}(T)\times\operatorname{subtrees}(S)\bigr).
 \]
-右侧有限，故左侧也有限。
+函数参数位置的逆变可能交换有序对的两个分量，因此需要同时包含这两个方向。
+两个子树集合都有限，右侧的并集也有限，故左侧有限。
 \end{proof}
 
 因此，把成员关系算法用于 \(\mathcal S_r\)，就得到正则树类型子类型关系的判定
@@ -1004,7 +1018,7 @@ T ::= X\mid\tapltype{Top}\mid T\times T\mid T\to T\mid\mu X.T
 \end{definition}
 
 这个定义既穷尽所有输入，也会终止。右侧每次递归调用都会严格减小字典序数对
-\((|\pi|,\mu\text{-}\operatorname{height}(T))\)：箭头和积分支减小路径长度，
+\((|\pi|,\mu\text{-}\operatorname{height}(T))\)：箭头和积类型分支减小路径长度，
 \(\mu X.T\) 分支保持路径长度，却减少类型开头的 \(\mu\) 数量。所有调用也都
 保持参数类型的收缩性与闭性；特别是，\(\mu X.T\) 收缩且闭，当且仅当它的展开
 \([X\mapsto\mu X.T]T\) 也收缩且闭。
@@ -1144,7 +1158,7 @@ T ::= X\mid\tapltype{Top}\mid T\times T\mid T\to T\mid\mu X.T
 \(\mathcal S_\mu\) 的前三项之一支持。若 \(T'=\tapltype{Top}\)，则
 \((A',B')\in\mathcal S(Q)\)。若
 \((S',T')=(S_1\times S_2,T_1\times T_2)\)，其两个分量对属于
-\(\nu\mathcal S_\mu\)，映射到树后属于 \(Q\)，所以积分支给出
+\(\nu\mathcal S_\mu\)，映射到树后属于 \(Q\)，所以积类型分支给出
 \((A',B')\in\mathcal S(Q)\)。箭头情形相同，并在参数位置交换方向。
 
 再证从右到左。令
@@ -1211,7 +1225,7 @@ A_0,&T=\tapltype{Top},\\
 \termfirst{自顶向下子表达式}{top-down subexpression}正好对应支持函数在展开时
 产生的表达式；\termfirst{自底向上子表达式}{bottom-up subexpression}则便于
 证明任意闭 \(\mu\)-类型只有有限多个闭子表达式。终止性证明会同时定义二者，
-再证明前者包含于后者。
+再证明前者包含于后者。以下论证依据 Brandt 与 Henglein（1997）。
 
 \begin{definition}
 \label{def:21.9.1}
@@ -1260,7 +1274,7 @@ R=\{(U,T)\mid\forall S.\ S\sqsubseteq U\Rightarrow S\sqsubseteq T\}.
 \(R\) 对 \(\operatorname{TD}\) 闭合。若 \((U,T)=(T,T)\)，结论直接成立。
 若 \((U,T)=(U,T_1\times T_2)\) 且 \((U,T_1)\in R\)，则对任意
 \(S\sqsubseteq U\)，先有 \(S\sqsubseteq T_1\)，再由
-\(\operatorname{TD}\) 的积分支得到 \(S\sqsubseteq T_1\times T_2\)。
+\(\operatorname{TD}\) 的积类型分支得到 \(S\sqsubseteq T_1\times T_2\)。
 其他分支相同。
 \end{proof}
 
@@ -1393,7 +1407,7 @@ S=[X\mapsto Q]([Y\mapsto\mu Y.T']S_2),
 \(\operatorname{subtype}\) 的递归调用次数与两个输入类型的子表达式总数平方
 成正比，\(\operatorname{subtype}^{ac}\) 则可能达到指数级。
 
-\begin{figure}[!ht]
+\begin{center}
 \centering
 \begin{minipage}{0.93\linewidth}
 \[
@@ -1418,9 +1432,9 @@ S=[X\mapsto Q]([Y\mapsto\mu Y.T']S_2),
 \end{aligned}
 \]
 \end{minipage}
-\caption{Amadio--Cardelli 子类型算法}
+\captionof{figure}{Amadio--Cardelli 子类型算法}
 \label{fig:21-5}
-\end{figure}
+\end{center}
 
 指数行为可由以下类型族看出：
 \[
@@ -1432,9 +1446,36 @@ T_{n+1}&=&\mu X.X\to T_n.
 \end{array}
 \]
 展开缩写后，\(S_n,T_n\) 的大小都与 \(n\) 成线性关系。然而检查
-\(S_n\subtype T_n\) 时，箭头逆变会生成方向相反的子目标，几步之后同一层会
-出现两个分别涉及 \(S_{n-1},T_{n-1}\) 的递归调用；每个调用又产生两个下一层
-调用。故总调用次数与 \(2^n\) 成正比。
+\(S_n\subtype T_n\) 会生成指数规模的推导。具体的递归调用依次为
+\[
+\begin{aligned}
+&\operatorname{subtype}^{ac}(\varnothing,S_n,T_n)\\
+={}&\operatorname{subtype}^{ac}(A_1,S_n\to S_{n-1},T_n)\\
+={}&\operatorname{subtype}^{ac}(A_2,S_n\to S_{n-1},T_n\to T_{n-1})\\
+={}&\operatorname{subtype}^{ac}(A_3,T_n,S_n)\ \mathbf{and}\
+   \underline{\operatorname{subtype}^{ac}(A_3,S_{n-1},T_{n-1})}\\
+={}&\operatorname{subtype}^{ac}(A_4,T_n\to T_{n-1},S_n)\ \mathbf{and}\ \cdots\\
+={}&\operatorname{subtype}^{ac}(A_5,T_n\to T_{n-1},S_n\to S_{n-1})
+   \ \mathbf{and}\ \cdots\\
+={}&\operatorname{subtype}^{ac}(A_6,S_n,T_n)\ \mathbf{and}\
+   \underline{\operatorname{subtype}^{ac}(A_6,T_{n-1},S_{n-1})}
+   \ \mathbf{and}\ \cdots
+\end{aligned}
+\]
+其中每一步使用的假设集为
+\[
+\begin{aligned}
+A_1&=\{(S_n,T_n)\},\\
+A_2&=A_1\cup\{(S_n\to S_{n-1},T_n)\},\\
+A_3&=A_2\cup\{(S_n\to S_{n-1},T_n\to T_{n-1})\},\\
+A_4&=A_3\cup\{(T_n,S_n)\},\\
+A_5&=A_4\cup\{(T_n\to T_{n-1},S_n)\},\\
+A_6&=A_5\cup\{(T_n\to T_{n-1},S_n\to S_{n-1})\}.
+\end{aligned}
+\]
+初始调用由此产生了上面画线的两个递归调用：二者都比较
+\(S_{n-1}\) 与 \(T_{n-1}\)，只是方向相反。每个调用又会各自产生两个涉及
+\(S_{n-2},T_{n-2}\) 的调用，逐层重复。因此递归调用总数与 \(2^n\) 成正比。
 
 \section{同构递归类型的子类型化}
 \label{sec:21.11}
@@ -1480,20 +1521,37 @@ Barwise 与 Moss（1996）、Gordon（1995）以及 Milner 与 Tofte（1991a）�
 单调函数和不动点的基础材料见 Aczel（1977）和 Davey 与 Priestley（1990）。
 
 计算机科学中的余归纳证明方法可追溯到 20 世纪 70 年代，例如 Milner（1980）
-和 Park（1981）关于并发的工作；数学家更早便熟悉归纳的对偶形式，通用代数与
-范畴论中都有明确发展。Aczel（1988）关于非良基集合的著作附有简短历史回顾。
+和 Park（1981）关于并发的工作；另见 Arbib 与 Manes（1975）从范畴论角度对
+自动机理论中对偶性的讨论。数学家更早便熟悉归纳的对偶形式，通用代数与范畴论
+中都有明确发展。Aczel（1988）关于非良基集合的著作附有简短历史回顾。
 
-Amadio 与 Cardelli（1993）给出了第一个递归类型子类型算法，并证明无限树的
-包含关系、\(\mu\)-类型的算法关系和声明式参考关系三者等价。他们没有使用
-余归纳，而用无限树的有限近似进行论证。Brandt 与 Henglein（1997）揭示了该
-系统的余归纳本质，给出可靠且完备的归纳公理化，并详细证明子类型算法以
-\(O(n^2)\) 时间终止；\taplsecref{21.9}{sec:21.9}紧随其证明。
+Amadio 与 Cardelli（1993）给出了第一个递归类型子类型算法。他们的论文定义了
+三种关系：无限树之间的包含关系、检查 \(\mu\)-类型子类型关系的算法，以及以一组
+声明式推导规则的最小不动点定义的 \(\mu\)-类型参考子类型关系。论文证明三者等价，
+并把它们联系到一个以\termfirst{偏等价关系}{partial equivalence relation}为基础的
+模型构造。其证明没有使用余归纳；为了论证无限树，作者引入了无限树的有限近似，
+这一概念在多项证明中起关键作用。
 
-Kozen、Palsberg 与 Schwartzbach（1993）把正则递归类型对应到带标签状态的
-自动机，再通过积自动机和线性时间的空语言检查，得到优雅的二次时间算法。
-Hosoya、Vouillon 与 Pierce（2001）把相关的树自动机方法用于面向 XML 的递归
-类型与并类型。Jim 与 Palsberg（1999）讨论带子类型化和递归类型的类型重构，
-同样把无限树子类型关系看作余归纳关系，并从给定类型对构造最小的一致集合。
+Brandt 与 Henglein（1997）揭示了 Amadio--Cardelli 系统的余归纳本质，并给出
+一种新的归纳公理化；该公理化相对于原系统既可靠又完备。其中的 Arrow/Fix 规则
+集中体现了系统的余归纳性质。论文还提出一套一般方法，把天然以余归纳定义的关系
+转写为归纳公理系统，并详细证明一项子类型算法会终止。\taplsecref{21.9}{sec:21.9}
+紧随这项终止性证明；其算法复杂度为 \(O(n^2)\)。
+
+Kozen、Palsberg 与 Schwartzbach（1993）观察到，正则递归类型可以对应为带标签
+状态的自动机。他们构造两个自动机的积，得到一个普通的字自动机：它接受某个字，
+当且仅当原来两个自动机所对应的类型不满足子类型关系。对子类型问题作判定，因而
+可归结为一次线性时间的空语言检查。再加上二次时间的积自动机构造和线性时间的
+类型到自动机转换，整个算法的复杂度为二次时间。
+
+Hosoya、Vouillon 与 Pierce（2001）采用相关的自动机方法，把带并类型的递归类型
+对应到树自动机，从而得到一项针对 XML 处理应用优化的子类型算法。
+
+Jim 与 Palsberg（1999）研究带子类型化和递归类型的类型重构（见\chapref{22}）。
+与本章相同，他们把无限树上的子类型关系看成余归纳关系，并把子类型检查算法解释
+为：从给定类型对出发，逐步构造包含它的最小模拟关系，也就是本章所说的一致集合。
+他们定义了类型关系的一致性和 \(P_1\)-闭包；这两个概念分别对应本章的一致集合与
+可达集合。
 
 \bilingualepigraph[0.68\textwidth]
   {想得足够久，你就会发现它显而易见。}

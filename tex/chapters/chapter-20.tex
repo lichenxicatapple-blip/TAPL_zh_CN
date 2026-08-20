@@ -1,7 +1,7 @@
 % 第 20 章：递归类型
 % Source: source/split/chapters/ch20-recursive-types_p255-p266.pdf
 % Original print pages: 267--280
-% Status: 待独立初审
+% Status: 修订中
 
 \chapter{递归类型}
 \label{chap:20}
@@ -19,8 +19,8 @@
 \termfirst{递归类型}{recursive type}。\footnote{本章不讨论怎样为元素类型任意
 的列表给出一份通用定义。为此还需要类型算子；\chapref{29}会引入这一机制。}
 
-仍以自然数列表为例。借助\taplsecref{11.9}{sec:11.9}的变体和
-\taplsecref{11.6}{sec:11.6}的二元对，可以先写出：
+仍以自然数列表为例。借助\taplsecref{11.10}{sec:11.10}的变体和
+\taplsecref{11.7}{sec:11.7}的元组，可以先写出：
 \begin{lstlisting}
 NatList = <nil:Unit, cons:{...,...}>;
 \end{lstlisting}
@@ -37,9 +37,9 @@ NatList = <nil:Unit, cons:{Nat,NatList}>;
 
 这个等式并非普通的缩写定义：等号右侧又用到了尚在定义中的名称
 \texttt{NatList}，因而不能把它看成给一个含义已知的类型表达式另取名字。
-更恰当的理解，是它规定了\cref{fig:20-natlist-tree}所示的无限树。
+更恰当的理解，是它规定了下面所示的无限树。
 
-\begin{figure}[!ht]
+\begin{center}
 \centering
 \begin{tikzpicture}[
   level distance=12mm,
@@ -63,13 +63,14 @@ NatList = <nil:Unit, cons:{Nat,NatList}>;
     }
   };
 \end{tikzpicture}
-\caption{自然数列表类型的无限树展开}
-\label{fig:20-natlist-tree}
-\end{figure}
+\end{center}
 
-规定这棵无限类型树的递归等式，与第 5 章定义递归阶乘函数时使用的等式相似。
+规定这棵无限类型树的递归等式，与\taplsecref{5.2}{sec:5.2}定义递归阶乘函数时
+使用的等式相似。
 这里也可以把等式中的“回路”移到右侧，引入显式的类型递归算子 \(\mu\)，把
-等式写成真正的定义：
+等式写成真正的定义：\footnote{这样写使我们不必先给递归类型命名。不过，显式
+命名递归类型也有优点；参见\taplsecref{19.3}{sec:19.3}关于名义类型系统与
+结构类型系统的讨论。}
 \begin{lstlisting}[mathescape=true]
 NatList = $\mu$X. <nil:Unit, cons:{Nat,X}>;
 \end{lstlisting}
@@ -86,9 +87,6 @@ X=\langle\mathsf{nil}:\tapltype{Unit},
 \footnote{本章研究带递归类型的简单类型演算。示例还会使用前面章节的
 多种特性，原书配套检查器为 \texttt{fullequirec}；
 \taplsecref{20.2}{sec:20.2}对应的检查器为 \texttt{fullisorec}。}
-\footnote{这样写使我们不必先给递归类型命名。不过，显式命名递归类型
-也有优点；参见\taplsecref{19.3}{sec:19.3}关于名义类型系统与结构类型系统的
-讨论。}
 
 \section{示例}
 \label{sec:20.1}
@@ -111,7 +109,7 @@ cons = lambda n:Nat. lambda l:NatList.
          <cons={n,l}> as NatList;
 $\blacktriangleright$ cons : Nat -> NatList -> NatList
 \end{lstlisting}
-回顾\taplsecref{11.9}{sec:11.9}，\texttt{<l=t> as T} 给值 \texttt{t}
+回顾\taplsecref{11.10}{sec:11.10}，\texttt{<l=t> as T} 给值 \texttt{t}
 加上标签 \texttt{l}，再把它注入变体类型 \texttt{T}。这里的类型检查器会把
 递归类型 \texttt{NatList} 自动展开为
 \texttt{<nil:Unit, cons:\{Nat,NatList\}>}。
@@ -213,6 +211,7 @@ $\blacktriangleright$ 3 : Nat
 \end{exercise}
 \taplauthorsolutionlink{sol:author:20.1.2}{20.1.2}
 
+\phantomsection\label{exm:20.1-process}
 还可以把流推广成一种简单的\termfirst{进程}{process}：它接受一个数，再返回
 一个数和一个新进程。
 \begin{lstlisting}[mathescape=true]
@@ -292,7 +291,8 @@ fixT = lambda f:T->T.
          (lambda x:($\mu$A.A->T). f (x x));
 $\blacktriangleright$ fixT : (T->T) -> T
 \end{lstlisting}
-关键技巧是用递归类型为两处 \texttt{x x} 赋型。练习 9.3.2 已经指出，要给
+关键技巧是用递归类型为两处 \texttt{x x} 赋型。\taplnamedref{ex:9.3.2}{练习}
+已经指出，要给
 这一项赋型，\texttt{x} 必须具有箭头类型，而且其参数类型恰好就是
 \texttt{x} 自己的类型。有限类型不可能满足这个方程，无限类型
 \(\mu A.\,A\to T\) 却恰好可以。
@@ -309,10 +309,10 @@ divergeT = lambda _:Unit. fixT (lambda x:T. x);
 $\blacktriangleright$ divergeT : Unit -> T
 \end{lstlisting}
 对每个类型都能构造这样的项，所以，与简单类型 lambda 演算
-\(\lambda_{\to}\) 不同，这个系统中的每个类型都有居留项。
+\(\lambda_{\to}\) 不同，这个系统中的每个类型都有居留元。
 \footnote{这也意味着带递归类型的系统不适合作为逻辑。按照 Curry--Howard
-对应（见\taplsecref{9.4}{sec:9.4}），若把“类型 \(T\) 有居留项”理解为“命题
-\(T\) 可证”，那么每个类型都有居留项，就意味着每个命题都可证，因而该逻辑
+对应（见\taplsecref{9.4}{sec:9.4}），若把“类型 \(T\) 有居留元”理解为“命题
+\(T\) 可证”，那么每个类型都有居留元，就意味着每个命题都可证，因而该逻辑
 不一致。}
 
 \subsection*{再次考察无类型 lambda 演算}
@@ -352,6 +352,10 @@ fixD = lam (lambda f:D.
             (lam (lambda x:D. ap f (ap x x))));
 $\blacktriangleright$ fixD : D
 \end{lstlisting}
+
+\translatornote{作者勘误指出，\texttt{fixD} 编码的是按名调用的 (Y) 组合子。
+若要编码按值调用版本，需要像\taplsecref{5.2}{sec:5.2}那样在自应用处再加入
+一层 lambda 抽象；递归类型同样可以为该版本赋型。}
 
 还可以扩展这项嵌入，加入自然数等特性。把 \(D\) 改成一个变体类型，以两个
 标签分别表示数和函数：
@@ -457,7 +461,18 @@ D = $\mu$X. <nat:Nat, fn:X->X, rcd:Nat->X>;
 \]
 它们在两个类型之间来回映射值，从而见证这项同构。
 
-\begin{figure}[!ht]
+\begin{center}
+\begin{tikzpicture}[>=stealth,baseline=(current bounding box.center)]
+  \node (mu) at (0,0) {$\mu X.T$};
+  \node (body) at (6.0,0) {$\taplsubst{X}{\mu X.T}{T}$};
+  \draw[->,thick,bend left=24]
+    (mu) to node[above] {$\mathsf{unfold}[\mu X.T]$} (body);
+  \draw[->,thick,bend left=24]
+    (body) to node[below] {$\mathsf{fold}[\mu X.T]$} (mu);
+\end{tikzpicture}
+\end{center}
+
+\begin{center}
 \centering
 \begin{minipage}{0.98\linewidth}
 \small
@@ -507,9 +522,9 @@ T&::=&\cdots&\text{类型}\\
 \]
 }
 \end{minipage}
-\caption{同构递归类型（\(\lambda_\mu\)）}
+\captionof{figure}{同构递归类型（\(\lambda_\mu\)）}
 \label{fig:20-1}
-\end{figure}
+\end{center}
 
 语言把 \texttt{fold} 与 \texttt{unfold} 作为基本构造。
 \textsc{E-UnfldFld} 规定，对刚按某递归类型折叠起来的值再作展开，会消去这对
@@ -567,7 +582,7 @@ tl = lambda l:NatList.
 \end{exercise}
 \taplauthorsolutionlink{sol:author:20.2.1}{20.2.1}
 
-\begin{exercise}[\(\star\star\star\), \(\nrightarrow\)]
+\begin{exercise}[\(\star\star\), \(\nrightarrow\)]
 \label{ex:20.2.2}
 概述同构递归系统的进展性与保持性定理的证明。
 \end{exercise}
@@ -590,11 +605,56 @@ tl = lambda l:NatList.
 之间应是什么关系？
 
 最直接的分析方法，是按等递归方式把两者不断展开。两种类型的值都可以看成
-简单的反应式进程：给它一个数，它会返回另一个数和一个准备继续接收数字的新
+\hyperref[exm:20.1-process]{本章前面的反应式进程}：给它一个数，它会返回
+另一个数和一个准备继续接收数字的新
 进程。第一种进程能接受任意自然数，却总是返回偶数；第二种进程只保证接受偶数，
 但可能返回任意自然数。第一种类型对参数接收范围和结果范围都作出了更强保证，
-因此应当是第二种类型的子类型。无限展开后，函数参数位置按逆变方向比较，结果
-中的数和后继进程则按协变方向比较；同一比较模式会在后继进程处不断重复。
+因此应当是第二种类型的子类型。把这几项比较画在无限展开的类型树上，可得：
+
+\begin{center}
+\begin{tikzpicture}[
+  >=stealth,
+  every node/.style={font=\small},
+  tree/.style={level distance=11mm,sibling distance=20mm},
+  compare/.style={->,densely dashed,gray!75,thick}
+]
+\node[tree] (l0) at (-3.5,0) {$\to$}
+  child {node (ln0) {$\tapltype{Nat}$}}
+  child {node (lp0) {$\times$}
+    child {node (le0) {$\tapltype{Even}$}}
+    child {node (l1) {$\to$}
+      child {node (ln1) {$\tapltype{Nat}$}}
+      child {node (lp1) {$\times$}
+        child {node (le1) {$\tapltype{Even}$}}
+        child {node {$\vdots$}}
+      }
+    }
+  };
+\node[tree] (r0) at (3.5,0) {$\to$}
+  child {node (re0) {$\tapltype{Even}$}}
+  child {node (rp0) {$\times$}
+    child {node (rn0) {$\tapltype{Nat}$}}
+    child {node (r1) {$\to$}
+      child {node (re1) {$\tapltype{Even}$}}
+      child {node (rp1) {$\times$}
+        child {node (rn1) {$\tapltype{Nat}$}}
+        child {node {$\vdots$}}
+      }
+    }
+  };
+\draw[compare] (l0) -- node[above] {$\subtype$} (r0);
+\draw[compare] (re0) -- node[above] {$\subtype$} (ln0);
+\draw[compare] (lp0) -- node[above] {$\subtype$} (rp0);
+\draw[compare] (le0) -- node[above] {$\subtype$} (rn0);
+\draw[compare] (l1) -- node[above] {$\subtype$} (r1);
+\draw[compare] (re1) -- node[above] {$\subtype$} (ln1);
+\draw[compare] (lp1) -- node[above] {$\subtype$} (rp1);
+\draw[compare] (le1) -- node[above] {$\subtype$} (rn1);
+\end{tikzpicture}
+\end{center}
+
+函数参数位置按逆变方向比较，结果中的数和后继进程则按协变方向比较；同一
+比较模式会在后继进程处不断重复。
 
 \chapref{21}将用余归纳把这项直观论证精确化。
 
