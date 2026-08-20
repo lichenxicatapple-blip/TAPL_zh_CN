@@ -1,0 +1,26 @@
+\newpage
+\section*{第24章：存在类型}
+\addcontentsline{toc}{section}{第24章：存在类型}
+
+\begin{taplsolutionentrybox}
+\phantomsection\label{sol:translator:24.3.1}
+\textbf{24.3.1 解答}
+
+先只看目标类型
+\[
+\forall Y.(\forall X.T\to Y)\to Y.
+\]
+要构造它，必须先抽象 \(Y\)，再接收
+\(f:\forall X.T\to Y\)。手中只有隐藏类型 \(S\) 和值
+\(t:[X\mapsto S]T\)，所以先把 \(f\) 在 \(S\) 处实例化，再应用于 \(t\)：
+\[
+\lambda Y.\lambda f:\forall X.T\to Y.\,f[S]t.
+\]
+开包时反过来，把包应用于所需结果类型 \(T_2\)，再把原来的包体写成一个能对
+任意隐藏类型 \(X\) 和相应值 \(x:T_{11}\) 产生 \(T_2\) 的函数：
+\[
+t_1[T_2](\lambda X.\lambda x:T_{11}.t_2).
+\]
+这正是正文中的两条翻译。
+\taplsolutionbacklink{ex:24.3.1}{返回练习24.3.1}
+\end{taplsolutionentrybox}

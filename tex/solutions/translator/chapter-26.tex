@@ -1,0 +1,82 @@
+\newpage
+\section*{第26章：有界量化}
+\addcontentsline{toc}{section}{第26章：有界量化}
+
+\begin{taplsolutionentrybox}
+\phantomsection\label{sol:translator:26.2.1}
+\textbf{26.2.1 解答}
+
+S-Arrow 要求参数逆变、结果协变。目标
+\(B\to Y<:X\to B\) 因而分解为
+\[
+\Gamma\vdash X<:B
+\qquad\text{和}\qquad
+\Gamma\vdash Y<:B.
+\]
+第一项由上下文 \(X<:B\) 和 S-TVar 得到；第二项先由 \(Y<:X\)、
+\(X<:B\) 各用一次 S-TVar，再用 S-Trans 得到。最后应用 S-Arrow。
+\taplsolutionbacklink{ex:26.2.1}{返回练习26.2.1}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection\label{sol:translator:26.2.2}
+\textbf{26.2.2 解答}
+
+取 \(A<:B\)。完全规则可推出
+\[
+\forall X<:B.X
+<:
+\forall X<:A.B,
+\]
+因为右侧只要求在较小的 \(A\) 范围上接受类型实参，而左侧能接受所有
+\(B\) 的子类型；在 \(X<:A\) 下又有 \(X<:B\)。核规则要求两边上界完全
+相同，因而不能推出。把量词体的 \(X,B\) 换成其他满足协变关系的类型，还可
+得到更多例子。
+\taplsolutionbacklink{ex:26.2.2}{返回练习26.2.2}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection\label{sol:translator:26.3.1}
+\textbf{26.3.1 解答}
+
+展开序对：
+\[
+\forall X.(S_1\to S_2\to X)\to X
+\quad\text{与}\quad
+\forall X.(T_1\to T_2\to X)\to X.
+\]
+量词上界同为 \(\tapltype{Top}\)，可用核 S-All。量词体都是箭头；最外层
+参数位置逆变，所以只需证明
+\[
+T_1\to T_2\to X<:S_1\to S_2\to X.
+\]
+再两次使用 S-Arrow，正好分别需要 \(S_1<:T_1\)、\(S_2<:T_2\)，结果位置
+\(X<:X\) 由 S-Refl 得到。
+\taplsolutionbacklink{ex:26.3.1}{返回练习26.3.1}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection\label{sol:translator:26.3.6}
+\textbf{26.3.6 解答}
+
+一般不能。子类型关系只能让一个已有类型忘掉信息，不能在项内部抽象出一个
+可由调用者任意选择的类型参数。全称类型的关键能力是：同一值可在许多互不
+相关的类型处实例化，并在结果类型中保持这些类型之间的联系。仅靠
+\(\tapltype{Top}\)、箭头和 T-Sub 无法恢复这种依赖关系。
+\taplsolutionbacklink{ex:26.3.6}{返回练习26.3.6}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection\label{sol:translator:26.4.16}
+\textbf{26.4.16 解答}
+
+完全系统的证明框架不变，但所有涉及 S-All 的辅助引理都必须同时处理变化的
+上界。收窄和类型替换证明在量词情形分别使用完全 S-All 的第一个前提来调整
+上界，再在较窄上下文中处理量词体。反演引理中，全称类型两边的上界不再相等，
+而只满足完全规则给出的逆变关系。
+
+把这些加强后的引理代入保持性证明，类型 beta 归约仍由类型替换引理处理；
+进展性只关心闭值的外层形式，不依赖两个上界相等，因此典范形式和主证明保持
+原有结构。由此完全 \(F_{<:}\) 同样满足保持性与进展性。
+\taplsolutionbacklink{ex:26.4.16}{返回练习26.4.16}
+\end{taplsolutionentrybox}

@@ -1,0 +1,237 @@
+\newpage
+\section{第23章：全称类型}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:23.4.3}
+\textbf{23.4.3 解答}
+
+先定义列表连接，再用它反转列表：
+\[
+\begin{aligned}
+\taplterm{append}={}&\lambda X.\,
+\taplterm{fix}\bigl(\lambda app:
+\tapltype{List}\,X\to\tapltype{List}\,X\to\tapltype{List}\,X.\,
+\lambda l_1:\tapltype{List}\,X.\lambda l_2:\tapltype{List}\,X.\\
+&\quad\textbf{if }\taplterm{isnil}[X]l_1\textbf{ then }l_2\\
+&\quad\textbf{ else }\taplterm{cons}[X](\taplterm{head}[X]l_1)
+  (app(\taplterm{tail}[X]l_1)l_2)\bigr),\\
+\taplterm{reverse}={}&\lambda X.\,
+\taplterm{fix}\bigl(\lambda rev:\tapltype{List}\,X\to\tapltype{List}\,X.\,
+\lambda l:\tapltype{List}\,X.\\
+&\quad\textbf{if }\taplterm{isnil}[X]l
+\textbf{ then }\taplterm{nil}[X]\\
+&\quad\textbf{ else }\taplterm{append}[X]\,
+  (rev(\taplterm{tail}[X]l))\,
+  (\taplterm{cons}[X](\taplterm{head}[X]l)(\taplterm{nil}[X]))\bigr).
+\end{aligned}
+\]
+\taplsolutionbacklink{ex:23.4.3}{返回练习23.4.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:23.4.5}
+\textbf{23.4.5 解答}
+\[
+\taplterm{and}=\lambda b:\tapltype{CBool}.\lambda c:\tapltype{CBool}.
+\lambda X.\lambda t:X.\lambda f:X.\,b[X](c[X]t\,f)f
+\]
+\taplsolutionbacklink{ex:23.4.5}{返回练习23.4.5}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:23.4.6}
+\textbf{23.4.6 解答}
+\[
+\taplterm{iszero}=\lambda n:\tapltype{CNat}.\,
+n[\tapltype{Bool}](\lambda b:\tapltype{Bool}.\taplterm{false})
+\taplterm{true}
+\]
+\taplsolutionbacklink{ex:23.4.6}{返回练习23.4.6}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:23.4.8}
+\textbf{23.4.8 解答}
+\[
+\begin{aligned}
+\taplterm{pairNat}
+ &=\lambda n_1:\tapltype{CNat}.\lambda n_2:\tapltype{CNat}.
+   \lambda X.\lambda f:\tapltype{CNat}\to\tapltype{CNat}\to X.\,
+   f\,n_1\,n_2,\\
+\taplterm{fstNat}
+ &=\lambda p:\tapltype{PairNat}.\,
+   p[\tapltype{CNat}]
+   (\lambda n_1:\tapltype{CNat}.\lambda n_2:\tapltype{CNat}.n_1),\\
+\taplterm{sndNat}
+ &=\lambda p:\tapltype{PairNat}.\,
+   p[\tapltype{CNat}]
+   (\lambda n_1:\tapltype{CNat}.\lambda n_2:\tapltype{CNat}.n_2).
+\end{aligned}
+\]
+\taplsolutionbacklink{ex:23.4.8}{返回练习23.4.8}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:23.4.9}
+\textbf{23.4.9 解答}
+\[
+\begin{aligned}
+\taplterm{zz}&=\taplterm{pairNat}\ \taplterm{c0}\ \taplterm{c0},\\
+\taplterm{f}&=\lambda p:\tapltype{PairNat}.\,
+ \taplterm{pairNat}\,
+ (\taplterm{csucc}(\taplterm{fstNat}\ p))\,
+ (\taplterm{fstNat}\ p),\\
+\taplterm{pred}&=\lambda m:\tapltype{CNat}.\,
+ \taplterm{sndNat}\bigl(m[\tapltype{PairNat}]\taplterm{f}\taplterm{zz}\bigr).
+\end{aligned}
+\]
+迭代 \(i\) 次后得到 \((i,i-1)\)（零处截断），故取第二分量即为前驱。
+\taplsolutionbacklink{ex:23.4.9}{返回练习23.4.9}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:23.4.10}
+\textbf{23.4.10 解答}
+\[
+\begin{aligned}
+\taplterm{vpred}={}&\lambda n:\tapltype{CNat}.\lambda X.\lambda s:X\to X.
+\lambda z:X.\\
+&\bigl(n[(X\to X)\to X]\,
+  (\lambda p:(X\to X)\to X.\lambda q:X\to X.\\
+&\hspace{29mm}q(p\,s))\,
+  (\lambda x:X\to X.\,z)\bigr)(\lambda x:X.\,x)
+\end{aligned}
+\]
+其类型为 \(\tapltype{CNat}\to\tapltype{CNat}\)。迭代过程中保留一个“尚待
+应用的后继”，最后以恒等函数收束，从而丢掉第一次迭代、留下前驱结果。
+\taplsolutionbacklink{ex:23.4.10}{返回练习23.4.10}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:23.4.11}
+\textbf{23.4.11 解答}
+\[
+\taplterm{head}=
+\lambda X.\lambda default:X.\lambda l:\tapltype{List}\,X.\,
+l[X](\lambda hd:X.\lambda tl:X.\,hd)\,default
+\]
+\taplsolutionbacklink{ex:23.4.11}{返回练习23.4.11}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:23.4.12}
+\textbf{23.4.12 解答}
+
+关键是让折叠同时构造两份列表：第一份尚未插入 \(e\)，第二份已经把 \(e\)
+插入适当位置。自右向左处理元素 \(hd\) 时，比较 \(e\) 与 \(hd\)：若
+\(e\leq hd\)，把 \(e\) 插在当前后缀之前；否则沿用后缀中已经完成的插入。
+\[
+\begin{aligned}
+\taplterm{insert}={}&\lambda X.\lambda leq:X\to X\to\tapltype{Bool}.
+\lambda l:\tapltype{List}\,X.\lambda e:X.\\
+&\textbf{let }res=
+l[\tapltype{Pair}(\tapltype{List}\,X)(\tapltype{List}\,X)]\\
+&\quad(\lambda hd:X.\lambda acc:\tapltype{Pair}
+(\tapltype{List}\,X)(\tapltype{List}\,X).\\
+&\qquad\textbf{let }rest=\taplterm{fst}\ acc\textbf{ in}\\
+&\qquad\textbf{let }rest_e=\taplterm{snd}\ acc\textbf{ in}\\
+&\qquad\taplterm{pair}\,
+  (\taplterm{cons}[X]hd\,rest)\,
+  (\textbf{if }leq\ e\ hd\\
+&\hspace{52mm}\textbf{ then }\taplterm{cons}[X]e
+     (\taplterm{cons}[X]hd\,rest)\\
+&\hspace{52mm}\textbf{ else }\taplterm{cons}[X]hd\,rest_e))\\
+&\quad(\taplterm{pair}(\taplterm{nil}[X])
+  (\taplterm{cons}[X]e(\taplterm{nil}[X])))\\
+&\textbf{ in }\taplterm{snd}\ res.
+\end{aligned}
+\]
+随后再以插入函数折叠整个列表：
+\[
+\begin{aligned}
+\taplterm{sort}={}&\lambda X.\lambda leq:X\to X\to\tapltype{Bool}.\\
+&\lambda l:\tapltype{List}\,X.\,
+l[\tapltype{List}\,X]\\
+&\quad
+(\lambda hd:X.\lambda rest:\tapltype{List}\,X.\,
+\taplterm{insert}[X]leq\,rest\,hd)(\taplterm{nil}[X]).
+\end{aligned}
+\]
+\taplsolutionbacklink{ex:23.4.12}{返回练习23.4.12}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:23.5.1}
+\textbf{23.5.1 解答}
+
+证明结构几乎与\cref{thm:9.3.9}相同。E-TAppTabs 情形还需要类型替换引理：
+\[
+\Gamma,X,\Delta\vdash t:T
+\quad\Longrightarrow\quad
+\Gamma,[X\mapsto S]\Delta\vdash[X\mapsto S]t:[X\mapsto S]T.
+\]
+保留尾部上下文 \(\Delta\) 才能得到足够强的归纳假设；否则 T-Abs 情形无法
+处理在 \(X\) 之后引入的项变量绑定。对求值推导归纳，新增的 E-TApp 情形直接
+使用归纳假设，E-TAppTabs 情形使用上述引理。
+\taplsolutionbacklink{thm:23.5.1}{返回定理23.5.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:23.5.2}
+\textbf{23.5.2 解答}
+
+证明与简单类型 lambda 演算的进展性证明相同，只需扩充典范形式引理：
+\[
+\text{若值 }v\text{ 具有类型 }\forall X.T_{12},
+\text{ 则 }v=\lambda X.t_{12}.
+\]
+在 T-TApp 情形中，先对被实例化项使用归纳假设；若它能求值，应用 E-TApp；
+若它是值，典范形式引理说明它必为类型抽象，于是 E-TAppTabs 可用。
+\taplsolutionbacklink{thm:23.5.2}{返回定理23.5.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:23.6.3}
+\textbf{23.6.3 解答}
+
+证明分七步整理类型抽象、类型应用与普通项的相对位置。
+\begin{enumerate}
+  \item 对 \(t\) 归纳并使用赋型反演：若 \(t\) 良类型且擦除为 \(m\)，可
+        重排出一个同样擦除为 \(m\) 的良类型暴露项。
+  \item 对最外层类型抽象和类型应用的数量归纳，把任意装饰写成
+        “若干类型抽象、一个暴露项、若干类型应用”的形式。相邻的类型抽象和
+        类型应用可以先作一次类型 beta 归约；保持性保证重排后类型不变。
+  \item 若暴露项擦除为应用 \(m\,n\)，反演可知它必为 \(s\,u\)，其中
+        \(s:U\to T\)、\(u:U\)，且分别擦除为 \(m,n\)。
+  \item 把上述结论用于擦除为 \(x\,x\) 的项，得到同一个变量经过两组类型
+        实例化后既充当函数又充当实参的必要类型方程。
+  \item 若项擦除为 \(\lambda x.m\)，整理后的类型必由若干全称量词包住一个
+        箭头类型。
+  \item 定义类型的“最左叶”：变量的最左叶是自身，箭头类型取参数的最左叶，
+        全称类型取量词体的最左叶。对类型大小归纳可知，步骤 4 的方程迫使
+        箭头参数的最左叶等于某个外层量化变量。
+  \item 反设 \(\Omega\) 可赋型。分别把两个擦除为
+        \(\lambda x.x\,x\) 的子项整理并反演。函数位置要求某一类型的最左叶
+        等于在左侧抽象处绑定的类型变量；实参位置又要求同一最左叶等于在右侧
+        抽象处绑定的另一个类型变量。两变量由不同绑定子引入，不可能相同，
+        矛盾。
+\end{enumerate}
+因此 \(\Omega\) 在 System F 中不可赋型。
+\taplsolutionbacklink{ex:23.6.3}{返回练习23.6.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:23.7.1}
+\textbf{23.7.1 解答}
+\[
+\textbf{let }r=\lambda X.\,\taplterm{ref}(\lambda x:X.\,x)
+\textbf{ in }
+\bigl(r[\tapltype{Nat}]:=(\lambda x:\tapltype{Nat}.\taplterm{succ}\,x);
+\,!(r[\tapltype{Bool}])\ \taplterm{true}\bigr)
+\]
+若错误地把同一个可变单元在不同实例中分别视为
+\(\tapltype{Nat}\to\tapltype{Nat}\) 和
+\(\tapltype{Bool}\to\tapltype{Bool}\)，写入自然数函数后再按布尔函数读取，
+就破坏了类型安全。
+\taplsolutionbacklink{ex:23.7.1}{返回练习23.7.1}
+\end{taplauthorsolutionentrybox}

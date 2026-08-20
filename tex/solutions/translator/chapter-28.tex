@@ -1,0 +1,27 @@
+\newpage
+\section*{第28章：有界量化的元理论}
+\addcontentsline{toc}{section}{第28章：有界量化的元理论}
+
+\begin{taplsolutionentrybox}
+\phantomsection\label{sol:translator:28.4.3}
+\textbf{28.4.3 解答}
+
+证明必须把传递性 \(T(Q)\) 与收窄性 \(N(Q)\) 绑在一起，对 \(Q\) 的类型大小
+作外层归纳。
+\begin{enumerate}
+  \item 先在固定 \(Q\) 下证明 \(T(Q)\)，并对第一份子类型推导作内层归纳。
+        除完全 SA-All 外，各情形与核系统相同。
+  \item 在 SA-All 情形，两份量词体推导的上下文分别含
+        \(X<:Q_1\) 和 \(X<:T_1\)。规则的上界前提给出 \(T_1<:Q_1\)。
+        因 \(Q_1\) 是中间量词类型 \(Q\) 的真子类型组成部分，可使用外层
+        归纳假设 \(N(Q_1)\)，把第一份量词体推导收窄到 \(X<:T_1\)。
+        两份量词体推导现在上下文相同，再用内层归纳假设组合，最后应用
+        完全 SA-All。
+  \item 得到 \(T(Q)\) 后证明 \(N(Q)\)，对待收窄的推导归纳。关键
+        SA-Trans-TVar 情形会用到刚刚建立的 \(T(Q)\)；其他结构规则直接使用
+        归纳假设。
+\end{enumerate}
+这种次序避免循环：证明当前大小的传递性时只调用更小上界的收窄；证明当前
+大小的收窄时才调用已经完成的当前传递性。
+\taplsolutionbacklink{ex:28.4.3}{返回练习28.4.3}
+\end{taplsolutionentrybox}

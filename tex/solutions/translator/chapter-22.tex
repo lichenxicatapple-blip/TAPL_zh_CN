@@ -1,0 +1,131 @@
+\newpage
+\section*{第22章：类型重构}
+\addcontentsline{toc}{section}{第22章：类型重构}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:22.2.3}
+\textbf{22.2.3 解答}
+
+记题中项为 \(t\)。要让 \((x\,z)(y\,z)\) 可赋型，\(x\,z\) 必须得到一个
+函数，而 \(y\,z\) 必须得到该函数所需的参数。下面三组彼此不同的替换都满足
+这一要求：
+\[
+\begin{array}{l}
+\sigma_1=[X\mapsto\tapltype{Nat}\to\tapltype{Bool}\to\tapltype{Nat},
+Y\mapsto\tapltype{Nat}\to\tapltype{Bool},Z\mapsto\tapltype{Nat}],\\
+\sigma_2=[X\mapsto\tapltype{Bool}\to\tapltype{Nat}\to\tapltype{Bool},
+Y\mapsto\tapltype{Bool}\to\tapltype{Nat},Z\mapsto\tapltype{Bool}],\\
+\sigma_3=[X\mapsto Z\to A\to B,Y\mapsto Z\to A].
+\end{array}
+\]
+相应结果类型分别是主类型的自然数实例、布尔实例，以及最一般的
+\[
+(Z\to A\to B)\to(Z\to A)\to Z\to B.
+\]
+第三组保留了 \(Z,A,B\)，因此也覆盖前两组的进一步实例。
+
+\taplsolutionbacklink{ex:22.2.3}{返回练习22.2.3}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:22.3.3}
+\textbf{22.3.3 解答}
+
+从三个绑定变量开始，(x: X)、(y:Y)、(z:Z)。分别处理三个应用：
+\begin{enumerate}
+  \item \(x\,z\) 引入新变量 \(A\)，生成约束 \(X=Z\to A\)，结果类型为 \(A\)；
+  \item \(y\,z\) 引入新变量 \(B\)，生成约束 \(Y=Z\to B\)，结果类型为 \(B\)；
+  \item \((x\,z)(y\,z)\) 引入新变量 \(C\)，生成约束 \(A=B\to C\)，结果类型为 \(C\)。
+\end{enumerate}
+于是可以取
+\[
+\begin{aligned}
+S&=X\to Y\to Z\to C,\\
+\mathcal X&=\{A,B,C\},\\
+C_0&=\{X=Z\to A,\ Y=Z\to B,\ A=B\to C\}.
+\end{aligned}
+\]
+由 CT-Var 得到三个变量叶子，再依次应用三次 CT-App 和三次 CT-Abs，就得到
+结论 \(\vdash t:S\mid_{\mathcal X}C_0\)。
+
+\taplsolutionbacklink{ex:22.3.3}{返回练习22.3.3}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:22.5.2}
+\textbf{22.5.2 解答}
+
+合一\cref{sol:translator:22.3.3}得到的约束：先由 \(A=B\to C\)，再代入
+\(X=Z\to A\)、\(Y=Z\to B\)。可取主合一子
+\[
+[X\mapsto Z\to B\to C,
+  Y\mapsto Z\to B,
+  A\mapsto B\to C].
+\]
+把它作用于结果类型 \(S\)，得到主类型
+\[
+(Z\to B\to C)\to(Z\to B)\to Z\to C.
+\]
+变量名本身无关紧要；把 \(Z,B,C\) 一致地改名，仍是同一个主类型方案。
+
+\taplsolutionbacklink{ex:22.5.2}{返回练习22.5.2}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:22.5.5}
+\textbf{22.5.5 解答}
+
+实现分为三层。第一层按\cref{fig:22-1}遍历项，返回暂定结果类型和约束；第二层
+调用\cref{def:22.4.4}的合一算法；第三层把主合一子作用于暂定结果类型。关键
+不变量是：每次为应用或无标注抽象创建的类型变量都不曾出现过。
+
+本书 Rust 对照实现位于
+\path{code/book-snippets/src/chapter22.rs}，书内核心片段见
+\taplnamedref{def:22.3.2}{定义22.3.2后的约束生成说明}和
+\taplnamedref{def:22.4.4}{定义22.4.4后的合一说明}。测试覆盖恒等函数、把未知
+函数用于自然数、自应用的出现检查失败，以及多步替换的传递应用。
+
+\taplsolutionbacklink{ex:22.5.5}{返回练习22.5.5}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:22.5.7}
+\textbf{22.5.7 解答}
+
+增量版本在离开每个语法构造时立即合一当前新产生的约束，并把所得替换作用于
+上下文和后续子项。应用 \(t_1\,t_2\) 可按以下顺序处理：先重构 \(t_1\)，把
+所得替换作用于上下文；在更新后的上下文中重构 \(t_2\)；创建新结果变量 \(X\)，
+再合一“函数类型 \(=\) 实参类型 \(\to X\)”。最后复合三步替换，并把复合替换
+作用于 \(X\)。
+
+每一步返回的都是当前信息下最一般的类型；因此后续发现新约束时只需继续实例化，
+无需回头重新遍历已经处理的子项。这正是算法 W 的基本组织方式。
+
+\taplsolutionbacklink{ex:22.5.7}{返回练习22.5.7}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:22.7.1}
+\textbf{22.7.1 解答}
+
+在\cref{ex:22.5.7}的增量重构器上增加类型方案
+\(\forall X_1\ldots X_n.T\)。处理 let 时，先重构右侧并把当前替换作用于
+上下文；计算右侧类型中自由、但上下文中不自由的变量，把它们泛化后绑定给
+let 变量。处理变量时，每次查询类型方案都以全新的类型变量实例化所有量化变量。
+
+若语言包含引用等副作用，泛化步骤还必须实行值限制：只有右侧是句法值时才泛化；
+其他右侧以不量化的单态方案加入上下文。至少应测试：同一恒等函数在一次 let
+中分别用于自然数和布尔值；环境中自由类型变量不得被误泛化；包含引用分配的
+危险示例必须被拒绝；未使用的 let 右侧仍须接受类型检查。
+
+官方的 \texttt{letexercise} 是特意留有断言占位的练习骨架，不能把未补完版本
+当作通过实现；本项目保存该快照只用于核对接口和题意。
+
+\taplsolutionbacklink{ex:22.7.1}{返回练习22.7.1}
+\end{taplsolutionentrybox}

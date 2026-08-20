@@ -1,0 +1,224 @@
+\newpage
+\section{第22章：类型重构}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:22.3.9}
+\textbf{22.3.9 解答}
+
+主要的算法约束生成规则如下：
+\[
+\inferrule*[right=CA-Var]
+ {x:T\in\Gamma}
+ {\Gamma\vdash_Fx:T\mid_F\varnothing}
+\qquad
+\inferrule*[right=CA-Abs]
+ {\Gamma,x:T_1\vdash_Ft_2:T_2\mid_{F'}C}
+ {\Gamma\vdash_F\lambda x:T_1.\,t_2:T_1\to T_2\mid_{F'}C}
+\]
+\[
+\inferrule*[right=CA-App]
+ {\Gamma\vdash_Ft_1:T_1\mid_{X,F_1}C_1\\
+  \Gamma\vdash_{F_1}t_2:T_2\mid_{F_2}C_2}
+ {\Gamma\vdash_Ft_1\,t_2:X\mid_{F_2}
+  C_1\cup C_2\cup\{T_1=T_2\to X\}}
+\]
+其余规则类似。
+
+原规则与算法规则的等价性可写成两项。
+\begin{enumerate}
+  \item \textbf{可靠性：}若
+        \(\Gamma\vdash_Ft:T\mid_{F'}C\)，并且 \(\Gamma,t\) 中出现的变量
+        均不在 \(F\) 中，则
+        \(\Gamma\vdash t:T\mid_{F\setminus F'}C\)。
+  \item \textbf{完备性：}若
+        \(\Gamma\vdash t:T\mid_XC\)，则存在由 \(X\) 中名称排列成的序列
+        \(F\)，使 \(\Gamma\vdash_Ft:T\mid_{\varnothing}C\)。
+\end{enumerate}
+两项都对推导直接归纳。可靠性的应用情形使用以下事实：若
+\(\Gamma,t\) 中出现的类型变量不在 \(F\) 中，且
+\(\Gamma\vdash_Ft:T\mid_{F'}C\)，那么 \(T,C\) 中出现的类型变量不在
+\(F\setminus F'\) 中。完备性的应用情形使用以下事实：若
+\(\Gamma\vdash_Ft:T\mid_{F'}C\)，且 \(G\) 是一列全新的变量名，则
+\(\Gamma\vdash_{F,G}t:T\mid_{F',G}C\)。
+
+\taplsolutionbacklink{ex:22.3.9}{返回练习22.3.9}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:22.3.10}
+\textbf{22.3.10 解答}
+
+用类型对的列表表示约束集后，约束生成算法就是把
+\cref{sol:author:22.3.9}中的推导规则逐项写成程序：
+\begin{taplocamlcode}
+let rec recon ctx nextuvar t = match t with
+    TmVar(fi,i,_) ->
+      let tyT = getTypeFromContext fi ctx i in
+      (tyT, nextuvar, [])
+  | TmAbs(fi,x,tyT1,t2) ->
+      let ctx' = addbinding ctx x (VarBind(tyT1)) in
+      let (tyT2,nextuvar2,constr2) = recon ctx' nextuvar t2 in
+      (TyArr(tyT1,tyT2), nextuvar2, constr2)
+  | TmApp(fi,t1,t2) ->
+      let (tyT1,nextuvar1,constr1) = recon ctx nextuvar t1 in
+      let (tyT2,nextuvar2,constr2) = recon ctx nextuvar1 t2 in
+      let NextUVar(tyX,nextuvar') = nextuvar2() in
+      let newconstr = [(tyT1,TyArr(tyT2,TyId(tyX)))] in
+      (TyId(tyX), nextuvar',
+       List.concat [newconstr; constr1; constr2])
+  | TmZero(fi) -> (TyNat, nextuvar, [])
+  | TmSucc(fi,t1) ->
+      let (tyT1,nextuvar1,constr1) = recon ctx nextuvar t1 in
+      (TyNat,nextuvar1,(tyT1,TyNat)::constr1)
+  | TmPred(fi,t1) ->
+      let (tyT1,nextuvar1,constr1) = recon ctx nextuvar t1 in
+      (TyNat,nextuvar1,(tyT1,TyNat)::constr1)
+  | TmIsZero(fi,t1) ->
+      let (tyT1,nextuvar1,constr1) = recon ctx nextuvar t1 in
+      (TyBool,nextuvar1,(tyT1,TyNat)::constr1)
+  | TmTrue(fi) -> (TyBool,nextuvar,[])
+  | TmFalse(fi) -> (TyBool,nextuvar,[])
+  | TmIf(fi,t1,t2,t3) ->
+      let (tyT1,nextuvar1,constr1) = recon ctx nextuvar t1 in
+      let (tyT2,nextuvar2,constr2) = recon ctx nextuvar1 t2 in
+      let (tyT3,nextuvar3,constr3) = recon ctx nextuvar2 t3 in
+      let newconstr = [(tyT1,TyBool); (tyT2,tyT3)] in
+      (tyT3,nextuvar3,
+       List.concat [newconstr; constr1; constr2; constr3])
+\end{taplocamlcode}
+\taplrustcounterpart{ch22-constraints}
+
+\taplsolutionbacklink{ex:22.3.10}{返回练习22.3.10}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:22.3.11}
+\textbf{22.3.11 解答}
+
+由\cref{fig:11-12}的 T-Fix 可直接得到：
+\[
+\inferrule*[right=CT-Fix]
+ {\Gamma\vdash t_1:T_1\mid_{X_1}C_1\\
+  X\notin X_1\cup\fv(T_1)\cup\fv(C_1)}
+ {\Gamma\vdash\taplterm{fix}\ t_1:X\mid_{X_1\cup\{X\}}
+  C_1\cup\{T_1=X\to X\}}
+\]
+它先重构 \(t_1\) 的类型 \(T_1\)，再以新变量 \(X\) 要求
+\(T_1=X\to X\)，最终把 \(X\) 作为 \(\taplterm{fix}\ t_1\) 的类型。
+\texttt{letrec} 的规则可由此规则和 \texttt{letrec} 的派生形式定义得到。
+
+\taplsolutionbacklink{ex:22.3.11}{返回练习22.3.11}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:22.4.3}
+\textbf{22.4.3 解答}
+
+\[
+\begin{array}{c@{\qquad}c}
+\{X=\tapltype{Nat},Y=X\to X\}
+ &[X\mapsto\tapltype{Nat},Y\mapsto\tapltype{Nat}\to\tapltype{Nat}]\\
+\{\tapltype{Nat}\to\tapltype{Nat}=X\to Y\}
+ &[X\mapsto\tapltype{Nat},Y\mapsto\tapltype{Nat}]\\
+\{X\to Y=Y\to Z,Z=U\to W\}
+ &[X\mapsto U\to W,Y\mapsto U\to W,Z\mapsto U\to W]\\
+\{\tapltype{Nat}=\tapltype{Nat}\to Y\}&\text{不可合一}\\
+\{Y=\tapltype{Nat}\to Y\}&\text{不可合一}\\
+\varnothing&[\,]
+\end{array}
+\]
+
+\taplsolutionbacklink{ex:22.4.3}{返回练习22.4.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:22.4.6}
+\textbf{22.4.6 解答}
+
+可继续用约束列表表示替换，但要求每个数对左侧都是合一变量。先定义单变量替换、
+把整个替换作用于类型、把单变量替换作用于约束集，以及出现检查；合一函数随后
+就是\cref{def:22.4.4}伪代码的直接实现：
+\begin{taplocamlcode}
+let substinty tyX tyT tyS =
+  let rec f tyS = match tyS with
+      TyArr(tyS1,tyS2) -> TyArr(f tyS1,f tyS2)
+    | TyNat -> TyNat
+    | TyBool -> TyBool
+    | TyId(s) -> if s=tyX then tyT else TyId(s)
+  in f tyS
+
+let applysubst constr tyT =
+  List.fold_left
+    (fun tyS (TyId(tyX),tyC2) -> substinty tyX tyC2 tyS)
+    tyT (List.rev constr)
+
+let substinconstr tyX tyT constr =
+  List.map
+    (fun (tyS1,tyS2) ->
+      (substinty tyX tyT tyS1, substinty tyX tyT tyS2))
+    constr
+
+let occursin tyX tyT =
+  let rec o tyT = match tyT with
+      TyArr(tyT1,tyT2) -> o tyT1 || o tyT2
+    | TyNat | TyBool -> false
+    | TyId(s) -> s=tyX
+  in o tyT
+
+let unify fi ctx msg constr =
+  let rec u constr = match constr with
+      [] -> []
+    | (tyS,TyId(tyX))::rest ->
+        if tyS=TyId(tyX) then u rest
+        else if occursin tyX tyS then error fi (msg ^ ": circular constraints")
+        else List.append (u (substinconstr tyX tyS rest))
+                         [(TyId(tyX),tyS)]
+    | (TyId(tyX),tyT)::rest ->
+        if tyT=TyId(tyX) then u rest
+        else if occursin tyX tyT then error fi (msg ^ ": circular constraints")
+        else List.append (u (substinconstr tyX tyT rest))
+                         [(TyId(tyX),tyT)]
+    | (TyNat,TyNat)::rest | (TyBool,TyBool)::rest -> u rest
+    | (TyArr(tyS1,tyS2),TyArr(tyT1,tyT2))::rest ->
+        u ((tyS1,tyT1)::(tyS2,tyT2)::rest)
+    | _ -> error fi "Unsolvable constraints"
+  in u constr
+\end{taplocamlcode}
+\taplrustcounterpart{ch22-unify}
+
+这个教学版合一器没有投入太多工作改善错误信息。实际编译器中，清楚解释类型
+错误往往是实现类型重构语言时最困难的工程问题之一；可参见 Wand（1986）。
+
+\taplsolutionbacklink{ex:22.4.6}{返回练习22.4.6}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:22.5.6}
+\textbf{22.5.6 解答}
+
+把类型重构直接扩展到记录并不容易。主要困难是投影应生成什么约束。朴素规则
+会要求 \(t.l_i\) 的接收者恰好具有单字段记录类型 \({l_i:X}\)，因而错误地
+排除含其他字段的记录。
+
+Wand（1987）提出并由 Rémy 等人进一步发展的办法，是增加一类
+\emph{行变量}。它的取值不是单个类型，而是整行“字段标签及相应类型”。令
+\(\oplus\) 合并字段互不相交的两行，则投影可生成约束
+\[
+\inferrule*[right=CT-Proj]
+ {\Gamma\vdash t:T\mid_XC\qquad
+  \rho,\sigma,X\text{ 为新变量}}
+ {\Gamma\vdash t.l_i:X\mid_{X\cup\{\rho,\sigma,X\}}
+  C\cup\{T=\{\rho\},\rho=(l_i:X)\oplus\sigma\}}
+\]
+含义是：只要 \(t\) 的记录行 \(\rho\) 包含 \(l_i:X\)，其余字段由 \(\sigma\)
+表示，投影结果就具有类型 \(X\)。新的约束含有满足结合律和交换律的
+\(\oplus\)，已经不再是普通类型等式；求解时需要一种等式合一算法。
+
+\taplsolutionbacklink{ex:22.5.6}{返回练习22.5.6}
+\end{taplauthorsolutionentrybox}

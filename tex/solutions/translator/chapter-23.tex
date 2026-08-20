@@ -1,0 +1,77 @@
+\newpage
+\section*{第23章：全称类型}
+\addcontentsline{toc}{section}{第23章：全称类型}
+
+\begin{taplsolutionentrybox}
+\phantomsection\label{sol:translator:23.4.1}
+\textbf{23.4.1 解答}
+
+以 \(\taplterm{selfApp}\) 为例。上下文中
+\[
+x:\forall X.\,X\to X.
+\]
+由 T-TApp，在类型 \(\forall X.\,X\to X\) 处实例化 \(x\)，得到
+\[
+x[\forall X.\,X\to X]:
+(\forall X.\,X\to X)\to(\forall X.\,X\to X).
+\]
+再把原来的 \(x\) 作为实参应用，即得结果类型
+\(\forall X.\,X\to X\)。外层 T-Abs 给出题中函数类型。
+\(\taplterm{id}\)、\(\taplterm{double}\) 与
+\(\taplterm{quadruple}\) 逐层使用 T-TAbs、T-TApp、T-Abs 和 T-App 即可。
+\taplsolutionbacklink{ex:23.4.1}{返回练习23.4.1}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection\label{sol:translator:23.4.2}
+\textbf{23.4.2 解答}
+
+固定 \(X,Y\) 后，\(f:X\to Y\)、\(l:\tapltype{List}\,X\)。
+空分支 \(\taplterm{nil}[Y]\) 具有类型 \(\tapltype{List}\,Y\)。
+非空分支中
+\[
+\taplterm{head}[X]l:X,\qquad
+f(\taplterm{head}[X]l):Y,
+\]
+递归调用
+\[
+m(\taplterm{tail}[X]l):\tapltype{List}\,Y.
+\]
+因此 \(\taplterm{cons}[Y]\) 的两个实参类型正确，两个条件分支都具有
+\(\tapltype{List}\,Y\)。fix 的函数体由此具有
+\(\tapltype{List}\,X\to\tapltype{List}\,Y\)，再抽象 \(f,Y,X\) 即得
+所示全称类型。
+\taplsolutionbacklink{ex:23.4.2}{返回练习23.4.2}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection\label{sol:translator:23.4.4}
+\textbf{23.4.4 解答}
+
+可采用插入排序：先定义
+\[
+\taplterm{insert}:
+\forall X.\,(X\to X\to\tapltype{Bool})\to
+X\to\tapltype{List}\,X\to\tapltype{List}\,X,
+\]
+它沿列表递归，在第一个满足比较条件的位置插入元素；再以空列表为初值，把
+原列表的每个元素依次插入。若允许 \(\taplterm{fix}\)，两个递归都可直接按
+\cref{sec:23.4}中 \(\taplterm{map}\) 的形式书写；若要求纯 System F，
+则使用\cref{sol:author:23.4.12}的折叠编码。
+\taplsolutionbacklink{ex:23.4.4}{返回练习23.4.4}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection\label{sol:translator:23.4.7}
+\textbf{23.4.7 解答}
+
+对 \(\taplterm{ctimes}\)，固定 \(X\) 和 \(s:X\to X\) 后，
+\(m[X]s:X\to X\)。Church 数 \(n\) 把这个函数迭代 \(n\) 次；每次又会把
+\(s\) 迭代 \(m\) 次，所以总计迭代 \(mn\) 次。
+
+对 \(\taplterm{cexp}\)，\(m[X]: (X\to X)\to X\to X\)，因此可把它看成
+类型 \(X\to X\) 上的“迭代器”。令 \(n\) 在 \(X\to X\) 这一类型上迭代
+\(m[X]\)，便把“乘以 \(m\) 次迭代次数”的操作再迭代 \(n\) 次，得到
+\(m^n\) 次应用。逐层使用 T-TApp 可得两项均返回 \(\tapltype{CNat}\)。
+\taplsolutionbacklink{ex:23.4.7}{返回练习23.4.7}
+\end{taplsolutionentrybox}

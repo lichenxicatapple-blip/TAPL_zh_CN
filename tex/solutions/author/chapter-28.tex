@@ -1,0 +1,135 @@
+\newpage
+\section{第28章：有界量化的元理论}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:28.2.3}
+\textbf{28.2.3 解答}
+
+T-TAbs 情形要用一次 S-Refl 提供完全 S-All 新增的上界前提。T-TApp 情形中，
+完全系统的子类型反演给出
+\[
+N_1=\forall X<:N_{11}.N_{12},
+\quad
+\Gamma\vdash T_{11}<:N_{11},
+\quad
+\Gamma,X<:T_{11}\vdash N_{12}<:T_{12}.
+\]
+由原来的 \(\Gamma\vdash T_2<:T_{11}\) 和传递性可满足 TA-TApp 的实参上界
+检查。最后仍用类型替换保持子类型，得到
+\[
+\Gamma\vdash[X\mapsto T_2]N_{12}<:[X\mapsto T_2]T_{12}.
+\]
+\taplsolutionbacklink{ex:28.2.3}{返回练习28.2.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:28.5.1}
+\textbf{28.5.1 解答}
+
+\cref{thm:28.3.5}的权重下降论证在完全 S-All 情形失败：递归检查量词体前要
+把上下文中的上界改成右侧量词的上界，这个新上界可能使变量沿上下文展开后的
+权重增大，而非严格减小。
+\taplsolutionbacklink{ex:28.5.1}{返回练习28.5.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:28.5.6}
+\textbf{28.5.6 解答}
+
+有界量词和无界量词必须分别比较，不能增加二者之间的子类型规则，否则原来的
+问题会重新出现。没有 \(\tapltype{Top}\) 时，该受限系统的子类型关系可判定；
+详细算法见 Katiyar 与 Sankar（1992）。
+
+但这不是对实际语言的稳定解决方案。加入带宽度子类型的记录后，空记录
+\(\{\}\) 会在记录类型中扮演类似最大类型的角色，修改后的 Ghelli 例子仍能令
+检查器发散。因此，去掉显式 \(\tapltype{Top}\) 不能阻止其他构造重新提供同样
+的编码能力。
+\taplsolutionbacklink{ex:28.5.6}{返回练习28.5.6}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:28.6.3}
+\textbf{28.6.3 解答}
+
+作者数得九个公共子类型：
+\[
+\begin{array}{lll}
+\forall X<:Y'\to Z.\,Y\to Z'&
+\forall X<:Y'\to Z.\,\tapltype{Top}\to Z'&
+\forall X<:Y'\to Z.\,X\\
+\forall X<:Y'\to\tapltype{Top}.\,Y\to Z'&
+\forall X<:Y'\to\tapltype{Top}.\,\tapltype{Top}\to Z'&
+\forall X<:Y'\to\tapltype{Top}.\,X\\
+\forall X<:\tapltype{Top}.\,Y\to Z'&
+\forall X<:\tapltype{Top}.\,\tapltype{Top}\to Z'&
+\forall X<:\tapltype{Top}.\,X.
+\end{array}
+\]
+其中
+\[
+\forall X<:Y'\to Z.\,Y\to Z'
+\quad\text{和}\quad
+\forall X<:Y'\to Z.\,X
+\]
+都是 \(S,T\) 的下界，却没有既是二者公共超类型、又仍为 \(S,T\) 下界的
+类型，所以不存在交。若要找没有并的例子，可取 \(S\to\tapltype{Top}\) 与
+\(T\to\tapltype{Top}\)；上述两个没有合适公共超类型的类型也可构成另一例。
+\taplsolutionbacklink{ex:28.6.3}{返回练习28.6.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:28.7.1}
+\textbf{28.7.1 解答}
+
+同时定义 \(R_{X,\Gamma}(T)\) 与 \(L_{X,\Gamma}(T)\)：前者是最小的
+\(X\)-自由超类型，后者是最大的 \(X\)-自由子类型；\(R\) 总有结果，\(L\)
+可能失败。核心递归如下。
+\begin{itemize}
+  \item 若 \(X\notin\fv(T)\)，两者都返回 \(T\)。
+  \item \(R(X)\) 沿上下文中 \(X\) 的上界继续计算；\(L(X)\) 失败。
+  \item 对箭头，
+        \[
+        R(S\to T)=L(S)\to R(T)
+        \]
+        （若 \(L(S)\) 失败则返回 \(\tapltype{Top}\)），而
+        \[
+        L(S\to T)=R(S)\to L(T)
+        \]
+        （若 \(L(T)\) 失败则失败）。
+  \item 对核系统的量词，若上界含 \(X\)，\(R\) 返回
+        \(\tapltype{Top}\)、\(L\) 失败；否则保持原上界，并在扩展上下文中
+        分别递归计算量词体。
+\end{itemize}
+箭头中 \(R\) 与 \(L\) 的交叉来自参数逆变。对递归结果作子类型归纳可验证：
+\(R(T)\) 是所有 \(X\)-自由超类型中的最小者，\(L(T)\) 在存在时是所有
+\(X\)-自由子类型中的最大者。
+\taplsolutionbacklink{ex:28.7.1}{返回练习28.7.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:28.7.2}
+\textbf{28.7.2 解答}
+
+把完全 \(F_{<:}\) 的子类型问题翻译到只含有界存在量词的系统。记
+\(\neg S=\forall X<:S.X\)，并定义
+\[
+\begin{array}{rcl}
+\llbracket X\rrbracket&=&X,\\
+\llbracket\tapltype{Top}\rrbracket&=&\tapltype{Top},\\
+\llbracket T_1\to T_2\rrbracket
+ &=&\llbracket T_1\rrbracket\to\llbracket T_2\rrbracket,\\
+\llbracket\forall X<:T_1.T_2\rrbracket
+ &=&\neg\{\exists X<:\llbracket T_1\rrbracket,
+          \neg\llbracket T_2\rrbracket\}.
+\end{array}
+\]
+上下文和子类型判断逐项翻译。可对推导证明
+\[
+\Gamma\vdash S<:T
+\quad\Longleftrightarrow\quad
+\llbracket\Gamma\rrbracket\vdash
+\llbracket S\rrbracket<:\llbracket T\rrbracket.
+\]
+若只有存在量词的系统可判定，便可据此判定完全 \(F_{<:}\)，矛盾。
+\taplsolutionbacklink{ex:28.7.2}{返回练习28.7.2}
+\end{taplauthorsolutionentrybox}

@@ -1,0 +1,40 @@
+\newpage
+\section{第25章：System F 的 ML 实现}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:25.2.1}
+\textbf{25.2.1 解答}
+
+记 \(\uparrow_c^d(T)\) 为在截止位置 \(c\) 之上把自由类型变量上移 \(d\)
+位：
+\[
+\begin{array}{rcl}
+\uparrow_c^d(X_k)&=&
+ \begin{cases}
+ X_{k+d}&k\geq c,\\
+ X_k&k<c,
+ \end{cases}\\
+\uparrow_c^d(T_1\to T_2)&=&
+ \uparrow_c^d(T_1)\to\uparrow_c^d(T_2),\\
+\uparrow_c^d(\forall X.T_2)&=&
+ \forall X.\uparrow_{c+1}^d(T_2),\\
+\uparrow_c^d(\exists X.T_2)&=&
+ \exists X.\uparrow_{c+1}^d(T_2).
+\end{array}
+\]
+顶层移位简写为 \(\uparrow^d(T)=\uparrow_0^d(T)\)。实际表示还要把每个
+变量节点保存的上下文长度同步增加 \(d\)。
+\taplsolutionbacklink{ex:25.2.1}{返回练习25.2.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:25.4.1}
+\textbf{25.4.1 解答}
+
+这次移位是为类型变量 \(X\) 腾出上下文位置。\(v_{12}\) 原来相对于
+\(\Gamma\) 表示；把它代入 \(t_2\) 后，暂时处在
+\(\Gamma,X\) 之下。因此必须先把 \(v_{12}\) 上移一位，再替换项变量。
+随后 \texttt{tytermSubstTop} 代入实际类型并删除 \(X\) 的位置，最终结果
+重新相对于 \(\Gamma\) 解释。
+\taplsolutionbacklink{ex:25.4.1}{返回练习25.4.1}
+\end{taplauthorsolutionentrybox}

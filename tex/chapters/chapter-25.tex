@@ -1,5 +1,284 @@
-% Chapter 25 — An ML Implementation of System F
-% Source: ../source/split/chapters/ch25-ml-system-f_p358-p365.pdf
+% 第 25 章：System F 的 ML 实现
+% Source: source/split/chapters/ch25-ml-system-f_p358-p365.pdf
 % Original print pages: 381--388
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:25}
+% Status: 待独立初审
+
+\chapter{System F 的 ML 实现}
+\label{chap:25}
+
+本章以简单类型 lambda 演算的实现为基础（见\chapref{10}），加入全称类型与
+存在类型；这两种系统分别见\chapref{23}与\chapref{24}。规则仍是语法导向的，
+因此实现的主要新问题不是类型检查本身，而是如何表示带绑定变量的类型。这里
+再次采用\chapref{6}介绍的 de Bruijn 索引。
+
+\section{类型的无名表示}
+\label{sec:25.1}
+
+类型语法加入变量、全称量词和存在量词：
+\begin{taplocamlcode}
+type ty =
+    TyVar of int * int
+  | TyArr of ty * ty
+  | TyAll of string * ty
+  | TySome of string * ty
+\end{taplocamlcode}
+\taplrustexplanation{相应的 Rust 定义与本节其余类型操作合并展示。}
+
+\texttt{TyVar(x,n)} 的两个整数与项变量的表示相同：\(x\) 是该变量到绑定子的
+距离，\(n\) 是变量出现处预期的上下文总长度。量词保存一个名称提示，只供
+解析器和打印器恢复可读名称。
+
+上下文绑定增加 \texttt{TyVarBind}：
+\begin{taplocamlcode}
+type binding =
+    NameBind
+  | VarBind of ty
+  | TyVarBind
+\end{taplocamlcode}
+\taplrustexplanation{Rust 对照中的 \texttt{Binding::TypeVariable} 与
+\texttt{TyVarBind} 对应；同一枚举也保留名称绑定和带类型的项变量绑定。}
+
+\texttt{NameBind} 仍只供解析和打印使用；\texttt{VarBind} 携带项变量的类型；
+\texttt{TyVarBind} 不附加数据，因为纯 System F 的类型变量没有界或种类等
+额外假设。\chapref{26}的有界量化和\chapref{29}的高阶类型系统会改变这一点。
+
+\section{类型移位与替换}
+\label{sec:25.2}
+
+类型现在含有变量，因此需要定义类型移位和替换。
+
+\begin{exercise}[\(\star\)]
+\label{ex:25.2.1}
+仿照\cref{def:6.2.1}的项移位，给出类型变量移位的数学定义。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:25.2.1}{25.2.1}
+
+移位与替换只在变量叶子处行为不同，其余类型构造都只是递归遍历。作者先给出
+专用移位函数：
+\begin{taplocamlcode}
+let typeShiftAbove d c tyT =
+  let rec walk c tyT = match tyT with
+      TyVar(x,n) ->
+        if x>=c then TyVar(x+d,n+d) else TyVar(x,n+d)
+    | TyArr(tyT1,tyT2) ->
+        TyArr(walk c tyT1,walk c tyT2)
+    | TyAll(tyX,tyT2) ->
+        TyAll(tyX,walk (c+1) tyT2)
+    | TySome(tyX,tyT2) ->
+        TySome(tyX,walk (c+1) tyT2)
+  in walk c tyT
+\end{taplocamlcode}
+\taplrustexplanation{相应的 Rust 移位实现与替换操作合并展示。}
+
+\(d\) 是自由变量的移动距离，\(c\) 是截止位置；进入量词体时把 \(c\) 加一，
+从而不移动该量词绑定的变量。把变量分支抽成参数后，得到通用映射器：
+\begin{taplocamlcode}
+let tymap onvar c tyT =
+  let rec walk c tyT = match tyT with
+      TyArr(tyT1,tyT2) ->
+        TyArr(walk c tyT1,walk c tyT2)
+    | TyVar(x,n) -> onvar c x n
+    | TyAll(tyX,tyT2) ->
+        TyAll(tyX,walk (c+1) tyT2)
+    | TySome(tyX,tyT2) ->
+        TySome(tyX,walk (c+1) tyT2)
+  in walk c tyT
+\end{taplocamlcode}
+\taplrustexplanation{Rust 对照直接以递归辅助函数表达同一遍历；两种写法共享同一
+不变量：经过量词时截止位置加一，只在变量分支决定移位或替换。}
+
+移位、替换和顶层替换由这个映射器实例化：
+\begin{taplocamlcode}
+let typeShiftAbove d c tyT =
+  tymap
+    (fun c x n ->
+      if x>=c then TyVar(x+d,n+d) else TyVar(x,n+d))
+    c tyT
+
+let typeShift d tyT = typeShiftAbove d 0 tyT
+
+let typeSubst tyS j tyT =
+  tymap
+    (fun j x n ->
+      if x=j then typeShift j tyS else TyVar(x,n))
+    j tyT
+
+let typeSubstTop tyS tyT =
+  typeShift (-1) (typeSubst (typeShift 1 tyS) 0 tyT)
+\end{taplocamlcode}
+\taplrustcounterpart{ch25-type-operations}
+
+\texttt{typeSubstTop} 的三步与项替换相同：先把替换项上移一位，使它进入绑定子
+时不会捕获变量；替换编号 \(0\)；最后整体下移一位，删除已经打开的绑定子。
+
+\section{项}
+\label{sec:25.3}
+
+项数据类型加入全称类型和存在类型的引入、消去形式：
+\begin{taplocamlcode}
+type term =
+    TmVar of info * int * int
+  | TmAbs of info * string * ty * term
+  | TmApp of info * term * term
+  | TmTAbs of info * string * term
+  | TmTApp of info * term * ty
+  | TmPack of info * ty * term * ty
+  | TmUnpack of info * string * string * term * term
+\end{taplocamlcode}
+\taplrustexplanation{相应的 Rust 项定义与本节其余项操作合并展示。}
+
+项中既有项变量，也有嵌在类型标注里的类型变量。因此通用映射函数接收两个
+回调：\texttt{onvar} 处理项变量，\texttt{ontype} 处理类型标注。
+\begin{taplocamlcode}
+let tmmap onvar ontype c t =
+  let rec walk c t = match t with
+      TmVar(fi,x,n) -> onvar fi c x n
+    | TmAbs(fi,x,tyT1,t2) ->
+        TmAbs(fi,x,ontype c tyT1,walk (c+1) t2)
+    | TmApp(fi,t1,t2) ->
+        TmApp(fi,walk c t1,walk c t2)
+    | TmTAbs(fi,tyX,t2) ->
+        TmTAbs(fi,tyX,walk (c+1) t2)
+    | TmTApp(fi,t1,tyT2) ->
+        TmTApp(fi,walk c t1,ontype c tyT2)
+    | TmPack(fi,tyT1,t2,tyT3) ->
+        TmPack(fi,ontype c tyT1,walk c t2,ontype c tyT3)
+    | TmUnpack(fi,tyX,x,t1,t2) ->
+        TmUnpack(fi,tyX,x,walk c t1,walk (c+2) t2)
+  in walk c t
+\end{taplocamlcode}
+\taplrustexplanation{相应的 Rust 遍历实现与移位、替换操作合并展示。}
+
+\texttt{TmUnpack} 的函数体同时位于类型变量 \(X\) 和项变量 \(x\) 两个新绑定
+之下，所以截止位置增加二。由 \texttt{tmmap} 可得到项移位、项替换和把类型
+替换进项的操作：
+\begin{taplocamlcode}
+let termShiftAbove d c t =
+  tmmap
+    (fun fi c x n ->
+      if x>=c then TmVar(fi,x+d,n+d) else TmVar(fi,x,n+d))
+    (typeShiftAbove d)
+    c t
+
+let termShift d t = termShiftAbove d 0 t
+
+let termSubst j s t =
+  tmmap
+    (fun fi j x n ->
+      if x=j then termShift j s else TmVar(fi,x,n))
+    (fun _ tyT -> tyT)
+    j t
+
+let tytermSubst tyS j t =
+  tmmap
+    (fun fi _ x n -> TmVar(fi,x,n))
+    (fun j tyT -> typeSubst tyS j tyT)
+    j t
+
+let termSubstTop s t =
+  termShift (-1) (termSubst 0 (termShift 1 s) t)
+
+let tytermSubstTop tyS t =
+  termShift (-1) (tytermSubst (typeShift 1 tyS) 0 t)
+\end{taplocamlcode}
+\taplrustcounterpart{ch25-term-operations}
+
+普通项替换不改变类型标注，因为类型中不含项变量；类型项替换则保持项变量
+不动，只遍历并替换项里的各个类型标注。
+
+\section{求值}
+\label{sec:25.4}
+
+求值器的新分支直接实现\cref{fig:23-1,fig:24-1}的规则：
+\begin{taplocamlcode}
+let rec eval1 ctx t = match t with
+    (* ... *)
+  | TmTApp(_,TmTAbs(_,_,t11),tyT2) ->
+      tytermSubstTop tyT2 t11
+  | TmTApp(fi,t1,tyT2) ->
+      let t1' = eval1 ctx t1 in
+      TmTApp(fi,t1',tyT2)
+  | TmUnpack(_,_,_,TmPack(_,tyT11,v12,_),t2)
+      when isval ctx v12 ->
+      tytermSubstTop tyT11
+        (termSubstTop (termShift 1 v12) t2)
+  | TmUnpack(fi,tyX,x,t1,t2) ->
+      let t1' = eval1 ctx t1 in
+      TmUnpack(fi,tyX,x,t1',t2)
+  | TmPack(fi,tyT1,t2,tyT3) ->
+      let t2' = eval1 ctx t2 in
+      TmPack(fi,tyT1,t2',tyT3)
+    (* ... *)
+\end{taplocamlcode}
+\taplrustcounterpart{ch25-evaluation}
+
+\begin{exercise}[\(\star\)]
+\label{ex:25.4.1}
+第一个 \texttt{TmUnpack} 分支中，为什么在
+\texttt{termSubstTop} 前还要执行 \texttt{termShift 1 v12}？
+\end{exercise}
+\taplauthorsolutionlink{sol:author:25.4.1}{25.4.1}
+
+\section{赋型}
+\label{sec:25.5}
+
+类型检查器的新分支同样直接来自赋型规则。下面保留相关上下文，展示普通抽象
+与类型抽象、普通应用与类型应用之间的对应。
+\begin{taplocamlcode}
+let rec typeof ctx t = match t with
+    TmVar(fi,i,_) -> getTypeFromContext fi ctx i
+  | TmAbs(fi,x,tyT1,t2) ->
+      let ctx' = addbinding ctx x (VarBind tyT1) in
+      let tyT2 = typeof ctx' t2 in
+      TyArr(tyT1,typeShift (-1) tyT2)
+  | TmApp(fi,t1,t2) ->
+      let tyT1 = typeof ctx t1 in
+      let tyT2 = typeof ctx t2 in
+      (match tyT1 with
+         TyArr(tyT11,tyT12) ->
+           if (=) tyT2 tyT11 then tyT12
+           else error fi "parameter type mismatch"
+       | _ -> error fi "arrow type expected")
+  | TmTAbs(_,tyX,t2) ->
+      let ctx' = addbinding ctx tyX TyVarBind in
+      TyAll(tyX,typeof ctx' t2)
+  | TmTApp(fi,t1,tyT2) ->
+      (match typeof ctx t1 with
+         TyAll(_,tyT12) -> typeSubstTop tyT2 tyT12
+       | _ -> error fi "universal type expected")
+  | TmPack(fi,tyT1,t2,tyT) ->
+      (match tyT with
+         TySome(_,tyT2) ->
+           let tyU = typeof ctx t2 in
+           let tyU' = typeSubstTop tyT1 tyT2 in
+           if (=) tyU tyU' then tyT
+           else error fi "doesn't match declared type"
+       | _ -> error fi "existential type expected")
+  | TmUnpack(fi,tyX,x,t1,t2) ->
+      (match typeof ctx t1 with
+         TySome(_,tyT11) ->
+           let ctx' = addbinding ctx tyX TyVarBind in
+           let ctx'' = addbinding ctx' x (VarBind tyT11) in
+           typeShift (-2) (typeof ctx'' t2)
+       | _ -> error fi "existential type expected")
+\end{taplocamlcode}
+\taplrustcounterpart{ch25-typechecking}
+
+\texttt{TmUnpack} 先确认 \(t_1\) 具有存在类型，再依次把类型变量和项变量加入
+上下文，检查 \(t_2\)，最后把结果类型整体下移二位，使其重新相对于原上下文
+解释。如果结果类型仍含隐藏变量 \(X\)，下移会试图产生负索引；实现应在此处
+报告作用域错误，而不能构造无意义的类型。
+
+\begin{taplocamlcode}
+let typeShiftAbove d c tyT =
+  tymap
+    (fun c x n ->
+      if x>=c then
+        if x+d<0 then err "Scoping error!"
+        else TyVar(x+d,n+d)
+      else TyVar(x,n+d))
+    c tyT
+\end{taplocamlcode}
+\taplrustexplanation{Rust 对照以无符号索引和
+\texttt{checked\_add\_signed} 实现同一检查；任何会产生负索引的下移都会
+返回 \texttt{Error::InvalidShift}。}

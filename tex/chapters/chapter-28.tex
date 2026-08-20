@@ -1,5 +1,413 @@
-% Chapter 28 — Metatheory of Bounded Quantification
-% Source: ../source/split/chapters/ch28-metatheory-of-bounded-quantification_p389-p407.pdf
+% 第 28 章：有界量化的元理论
+% Source: source/split/chapters/ch28-metatheory-of-bounded-quantification_p389-p407.pdf
 % Original print pages: 417--436
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:28}
+% Status: 待独立初审
+
+\chapter{有界量化的元理论}
+\label{chap:28}
+
+本章为 \(F_{<:}\) 建立子类型检查和类型检查算法。核系统与完全系统的表现
+不同：有些性质二者都有，但完全系统更难证明；另一些性质在完全系统中彻底
+失效，这是增强表达能力付出的代价。
+
+\section{暴露}
+\label{sec:28.1}
+
+\cref{sec:16.2}的算法由子项最小类型计算整个项的最小类型。\(F_{<:}\) 多了
+类型变量，因而要处理一个新问题。设
+\[
+f=\lambda X<:\tapltype{Nat}\to\tapltype{Nat}.
+\lambda y:X.\,y\ 5.
+\]
+\(y\) 的最小类型是变量 \(X\)，但检查应用需要看见箭头。上下文已经说明
+\(X<:\tapltype{Nat}\to\tapltype{Nat}\)，所以算法应沿变量上界逐步提升，
+直到得到第一个非变量类型。
+
+\begin{definition}
+\label{def:28.1}
+判断
+\[
+\Gamma\vdash S\Uparrow T
+\]
+读作“在 \(\Gamma\) 下，\(S\) 暴露为 \(T\)”；\(T\) 是 \(S\) 的最小
+非变量超类型。规则为
+\[
+\inferrule*[right=Expose-NonVar]
+ {S\text{ 不是类型变量}}
+ {\Gamma\vdash S\Uparrow S}
+\qquad
+\inferrule*[right=Expose-Var]
+ {X<:U\in\Gamma\\\Gamma\vdash U\Uparrow T}
+ {\Gamma\vdash X\Uparrow T}.
+\]
+\end{definition}
+
+例如，若
+\[
+\Gamma=X<:\tapltype{Top},\
+Y<:\tapltype{Nat}\to\tapltype{Nat},\
+Z<:Y,\ W<:Z,
+\]
+则 \(X\) 暴露为 \(\tapltype{Top}\)，而 \(Y,Z,W\) 都暴露为
+\(\tapltype{Nat}\to\tapltype{Nat}\)。
+
+\begin{lemma}[暴露]
+\label{lem:28.1.1}
+若 \(\Gamma\vdash S\Uparrow T\)，则：
+\begin{enumerate}
+  \item \(\Gamma\vdash S<:T\)；
+  \item 若 \(\Gamma\vdash S<:U\) 且 \(U\) 不是变量，则
+        \(\Gamma\vdash T<:U\)。
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+第 1 项对暴露推导归纳；第 2 项对子类型推导归纳。上下文良构保证变量上界链
+不会循环，所以暴露总会终止。
+\end{proof}
+
+\footnotetext{本章研究纯 \(F_{<:}\)。原书相应实现为
+\texttt{purefsub}；\texttt{fullfsub} 还包括存在类型和此前若干扩展。}
+
+\section{最小赋型}
+\label{sec:28.2}
+
+算法赋型判断写作
+\(\Gamma\vdash_{\!A}t:T\)，表示算法计算出 \(t\) 的最小类型 \(T\)。
+变量、抽象和类型抽象的规则与声明式规则对应；应用与类型应用先暴露函数部分：
+\[
+\inferrule*[right=TA-Var]
+ {x:T\in\Gamma}
+ {\Gamma\vdash_{\!A}x:T}
+\qquad
+\inferrule*[right=TA-Abs]
+ {\Gamma,x:T_1\vdash_{\!A}t_2:T_2}
+ {\Gamma\vdash_{\!A}\lambda x:T_1.t_2:T_1\to T_2}
+\]
+\[
+\inferrule*[right=TA-App]
+ {\Gamma\vdash_{\!A}t_1:T_1\\
+  \Gamma\vdash T_1\Uparrow T_{11}\to T_{12}\\
+  \Gamma\vdash_{\!A}t_2:T_2\\
+  \Gamma\vdash T_2<:T_{11}}
+ {\Gamma\vdash_{\!A}t_1\,t_2:T_{12}}
+\]
+\[
+\inferrule*[right=TA-TAbs]
+ {\Gamma,X<:T_1\vdash_{\!A}t_2:T_2}
+ {\Gamma\vdash_{\!A}\lambda X<:T_1.t_2:
+  \forall X<:T_1.T_2}
+\]
+\[
+\inferrule*[right=TA-TApp]
+ {\Gamma\vdash_{\!A}t_1:T_1\\
+  \Gamma\vdash T_1\Uparrow\forall X<:T_{11}.T_{12}\\
+  \Gamma\vdash T_2<:T_{11}}
+ {\Gamma\vdash_{\!A}t_1[T_2]:[X\mapsto T_2]T_{12}}.
+\]
+
+\begin{theorem}[最小赋型]
+\label{thm:28.2.1}
+\begin{enumerate}
+  \item 若 \(\Gamma\vdash_{\!A}t:T\)，则 \(\Gamma\vdash t:T\)。
+  \item 若 \(\Gamma\vdash t:T\)，则存在 \(M\) 使
+        \(\Gamma\vdash_{\!A}t:M\) 且 \(\Gamma\vdash M<:T\)。
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+第 1 项对算法推导归纳，应用情形用
+\cref{lem:28.1.1}第 1 项把函数的最小类型提升为暴露结果。
+
+第 2 项对声明式赋型推导归纳。T-App 情形由归纳假设得到子项最小类型
+\(M_1,M_2\)。把 \(M_1\) 暴露为非变量 \(N_1\)；暴露引理和子类型反演说明
+\(N_1=N_{11}\to N_{12}\)，且实参最小类型满足
+\(M_2<:N_{11}\)，所以 TA-App 可用，结果 \(N_{12}\) 又是原结果类型的
+子类型。T-TApp 情形同理，把 \(M_1\) 暴露为有界全称类型，再用类型替换保持
+子类型。T-Sub 情形用传递性收束。
+\end{proof}
+
+\begin{corollary}[赋型可判定性]
+\label{cor:28.2.2}
+若子类型关系可判定，则核 \(F_{<:}\) 的赋型关系可判定。
+\end{corollary}
+
+\begin{proof}
+算法规则由项的外层语法唯一选择，而且递归调用总在真子项上。算法成功时由
+\cref{thm:28.2.1}第 1 项得到声明式赋型；失败时第 2 项保证不存在声明式
+类型。
+\end{proof}
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:28.2.3}
+上述证明推广到完全 \(F_{<:}\) 时，哪些位置需要改变？
+\end{exercise}
+\taplauthorsolutionlink{sol:author:28.2.3}{28.2.3}
+
+\section{核 \(F_{<:}\) 的子类型算法}
+\label{sec:28.3}
+
+声明式子类型规则不能直接作为算法：S-Refl 与其他规则重叠，S-Trans 还要求
+猜测结论中没有的中间类型。像\cref{sec:16.1}一样，应删除二者并把必要用法
+并入更具体的规则。
+
+类型变量 \(X<:X\) 只能由反身性证明，因此保留变量专用反身规则。变量上界链
+中的传递步骤则合并进变量规则：
+\[
+\inferrule*[right=SA-Refl-TVar]{ }
+ {\Gamma\vdash_{\!A}X<:X}
+\qquad
+\inferrule*[right=SA-Trans-TVar]
+ {X<:U\in\Gamma\\\Gamma\vdash_{\!A}U<:T}
+ {\Gamma\vdash_{\!A}X<:T}.
+\]
+其余算法规则为
+\[
+\inferrule*[right=SA-Top]{ }
+ {\Gamma\vdash_{\!A}S<:\tapltype{Top}}
+\]
+\[
+\inferrule*[right=SA-Arrow]
+ {\Gamma\vdash_{\!A}T_1<:S_1\\
+  \Gamma\vdash_{\!A}S_2<:T_2}
+ {\Gamma\vdash_{\!A}S_1\to S_2<:T_1\to T_2}
+\]
+\[
+\inferrule*[right=SA-All]
+ {\Gamma,X<:U\vdash_{\!A}S<:T}
+ {\Gamma\vdash_{\!A}
+  \forall X<:U.S<:\forall X<:U.T}.
+\]
+
+\begin{lemma}[算法子类型关系的反身性]
+\label{lem:28.3.1}
+对每个良构 \(\Gamma,T\)，都有
+\(\Gamma\vdash_{\!A}T<:T\)。
+\end{lemma}
+
+\begin{lemma}[算法子类型关系的传递性]
+\label{lem:28.3.2}
+若
+\(\Gamma\vdash_{\!A}S<:Q\) 且
+\(\Gamma\vdash_{\!A}Q<:T\)，则
+\(\Gamma\vdash_{\!A}S<:T\)。
+\end{lemma}
+
+\begin{proof}
+对两份推导大小之和归纳，并按末条规则分类。SA-Trans-TVar 情形沿变量上界
+递归；箭头情形分别组合逆变参数和协变结果；全称情形在相同上界下组合量词体。
+\end{proof}
+
+\begin{theorem}[算法子类型的可靠性与完备性]
+\label{thm:28.3.3}
+\[
+\Gamma\vdash S<:T
+\quad\Longleftrightarrow\quad
+\Gamma\vdash_{\!A}S<:T.
+\]
+\end{theorem}
+
+\begin{definition}
+\label{def:28.3.4}
+类型在上下文中的\emph{权重}递归计入其语法大小；类型变量的权重还加上其
+上界的权重。子类型判断的权重取两边类型权重的最大值。上下文良构使这一定义
+终止。
+\end{definition}
+
+\begin{theorem}
+\label{thm:28.3.5}
+核 \(F_{<:}\) 子类型算法对所有输入都会终止。
+\end{theorem}
+
+\begin{proof}
+逐条检查算法规则：每个前提的权重都严格小于结论。尤其
+SA-Trans-TVar 沿变量的上界移动，而良构上下文中的上界只引用更早的变量。
+\end{proof}
+
+\begin{corollary}
+\label{cor:28.3.6}
+核 \(F_{<:}\) 的子类型关系可判定。
+\end{corollary}
+
+\section{完全 \(F_{<:}\) 的子类型}
+\label{sec:28.4}
+
+完全系统的算法只把 SA-All 换成允许上界逆变的版本。反身性仍与核系统相同，
+传递性却更微妙。组合
+\[
+\forall X<:S_1.S_2<:\forall X<:Q_1.Q_2
+\quad\text{和}\quad
+\forall X<:Q_1.Q_2<:\forall X<:T_1.T_2
+\]
+时，两个量词体子推导分别位于 \(X<:Q_1\) 与 \(X<:T_1\) 下，不能直接套用
+传递性的归纳假设。必须先把第一份推导中的上界从 \(Q_1\) 收窄为 \(T_1\)。
+而收窄可能扩大推导，甚至插入新的传递步骤，所以不能只按推导大小证明。
+
+\begin{lemma}[排列与弱化]
+\label{lem:28.4.1}
+良构地排列上下文或加入互不冲突的新绑定，不会破坏完全 \(F_{<:}\) 的算法
+子类型判断。
+\end{lemma}
+
+\begin{lemma}[完全 \(F_{<:}\) 的传递性与收窄]
+\label{lem:28.4.2}
+\begin{enumerate}
+  \item 算法子类型关系具有传递性；
+  \item 若在 \(X<:Q\) 下可导出 \(S<:T\)，且 \(P<:Q\)，则把该绑定收窄为
+        \(X<:P\) 后仍可导出 \(S<:T\)。
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+两项同时对中间类型或原上界 \(Q\) 的大小归纳。证明某一大小的收窄时，可以
+使用同一大小已经得到的传递性；证明传递性时，只在严格更小的量词上界上使用
+收窄。这个互相支撑的归纳安排避免了按推导大小循环。
+\end{proof}
+
+\begin{exercise}[\(\star\star\star\star\)]
+\label{ex:28.4.3}
+补全\cref{lem:28.4.2}的详细证明。
+\end{exercise}
+\taplsolutionlink{sol:translator:28.4.3}{28.4.3}
+
+可靠性与完备性仍可由反身性和传递性推出。然而，核系统的权重终止证明不能
+推广到完全系统。
+
+\section{完全 \(F_{<:}\) 的不可判定性}
+\label{sec:28.5}
+
+\begin{exercise}[\(\star\)]
+\label{ex:28.5.1}
+核系统的终止证明为什么不能用于完全 \(F_{<:}\)？
+\end{exercise}
+\taplauthorsolutionlink{sol:author:28.5.1}{28.5.1}
+
+完全 SA-All 会在递归子目标中改变类型变量上界，构造出不断变长的变量链。
+Ghelli 给出的例子表明算法可能无限地产生相同结构而不终止。更强的结论是：
+这不只是某个算法设计得不好，而是不存在对声明式完全 \(F_{<:}\) 同时可靠、
+完备并对所有输入终止的算法。
+
+\begin{definition}
+\label{def:28.5.3}
+类型中位置的正负性递归定义如下：整个类型处于正位置；在箭头
+\(T_1\to T_2\) 中，参数位置翻转正负，结果位置保持；在
+\(\forall X<:T_1.T_2\) 中，上界位置翻转，量词体保持。对子类型判断
+\(\Gamma\vdash S<:T\)，左侧 \(S\) 和上下文中的各上界处于负位置，右侧
+\(T\) 处于正位置。
+\end{definition}
+
+\begin{keystatement}
+若 \(X\) 在 \(S\) 中只正出现、在 \(T\) 中只负出现，则
+\[
+X<:U\vdash S<:T
+\quad\Longleftrightarrow\quad
+\vdash[X\mapsto U]S<:[X\mapsto U]T.
+\]
+\end{keystatement}
+
+Pierce 的证明把两计数器机的状态编码为复杂的有界全称类型：类型变量充当
+寄存器，上界链充当指令流，一次子类型推导循环模拟机器的一步执行。
+
+\begin{theorem}[Pierce，1994]
+\label{thm:28.5.5}
+对每台两计数器机 \(M\)，都能构造子类型判断 \(S(M)\)，使
+\(S(M)\) 可导出当且仅当 \(M\) 的执行会停机。
+\end{theorem}
+
+因此，若完全 \(F_{<:}\) 子类型可判定，就能判定两计数器机停机问题，矛盾。
+算法仍是可靠和半完备的：可导出的判断最终会返回真；不可导出的判断可能返回
+假，也可能永不终止。
+
+\begin{exercise}[\(\star\star\star\star\)]
+\label{ex:28.5.6}
+研究同时提供有界与无界量词、但没有 \(\tapltype{Top}\) 的“完全有界量化”
+系统：定义其规则，证明子类型可判定，并讨论加入记录等构造后是否仍能解决
+不可判定问题。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:28.5.6}{28.5.6}
+
+\section{并与交}
+\label{sec:28.6}
+
+核 \(F_{<:}\) 中，每对类型都有并；若一对类型存在公共子类型，则它们也有交。
+算法同时递归定义
+\[
+\Gamma\vdash S\lor T=J
+\qquad\text{和}\qquad
+\Gamma\vdash S\land T=M.
+\]
+若一边已是另一边的子类型，直接选择较大的为并、较小的为交。变量先沿上界
+暴露。两个箭头的并在参数位置取交、结果位置取并；箭头的交反过来在参数位置
+取并、结果位置取交。上界相同的全称类型递归处理量词体。其余情况下，并取
+\(\tapltype{Top}\)，交失败。规则有重叠时总选第一条适用规则。
+
+\begin{proposition}
+\label{prop:28.6.1}
+算法得到的并是公共上界；算法得到的交是公共下界。
+\end{proposition}
+
+\begin{proposition}
+\label{prop:28.6.2}
+算法得到的并小于等于任意公共上界；若存在公共下界，算法得到的交大于等于
+任意公共下界。
+\end{proposition}
+
+两项通过同时归纳算法子类型推导证明。箭头情形中，参数逆变正是并、交互换
+位置的原因。
+
+\begin{exercise}[推荐，\(\star\star\star\)]
+\label{ex:28.6.3}
+在给定上下文中分析 Ghelli 的两种全称类型：列出它们在完全 \(F_{<:}\) 中的
+公共子类型，证明它们没有交，并找出一对没有并的类型。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:28.6.3}{28.6.3}
+
+\section{有界存在类型}
+\label{sec:28.7}
+
+存在包消去式的结果类型不能含打开包时引入的隐藏变量 \(X\)。然而，包体的
+最小类型可能含 \(X\)。例如，若
+\[
+p:\{\exists X,\tapltype{Nat}\to X\},
+\]
+则
+\[
+\textbf{let }\{X,x\}=p\textbf{ in }x
+\]
+的包体最小类型是 \(\tapltype{Nat}\to X\)，不能直接离开作用域；声明式系统
+却能先把它提升为 \(\tapltype{Nat}\to\tapltype{Top}\)。因此，完整的最小
+赋型算法必须寻找给定类型的最小 \(X\)-自由超类型，而不能一看到 \(X\) 就
+失败。
+
+\begin{exercise}[\(\star\star\star\)]
+\label{ex:28.7.1}
+为核 \(F_{<:}\) 定义算法 \(R_{X,\Gamma}(T)\)，计算 \(T\) 的最小
+\(X\)-自由超类型。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:28.7.1}{28.7.1}
+
+完全 \(F_{<:}\) 中，这样的最小超类型未必存在，因此带有界存在类型的完全
+系统不具有最小类型性质。
+
+\begin{exercise}[\(\star\star\star\)]
+\label{ex:28.7.2}
+证明只含有界存在量词、不含全称量词的完全 \(F_{<:}\) 变体，其子类型关系
+同样不可判定。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:28.7.2}{28.7.2}
+
+\section{有界量化与底类型}
+\label{sec:28.8}
+
+加入 \(\tapltype{Bot}\) 会使元理论更复杂。在
+\(\forall X<:\tapltype{Bot}.T\) 内，假设给出 \(X<:\tapltype{Bot}\)，
+S-Bot 又给出 \(\tapltype{Bot}<:X\)，所以 \(X\) 与
+\(\tapltype{Bot}\) 在子类型关系下等价。因此
+\[
+\forall X<:\tapltype{Bot}.X\to X
+\quad\text{和}\quad
+\forall X<:\tapltype{Bot}.
+\tapltype{Bot}\to\tapltype{Bot}
+\]
+互为子类型，却并非语法相同。即便如此，核 \(F_{<:}\) 的核心性质仍可在
+加入底类型后建立；详见 Pierce（1997）。

@@ -1,0 +1,158 @@
+\newpage
+\section{第24章：存在类型}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:24.1.1}
+\textbf{24.1.1 解答}
+
+\(p_6\) 同时提供常量 \(a\) 和函数 \(f\)，但客户只能反复把 \(f\) 应用于
+\(a\)，最后仍得到无法观察的抽象 \(X\) 值。\(p_7\) 允许用 \(f\) 构造
+\(X\) 值，却仍没有观察它们的操作。\(p_8\) 的两个字段都可使用，但接口没有
+隐藏任何与表示有关的信息，存在包也就失去作用。
+\taplsolutionbacklink{ex:24.1.1}{返回练习24.1.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:24.2.1}
+\textbf{24.2.1 解答}
+\[
+\begin{aligned}
+\taplterm{stackADT}={}&
+\{*\tapltype{List}\,\tapltype{Nat},
+\{\taplterm{new}=\taplterm{nil}[\tapltype{Nat}],\\
+&\taplterm{push}=\lambda n:\tapltype{Nat}.
+ \lambda s:\tapltype{List}\,\tapltype{Nat}.
+ \taplterm{cons}[\tapltype{Nat}]n\,s,\\
+&\taplterm{top}=\lambda s:\tapltype{List}\,\tapltype{Nat}.
+ \taplterm{head}[\tapltype{Nat}]s,\\
+&\taplterm{pop}=\lambda s:\tapltype{List}\,\tapltype{Nat}.
+ \taplterm{tail}[\tapltype{Nat}]s,\\
+&\taplterm{isempty}=\lambda s:\tapltype{List}\,\tapltype{Nat}.
+ \taplterm{isnil}[\tapltype{Nat}]s\}\}\\
+&\textbf{as }\{\exists\ \tapltype{Stack},\\
+&\quad\{\taplterm{new}:\tapltype{Stack},\\
+&\hspace{15mm}\taplterm{push}:\tapltype{Nat}\to\tapltype{Stack}\to\tapltype{Stack},\\
+&\hspace{15mm}\taplterm{top}:\tapltype{Stack}\to\tapltype{Nat},\\
+&\hspace{15mm}\taplterm{pop}:\tapltype{Stack}\to\tapltype{Stack},\\
+&\hspace{15mm}
+\taplterm{isempty}:\tapltype{Stack}\to\tapltype{Bool}\}\}.
+\end{aligned}
+\]
+打开包后，
+\(\taplterm{stack.top}(\taplterm{stack.push}\ 5
+(\taplterm{stack.push}\ 3\ \taplterm{stack.new}))\) 得到 \(5\)。
+\taplsolutionbacklink{ex:24.2.1}{返回练习24.2.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:24.2.2}
+\textbf{24.2.2 解答}
+\[
+\begin{aligned}
+\taplterm{counterADT}={}&
+\{*\tapltype{Ref}\,\tapltype{Nat},
+\{\taplterm{new}=\lambda\_:\tapltype{Unit}.\taplterm{ref}\ 1,\\
+&\taplterm{get}=\lambda r:\tapltype{Ref}\,\tapltype{Nat}.\,!r,\\
+&\taplterm{inc}=\lambda r:\tapltype{Ref}\,\tapltype{Nat}.
+  r:=\taplterm{succ}(!r)\}\}\\
+&\textbf{as }\{\exists\ \tapltype{Counter},\\
+&\quad\{\taplterm{new}:\tapltype{Unit}\to\tapltype{Counter},
+\taplterm{get}:\tapltype{Counter}\to\tapltype{Nat},
+\taplterm{inc}:\tapltype{Counter}\to\tapltype{Unit}\}\}.
+\end{aligned}
+\]
+\taplsolutionbacklink{ex:24.2.2}{返回练习24.2.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:24.2.3}
+\textbf{24.2.3 解答}
+
+令 \(\taplterm{zeroCounter}\) 为零值计数器对象，则可取
+\[
+\begin{aligned}
+\tapltype{FlipFlop}
+={}&\{\exists X,\{\taplterm{state}:X,\\
+&\quad\taplterm{methods}:\{
+\taplterm{read}:X\to\tapltype{Bool},\\
+&\hspace{34mm}
+\taplterm{toggle}:X\to X,
+\taplterm{reset}:X\to X\}\}\},\\
+\taplterm{f}
+={}&\{*\tapltype{Counter},
+\{\taplterm{state}=\taplterm{zeroCounter},\\
+&\quad\taplterm{methods}=\{
+\taplterm{read}=\lambda s:\tapltype{Counter}.
+\taplterm{iseven}(\taplterm{sendget}\ s),\\
+&\quad\taplterm{toggle}=\lambda s:\tapltype{Counter}.
+\taplterm{sendinc}\ s,\,
+\\
+&\quad
+\taplterm{reset}=\lambda s:\tapltype{Counter}.
+\taplterm{zeroCounter}\}\}\}\\
+&\textbf{as }\tapltype{FlipFlop}.
+\end{aligned}
+\]
+\taplsolutionbacklink{ex:24.2.3}{返回练习24.2.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:24.2.4}
+\textbf{24.2.4 解答}
+\[
+\begin{aligned}
+c=\{*\tapltype{Ref}\,\tapltype{Nat},
+\{&\taplterm{state}=\taplterm{ref}\ 5,\\
+&\taplterm{methods}=\{
+\taplterm{get}=\lambda x:\tapltype{Ref}\,\tapltype{Nat}.\,!x,\\
+&\taplterm{inc}=\lambda x:\tapltype{Ref}\,\tapltype{Nat}.
+(x:=\taplterm{succ}(!x);x)\}\}\}
+\textbf{ as }\tapltype{Counter}.
+\end{aligned}
+\]
+\taplsolutionbacklink{ex:24.2.4}{返回练习24.2.4}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:24.2.5}
+\textbf{24.2.5 解答}
+
+这一类型确实能在单个对象内部实现并集，却几乎无法调用。要调用某对象的
+\(\taplterm{union}:X\to X\to X\)，必须提供两个同一表示类型 \(X\) 的状态。
+打开两个不同对象会分别引入两个互不相同的抽象类型，第二个对象的状态不能传给
+第一个对象的方法；允许这样传递也不安全，因为二者表示可能完全不同。因此，
+该接口至多允许一个集合与自身求并。
+\taplsolutionbacklink{ex:24.2.5}{返回练习24.2.5}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:24.3.2}
+\textbf{24.3.2 解答}
+
+至少要证明翻译保持赋型和计算。若以 \(\llbracket-\rrbracket\) 表示翻译，
+则应有
+\[
+\Gamma\vdash t:T
+\Longrightarrow
+\llbracket\Gamma\rrbracket\vdash
+\llbracket t\rrbracket:\llbracket T\rrbracket
+\]
+以及
+\[
+t\longrightarrow^*t'
+\Longrightarrow
+\llbracket t\rrbracket\longrightarrow^*\llbracket t'\rrbracket.
+\]
+这两项容易验证。反向性质则不成立：翻译可能把源语言中错误或卡住的项映射为
+目标语言中良类型且可继续求值的项。
+\taplsolutionbacklink{ex:24.3.2}{返回练习24.3.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:24.3.3}
+\textbf{24.3.3 解答}
+
+作者没有见过这一编码的完整书面版本。它似乎可以做到，但不会是逐个局部构造
+展开的简单句法糖；翻译必须一次处理整个程序。
+\taplsolutionbacklink{ex:24.3.3}{返回练习24.3.3}
+\end{taplauthorsolutionentrybox}

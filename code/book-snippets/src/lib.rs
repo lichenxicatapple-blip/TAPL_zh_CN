@@ -22,3 +22,5 @@ pub mod chapter10;
 pub mod chapter11;
 pub mod chapter17;
 pub mod chapter19;
+pub mod chapter22;
+pub mod chapter25;

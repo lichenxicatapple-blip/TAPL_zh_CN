@@ -1,0 +1,165 @@
+\newpage
+\section{第26章：有界量化}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:26.2.3}
+\textbf{26.2.3 解答}
+
+Abadi、Cardelli 与 Viswanathan（1996）的对象编码中确实需要完全
+\(F_{<:}\) 的量词规则；Abadi 与 Cardelli（1996）也讨论了这一例子。
+\taplsolutionbacklink{ex:26.2.3}{返回练习26.2.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:26.3.4}
+\textbf{26.3.4 解答}
+\[
+\begin{aligned}
+\taplterm{spluszz}
+={}&\lambda n:\tapltype{SZero}.\lambda m:\tapltype{SZero}.
+\lambda X.\lambda S<:X.\lambda Z<:X.\lambda s:X\to S.\lambda z:Z.\\
+&n[X][S][Z]s\,(m[X][S][Z]s\,z),\\
+\taplterm{spluspn}
+={}&\lambda n:\tapltype{SPos}.\lambda m:\tapltype{SNat}.
+\lambda X.\lambda S<:X.\lambda Z<:X.\lambda s:X\to S.\lambda z:Z.\\
+&n[X][S][X]s\,(m[X][S][Z]s\,z).
+\end{aligned}
+\]
+两者类型分别为
+\(\tapltype{SZero}\to\tapltype{SZero}\to\tapltype{SZero}\) 和
+\(\tapltype{SPos}\to\tapltype{SNat}\to\tapltype{SPos}\)。
+\taplsolutionbacklink{ex:26.3.4}{返回练习26.3.4}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:26.3.5}
+\textbf{26.3.5 解答}
+\[
+\begin{aligned}
+\tapltype{SBool}
+ &=\forall X.\forall T<:X.\forall F<:X.T\to F\to X,\\
+\tapltype{STrue}
+ &=\forall X.\forall T<:X.\forall F<:X.T\to F\to T,\\
+\tapltype{SFalse}
+ &=\forall X.\forall T<:X.\forall F<:X.T\to F\to F.
+\end{aligned}
+\]
+\[
+\begin{aligned}
+\taplterm{notft}
+ &=\lambda b:\tapltype{SFalse}.\lambda X.\lambda T<:X.\lambda F<:X.
+   \lambda t:T.\lambda f:F.\,b[X][F][T]f\,t,\\
+\taplterm{nottf}
+ &=\lambda b:\tapltype{STrue}.\lambda X.\lambda T<:X.\lambda F<:X.
+   \lambda t:T.\lambda f:F.\,b[X][F][T]f\,t.
+\end{aligned}
+\]
+\taplsolutionbacklink{ex:26.3.5}{返回练习26.3.5}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:26.4.3}
+\textbf{26.4.3 解答}
+
+赋型推导的 T-Abs、T-TAbs 情形需要把新增绑定移到适合应用归纳假设的位置；
+子类型推导的 S-All 情形也需要这样做。类型替换相关证明中的量词情形同样依赖
+排列。
+\taplsolutionbacklink{ex:26.4.3}{返回练习26.4.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:26.4.5}
+\textbf{26.4.5 解答}
+
+第 1 项对子类型推导归纳。S-Refl、S-Top 立即成立；S-Trans、S-Arrow、
+S-All 直接使用归纳假设。S-TVar 有两个子情形。若最后查询的变量 \(Y\neq X\)，
+原上界绑定在收窄后的上下文中仍存在。若 \(Y=X\)，原结论使用 \(X<:Q\)；
+收窄后先由 S-TVar 得 \(X<:P\)，再由弱化把假设
+\(\Gamma\vdash P<:Q\) 搬入扩展上下文，最后用 S-Trans 得 \(X<:Q\)。
+
+第 2 项对赋型推导归纳，并在 T-TApp 的子类型前提以及 T-Sub 情形使用第 1 项。
+\taplsolutionbacklink{lem:26.4.5}{返回引理26.4.5}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:26.4.11}
+\textbf{26.4.11 解答}
+
+四项均对子类型推导归纳。以箭头情形为例：S-Refl、S-Top 直接给出结论；
+S-TVar 和 S-All 不可能产生箭头左侧；S-Arrow 的两个子推导正是所需关系。
+若末步为 S-Trans，先对左子推导使用归纳假设，得到中间类型为
+\(\tapltype{Top}\) 或某个箭头。前者再用第 4 项可知目标也是
+\(\tapltype{Top}\)；后者再对右子推导使用归纳假设，并用两次传递性连接参数
+和结果位置的关系。全称类型情形同理。
+\taplsolutionbacklink{ex:26.4.11}{返回练习26.4.11}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:26.5.1}
+\textbf{26.5.1 解答}
+
+完全版本允许两个表示类型的上界不同，并令上界协变：
+\[
+\inferrule*[right=S-Some（完全）]
+ {\Gamma\vdash S_1<:T_1\\
+  \Gamma,X<:S_1\vdash S_2<:T_2}
+ {\Gamma\vdash
+  \{\exists X<:S_1,S_2\}<:\{\exists X<:T_1,T_2\}}.
+\]
+\taplsolutionbacklink{ex:26.5.1}{返回练习26.5.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:26.5.2}
+\textbf{26.5.2 解答}
+
+没有子类型时有四种基本选择：
+\[
+\begin{array}{ll}
+\{\exists X,\{a:\tapltype{Nat},b:\tapltype{Nat}\}\},&
+\{\exists X,\{a:X,b:\tapltype{Nat}\}\},\\
+\{\exists X,\{a:\tapltype{Nat},b:X\}\},&
+\{\exists X,\{a:X,b:X\}\}.
+\end{array}
+\]
+加入子类型和有界量化后会增加许多，例如可以忘掉字段、把字段提升为
+\(\tapltype{Top}\)，或使用上界 \(X<:\tapltype{Nat}\)。
+\taplsolutionbacklink{ex:26.5.2}{返回练习26.5.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:26.5.3}
+\textbf{26.5.3 解答}
+
+一种办法是把重置计数器 ADT 嵌套在普通计数器 ADT 中。外包先隐藏
+\(\tapltype{Counter}\)；其操作记录中再放一个存在包
+\[
+\begin{aligned}
+\{\exists\ \tapltype{ResetCounter}<:\tapltype{Counter},
+\{&\taplterm{new}:\tapltype{ResetCounter},\\
+ &\taplterm{get}:\tapltype{ResetCounter}\to\tapltype{Nat},\\
+ &\taplterm{inc}:\tapltype{ResetCounter}\to\tapltype{ResetCounter},\\
+ &\taplterm{reset}:\tapltype{ResetCounter}\to\tapltype{ResetCounter}\}\}
+\end{aligned}
+\]
+依次打开两层包后，上下文同时含
+\(\tapltype{ResetCounter}<:\tapltype{Counter}\)，客户便可把重置计数器传给
+普通计数器操作，而两种具体表示仍然隐藏。
+\taplsolutionbacklink{ex:26.5.3}{返回练习26.5.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:26.5.4}
+\textbf{26.5.4 解答}
+
+在\cref{sec:24.3}的编码中给隐藏类型的量词加上同一上界：
+\[
+\llbracket\{\exists X<:S,T\}\rrbracket
+=\forall Y.(\forall X<:\llbracket S\rrbracket.
+\llbracket T\rrbracket\to Y)\to Y.
+\]
+打包和开包翻译只需相应地把类型抽象写成
+\(\lambda X<:\llbracket S\rrbracket\)。由有界全称类型的子类型规则逐层
+推导，可得到 S-Some。
+\taplsolutionbacklink{ex:26.5.4}{返回练习26.5.4}
+\end{taplauthorsolutionentrybox}

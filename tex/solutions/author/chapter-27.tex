@@ -1,0 +1,34 @@
+\newpage
+\section{第27章：案例研究——再论命令式对象}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection\label{sol:author:27.1}
+\textbf{27.1 解答}
+
+可以把 self 引用改为保存一个从表示记录到方法记录的函数，并让方法记录类型和
+表示类型都成为有界类型参数：
+\[
+\begin{aligned}
+\taplterm{setCounterClass}
+={}&\lambda M<:\tapltype{SetCounter}.
+\lambda R<:\tapltype{CounterRep}.\\
+&\quad\lambda self:\tapltype{Ref}(R\to M).
+\lambda r:R.\ \cdots,\\
+\taplterm{instrCounterClass}
+={}&\lambda M<:\tapltype{InstrCounter}.
+\lambda R<:\tapltype{InstrCounterRep}.\\
+&\quad\lambda self:\tapltype{Ref}(R\to M).
+\lambda r:R.\\
+&\quad\textbf{let }super=\\
+&\qquad\taplterm{setCounterClass}[M][R]\\
+&\hspace{34mm}self\textbf{ in }\cdots
+\end{aligned}
+\]
+在父类实例化处，\(\tapltype{Ref}(R\to M)\) 两边完全相同，无须利用
+\(\tapltype{Ref}\) 的协变性。创建对象时取
+\(M=\tapltype{InstrCounter}\)、
+\(R=\tapltype{InstrCounterRep}\)，先以占位函数建立引用，再把完整函数
+回填。
+
+\taplsolutionbacklink{ex:27.1}{返回练习27.1}
+\end{taplauthorsolutionentrybox}

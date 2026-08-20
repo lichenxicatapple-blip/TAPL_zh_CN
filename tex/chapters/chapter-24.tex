@@ -1,5 +1,317 @@
-% Chapter 24 — Existential Types
-% Source: ../source/split/chapters/ch24-existential-types_p344-p357.pdf
+% 第 24 章：存在类型
+% Source: source/split/chapters/ch24-existential-types_p344-p357.pdf
 % Original print pages: 363--380
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:24}
+% Status: 待独立初审
+
+\chapter{存在类型}
+\label{chap:24}
+
+\chapref{23}讨论了类型系统中的全称量词。本章考察与之对偶的存在量词；
+\termfirst{存在类型}{existential type}为数据抽象和信息隐藏提供了简洁的
+类型论基础。
+
+\section{动机}
+\label{sec:24.1}
+
+全称类型 \(\forall X.T\) 可以从两个角度理解。逻辑上，它的值对每种 \(S\)
+都具有类型 \([X\mapsto S]T\)；操作上，它像一个接收类型 \(S\)、返回相应
+实例的函数。存在类型
+\[
+\exists X.T
+\]
+也有两种对应理解：逻辑上，它表示“对某个类型 \(S\)，有一个
+\([X\mapsto S]T\) 型值”；操作上，它是一个由类型 \(S\) 和相应项 \(t\)
+组成的包。
+
+本章采用
+\[
+\{*S,t\}\ \textbf{as}\ \{\exists X,T\}
+\]
+作为打包形式。\(S\) 是\termfirst{隐藏表示类型}{hidden representation
+type}，在逻辑语境中也称见证类型；\(t\) 是值组件。显式类型标注不可省略，
+因为同一个包可能属于不止一个存在类型。例如
+\[
+\{*\tapltype{Nat},
+  \{a=5,f=\lambda x:\tapltype{Nat}.\taplterm{succ}\,x\}\}
+\]
+既可按 \(\{\exists X,\{a:X,f:X\to X\}\}\) 打包，也可按
+\(\{\exists X,\{a:X,f:X\to\tapltype{Nat}\}\}\) 打包。
+
+\begin{exercise}[\(\star\)]
+\label{ex:24.1.1}
+比较下列三个包的接口：
+\[
+\begin{array}{l}
+\{\exists X,\{a:X,f:X\to X\}\},\\
+\{\exists X,\{a:X,f:\tapltype{Nat}\to X\}\},\\
+\{\exists X,\{a:\tapltype{Nat},
+f:\tapltype{Nat}\to\tapltype{Nat}\}\}.
+\end{array}
+\]
+它们为什么不如正文中
+\(\{\exists X,\{a:X,f:X\to\tapltype{Nat}\}\}\) 的例子有用？
+\end{exercise}
+\taplauthorsolutionlink{sol:author:24.1.1}{24.1.1}
+
+使用存在包时，以
+\[
+\textbf{let }\{X,x\}=t_1\textbf{ in }t_2
+\]
+打开它。若 \(t_1:\{\exists X,T_{11}\}\)，则在检查 \(t_2\) 时把 \(X\)
+视为抽象类型、把 \(x\) 视为 \(T_{11}\) 型值。客户代码只能使用接口允许的
+操作，不能假定 \(X\) 等于包内实际采用的类型。例如，若
+\[
+p:\{\exists X,\{a:X,f:X\to\tapltype{Nat}\}\},
+\]
+则 \(x.f\,x.a\) 合法，而 \(\taplterm{succ}(x.a)\) 不合法，因为 \(X\)
+未必是 \(\tapltype{Nat}\)。
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.96\linewidth}
+\textbf{新增项与值}
+\[
+\begin{array}{rcl}
+t&::=&\{*T,t\}\textbf{ as }\{\exists X,T\}
+\mid\textbf{let }\{X,x\}=t\textbf{ in }t,\\
+v&::=&\{*T,v\}\textbf{ as }\{\exists X,T\}
+\end{array}
+\]
+\textbf{求值}
+\[
+\inferrule*[right=E-Pack]
+ {t_2\longrightarrow t_2'}
+ {\{*T_1,t_2\}\textbf{ as }T\longrightarrow
+  \{*T_1,t_2'\}\textbf{ as }T}
+\]
+\[
+\inferrule*[right=E-Unpack]
+ {t_1\longrightarrow t_1'}
+ {\textbf{let }\{X,x\}=t_1\textbf{ in }t_2
+  \longrightarrow
+  \textbf{let }\{X,x\}=t_1'\textbf{ in }t_2}
+\]
+\[
+\inferrule*[right=E-UnpackPack]{ }
+ {\textbf{let }\{X,x\}=
+  \{*T_{11},v_{12}\}\textbf{ as }\{\exists X,T_{12}\}
+  \textbf{ in }t_2
+  \longrightarrow
+  [X\mapsto T_{11}][x\mapsto v_{12}]t_2}
+\]
+\textbf{赋型}
+\[
+\inferrule*[right=T-Pack]
+ {\Gamma\vdash t_2:[X\mapsto T_1]T_2}
+ {\Gamma\vdash\{*T_1,t_2\}\textbf{ as }\{\exists X,T_2\}:
+  \{\exists X,T_2\}}
+\]
+\[
+\inferrule*[right=T-Unpack]
+ {\Gamma\vdash t_1:\{\exists X,T_{11}\}\\
+  \Gamma,X,x:T_{11}\vdash t_2:T_2\\
+  X\notin\fv(T_2)}
+ {\Gamma\vdash\textbf{let }\{X,x\}=t_1\textbf{ in }t_2:T_2}
+\]
+\end{minipage}
+\caption{存在类型}
+\label{fig:24-1}
+\end{figure}
+
+T-Unpack 的旁条件 \(X\notin\fv(T_2)\) 保证隐藏类型不会从包的作用域中逃逸。
+换言之，打开包所得的结果不能把抽象类型 \(X\) 暴露给外部。E-UnpackPack
+则同时把实际表示类型和实际值代入包体，可以看作模块链接时把符号接口连接到
+具体实现。
+
+\section{用存在类型实现数据抽象}
+\label{sec:24.2}
+
+\subsection*{抽象数据类型}
+
+传统\termfirst{抽象数据类型}{abstract data type, ADT}包含四部分：抽象类型
+名、具体表示类型、创建和操作该表示的若干操作，以及把实现同客户代码隔开的
+抽象边界。在边界内，值按具体表示处理；边界外，值只能通过公开操作使用。
+
+纯函数式计数器可以打包为
+\[
+\begin{aligned}
+\taplterm{counterADT}={}&
+\{*\tapltype{Nat},
+\{\taplterm{new}=1,\,
+  \taplterm{get}=\lambda i:\tapltype{Nat}.\,i,\,
+  \taplterm{inc}=\lambda i:\tapltype{Nat}.\taplterm{succ}\,i\}\}\\
+&\textbf{as }\{\exists\ \tapltype{Counter},
+\{\taplterm{new}:\tapltype{Counter},\,
+  \taplterm{get}:\tapltype{Counter}\to\tapltype{Nat},\\
+&\hspace{47mm}
+  \taplterm{inc}:\tapltype{Counter}\to\tapltype{Counter}\}\}.
+\end{aligned}
+\]
+客户代码打开它：
+\[
+\textbf{let }\{\tapltype{Counter},counter\}=\taplterm{counterADT}
+\textbf{ in }
+counter.\taplterm{get}(counter.\taplterm{inc}\ counter.\taplterm{new}).
+\]
+在后续程序中，\(\tapltype{Counter}\) 像内建基本类型一样使用，却不能被客户
+代码拆开。
+
+实现可以改为记录 \(\{x:\tapltype{Nat}\}\)，而接口保持完全相同。存在类型
+保证客户无法依赖内部表示，这一性质称为\termfirst{表示独立性}{representation
+independence}。它把实现变更的影响限制在抽象边界之内，也促使程序员明确设计
+尽量小的公开接口。
+
+\begin{exercise}[推荐，\(\star\star\star\)]
+\label{ex:24.2.1}
+以 \(\tapltype{List}\,\tapltype{Nat}\) 为表示，定义自然数栈 ADT，提供
+\(\taplterm{new}\)、\(\taplterm{push}\)、\(\taplterm{top}\)、
+\(\taplterm{pop}\) 和 \(\taplterm{isempty}\)，并写一个简单客户程序。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:24.2.1}{24.2.1}
+
+\begin{exercise}[推荐，\(\star\star\)]
+\label{ex:24.2.2}
+用\chapref{13}的引用单元构造可变计数器 ADT。令
+\(\taplterm{new}:\tapltype{Unit}\to\tapltype{Counter}\)，并令
+\(\taplterm{inc}\) 返回 \(\tapltype{Unit}\)。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:24.2.2}{24.2.2}
+
+\subsection*{存在对象}
+
+存在包也能表达一种简单对象模型。ADT 通常在构造后立即打开，并让整个后续程序
+共享同一表示和一组操作；对象则把包尽量保持封闭，直到调用某个方法时才打开。
+
+一个函数式计数器对象把状态、方法和状态类型一起封装：
+\[
+\tapltype{Counter}
+=\{\exists X,
+\{\taplterm{state}:X,\,
+ \taplterm{methods}:
+ \{\taplterm{get}:X\to\tapltype{Nat},
+   \taplterm{inc}:X\to X\}\}\}.
+\]
+读取对象时打开包并把 \(\taplterm{get}\) 应用于状态：
+\[
+\taplterm{sendget}
+=\lambda c:\tapltype{Counter}.
+\textbf{let }\{X,body\}=c\textbf{ in }
+body.\taplterm{methods}.\taplterm{get}(body.\taplterm{state}).
+\]
+递增会产生新的内部状态。不能把该状态裸露出来，因为其类型 \(X\) 会逃逸；
+必须用同一 \(X\) 和方法记录重新打包：
+\[
+\begin{aligned}
+\taplterm{sendinc}
+=\lambda c:\tapltype{Counter}.
+\textbf{let }\{X,body\}=c\textbf{ in }
+\{*X,\{&
+\taplterm{state}=
+body.\taplterm{methods}.\taplterm{inc}(body.\taplterm{state}),\\
+&\taplterm{methods}=body.\taplterm{methods}\}\}
+\textbf{ as }\tapltype{Counter}.
+\end{aligned}
+\]
+
+\begin{exercise}[推荐，\(\star\star\star\)]
+\label{ex:24.2.3}
+以计数器对象作为内部表示，实现 FlipFlop 对象。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:24.2.3}{24.2.3}
+
+\begin{exercise}[推荐，\(\star\star\)]
+\label{ex:24.2.4}
+实现带可变状态的计数器对象。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:24.2.4}{24.2.4}
+
+\subsection*{对象与 ADT}
+
+两种风格位于一条光谱的两端。ADT 的值在运行时只是同一种内部表示的元素，
+所有值共享唯一一组操作；每个对象则携带自己的表示类型、状态和适合该表示的
+方法。因此，同一对象类型可以混合多种内部实现，尤其适合与子类型和继承结合。
+
+二元操作揭示了另一项差异。
+\begin{description}
+  \item[弱二元操作]只使用公开接口即可实现。例如比较两个计数器，只需分别
+    调用 \(\taplterm{get}\) 再比较数字。
+  \item[强二元操作]必须同时具体查看两个抽象值的表示。例如高效集合并集可能
+    需要把两个参数都当作满足某种不变量的树来操作。
+\end{description}
+ADT 的所有值采用同一表示，强二元操作可以放在抽象边界内。纯对象允许同一
+接口对应不同表示，方法拿到另一个对象时只能看到其公开接口，因而一般无法实现
+强二元操作。这是对象以表示灵活性换取的限制。
+
+\begin{exercise}[\(\star\)]
+\label{ex:24.2.5}
+为什么不能把集合对象中并集方法写成
+\[
+\taplterm{union}:X\to X\to X
+\]
+来解决强二元操作问题？
+\end{exercise}
+\taplauthorsolutionlink{sol:author:24.2.5}{24.2.5}
+
+\section{用全称类型编码存在类型}
+\label{sec:24.3}
+
+存在包可视为“一个隐藏类型和一个值的对”。像 Church 序对一样，可以让它
+主动执行自己的消去操作：
+\[
+\llbracket\{\exists X,T\}\rrbracket
+=\forall Y.\,(\forall X.\,\llbracket T\rrbracket\to Y)\to Y.
+\]
+客户先选择整个开包表达式的结果类型 \(Y\)，再提供一个能对任意隐藏类型
+\(X\) 接收包内值并产生 \(Y\) 的续延。
+
+打包
+\[
+\{*S,t\}\textbf{ as }\{\exists X,T\}
+\]
+翻译为
+\[
+\lambda Y.\,\lambda f:\forall X.\,\llbracket T\rrbracket\to Y.\,
+f[\llbracket S\rrbracket]\llbracket t\rrbracket.
+\]
+开包
+\[
+\textbf{let }\{X,x\}=t_1\textbf{ in }t_2
+\]
+翻译为
+\[
+\llbracket t_1\rrbracket[\llbracket T_2\rrbracket]
+(\lambda X.\,\lambda x:\llbracket T_{11}\rrbracket.\,
+ \llbracket t_2\rrbracket),
+\]
+其中 \(T_2\) 是整个开包表达式的类型。因为翻译需要从赋型推导取得
+\(T_{11}\) 和 \(T_2\)，严格地说，它翻译的是赋型推导，而不只是裸项。
+
+\begin{exercise}[推荐，\(\star\star\star\)]
+\label{ex:24.3.1}
+不查看正文，依据目标类型自行重新推导上述编码。
+\end{exercise}
+\taplsolutionlink{sol:translator:24.3.1}{24.3.1}
+
+\begin{exercise}[\(\star\star\star\)]
+\label{ex:24.3.2}
+要确信这一编码正确，需要证明哪些性质？
+\end{exercise}
+\taplauthorsolutionlink{sol:author:24.3.2}{24.3.2}
+
+\begin{exercise}[\(\star\star\star\star\)]
+\label{ex:24.3.3}
+能否反过来只用存在类型编码全称类型？
+\end{exercise}
+\taplauthorsolutionlink{sol:author:24.3.3}{24.3.3}
+
+\section{注记}
+\label{sec:24.4}
+
+Mitchell 与 Plotkin（1988）首先系统阐明了 ADT 与存在类型的对应，并指出它
+同对象的联系。更完整的对象编码将在\chapref{32}继续发展。ML 等语言的模块
+系统还需要比本章存在包更强的机制。
+
+\bilingualepigraph
+  {类型结构是一种句法纪律，用来强制维持不同的抽象层次。}
+  {Type structure is a syntactic discipline for enforcing levels of abstraction.}
+  {——John Reynolds，1983}
