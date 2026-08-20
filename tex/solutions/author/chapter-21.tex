@@ -1,0 +1,360 @@
+\newpage
+\section{第21章：递归类型的元理论}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:21.1.7}
+\textbf{21.1.7 解答}
+
+\[
+\begin{array}{c@{\quad=\quad}c@{\qquad}c@{\quad=\quad}c}
+E_2(\varnothing)&\{a\}&E_2(\{a,b\})&\{a,c\}\\
+E_2(\{a\})&\{a\}&E_2(\{a,c\})&\{a,b\}\\
+E_2(\{b\})&\{a\}&E_2(\{b,c\})&\{a,b\}\\
+E_2(\{c\})&\{a,b\}&E_2(\{a,b,c\})&\{a,b,c\}
+\end{array}
+\]
+\(E_2\)-闭集合为 \(\{a\}\) 和 \(\{a,b,c\}\)；\(E_2\)-一致集合为
+\(\varnothing\)、\(\{a\}\) 和 \(\{a,b,c\}\)。所以
+\[
+\mu E_2=\{a\},\qquad \nu E_2=\{a,b,c\}.
+\]
+
+\taplsolutionbacklink{ex:21.1.7}{返回练习21.1.7}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:21.1.9}
+\textbf{21.1.9 解答}
+
+为推出自然数上的普通归纳原理，定义
+\[
+F(X)=\{0\}\cup\{i+1\mid i\in X\}.
+\]
+设谓词（也就是自然数集合）\(P\) 满足 \(P(0)\)，并且
+\(P(i)\Rightarrow P(i+1)\)。由 \(F\) 的定义，\(X\subseteq P\) 蕴含
+\(F(X)\subseteq P\)，所以 \(P\) 是 \(F\)-闭的。归纳原理给出
+\(\mu F\subseteq P\)。而 \(\mu F\) 是全体自然数，故 \(P(n)\) 对所有
+\(n\in\mathbb N\) 成立。
+
+对字典序归纳，定义
+\[
+F(X)=\{(m,n)\mid
+  \forall(m',n')<(m,n).\ (m',n')\in X\}.
+\]
+设数对上的谓词 \(P\) 满足：若所有 \((m',n')<(m,n)\) 都满足 \(P\)，则
+\((m,n)\) 也满足 \(P\)。同样，\(X\subseteq P\) 蕴含
+\(F(X)\subseteq P\)，所以 \(P\) 是 \(F\)-闭的，归纳原理给出
+\(\mu F\subseteq P\)。最后只需确认 \(\mu F=\mathbb N\times\mathbb N\)。
+全体自然数对显然 \(F\)-闭；若存在更小的 \(F\)-闭集合 \(Y\)，取字典序下不
+属于 \(Y\) 的最小数对 \((m,n)\)。所有更小数对都属于 \(Y\)，故
+\((m,n)\in F(Y)\setminus Y\)，与闭合性矛盾。
+
+\taplsolutionbacklink{ex:21.1.9}{返回练习21.1.9}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:21.2.2}
+\textbf{21.2.2 解答}
+
+把树定义为偏函数
+\(T:\{1,2\}^{*}\rightharpoonup\{\to,\times,\tapltype{Top}\}\)，只要求：
+\(T(\epsilon)\) 有定义；若 \(T(\pi,\sigma)\) 有定义，则 \(T(\pi)\) 有定义。
+节点标记不再受其他限制，例如标为 \(\tapltype{Top}\) 的节点也可以有非平凡
+子节点。把所有这种树组成的集合取作全集 \(U\)，并定义
+\[
+F(X)=\{\tapltype{Top}\}
+\cup\{T_1\times T_2\mid T_1,T_2\in X\}
+\cup\{T_1\to T_2\mid T_1,T_2\in X\}.
+\]
+
+由定义可见 \(\mathcal T\subseteq U\)。要证
+\(\mathcal T=\nu F\) 与 \(\mathcal T_f=\mu F\)。因为 \(\mathcal T\) 是
+\(F\)-一致的，余归纳给出 \(\mathcal T\subseteq\nu F\)。反向包含关系只需
+对路径长度归纳，验证\cref{def:21.2.1}最后两项。因为
+\(\mathcal T_f\) 是 \(F\)-闭的，归纳给出
+\(\mu F\subseteq\mathcal T_f\)。反向包含关系对有限树的大小作归纳；这里可把
+树的大小定义为满足 \(T(\pi)\) 有定义的最长路径 \(\pi\) 的长度。
+
+\taplsolutionbacklink{ex:21.2.2}{返回练习21.2.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:21.3.3}
+\textbf{21.3.3 解答}
+
+类型对 \((\tapltype{Top},\tapltype{Top}\times\tapltype{Top})\) 不属于
+\(\nu\mathcal S\)。从 \(\mathcal S\) 的定义可见，它不属于任何
+\(\mathcal S(X)\)，所以不存在包含它的 \(\mathcal S\)-一致集合；特别地，
+\(\nu\mathcal S\) 也不包含它。
+
+\taplsolutionbacklink{ex:21.3.3}{返回练习21.3.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:21.3.4}
+\textbf{21.3.4 解答}
+
+对任意无限树类型 \(T\)，\((T,T)\) 都属于 \(\nu\mathcal S\)，却不属于
+\(\mu\mathcal S\)。令
+\[
+R=\{(T(\pi),T(\pi))\mid\pi\in\{1,2\}^{*}\}.
+\]
+直接检查 \(\mathcal S\) 的定义可得 \(R\subseteq\mathcal S(R)\)，余归纳给出
+\(R\subseteq\nu\mathcal S\)，故 \((T,T)\in\nu\mathcal S\)。另一方面，
+\(\mu\mathcal S\) 只包含有限类型对：令 \(R'\) 为全部有限类型对的集合，归纳
+原理给出 \(\mu\mathcal S\subseteq R'\)。
+
+不存在属于 \(\nu\mathcal S_f\) 却不属于 \(\mu\mathcal S_f\) 的有限类型对，
+因为两个不动点相等。对任意 \(S,T\in\mathcal T_f\)，命题
+\((S,T)\in\nu\mathcal S_f\Rightarrow(S,T)\in\mu\mathcal S_f\) 可对有限树
+\(T\) 归纳证明，分别讨论 \(\tapltype{Top}\)、积和箭头，并使用
+\(\mathcal S_f(\nu\mathcal S_f)=\nu\mathcal S_f\) 与
+\(\mathcal S_f(\mu\mathcal S_f)=\mu\mathcal S_f\)。
+
+\taplsolutionbacklink{ex:21.3.4}{返回练习21.3.4}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:21.3.8}
+\textbf{21.3.8 解答}
+
+定义树类型上的恒等关系
+\[
+I=\{(T,T)\mid T\in\mathcal T\}.
+\]
+若能证明 \(I\) 是 \(\mathcal S\)-一致的，余归纳便给出
+\(I\subseteq\nu\mathcal S\)，即自反性。任取 \((T,T)\in I\)，对 \(T\) 的
+根分类。若 \(T=\tapltype{Top}\)，按定义
+\((T,T)\in\mathcal S(I)\)。若 \(T=T_1\times T_2\)，由于
+\((T_1,T_1),(T_2,T_2)\in I\)，积分支给出
+\((T_1\times T_2,T_1\times T_2)\in\mathcal S(I)\)。箭头情形相同。
+
+\taplsolutionbacklink{ex:21.3.8}{返回练习21.3.8}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:21.4.2}
+\textbf{21.4.2 解答}
+
+依余归纳原理，只需证明 \(U\times U\) 是
+\(F^{\operatorname{TR}}\)-一致的。任取 \((x,y)\in U\times U\)，再任选
+\(z\in U\)。有 \((x,z),(z,y)\in U\times U\)，所以按
+\(F^{\operatorname{TR}}\) 的定义，
+\((x,y)\in F^{\operatorname{TR}}(U\times U)\)。
+
+\taplsolutionbacklink{ex:21.4.2}{返回练习21.4.2}
+\end{taplauthorsolutionentrybox}
+
+\Needspace{7\baselineskip}
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:21.5.2}
+\textbf{21.5.2 解答}
+
+检查可逆性，只需查看 \(\mathcal S_f\) 与 \(\mathcal S\) 的定义，并确认每个
+\(\mathcal G_{(S,T)}\) 至多含一个最小成员。两个定义的每一项都明确规定了
+可支持元素的形式和支持集内容，所以可直接写出
+\(\operatorname{support}_{\mathcal S_f}\) 与
+\(\operatorname{support}_{\mathcal S}\)；其形式与
+\cref{def:21.8.4}之后的 \(\operatorname{support}_{\mathcal S_\mu}\) 相同，
+只去掉两个 \(\mu\) 分支。
+
+\taplsolutionbacklink{ex:21.5.2}{返回练习21.5.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:21.5.4}
+\textbf{21.5.4 解答}
+
+相应推导规则是
+\[
+\frac{i\quad a}{h}
+\qquad
+\frac{b\quad c}{a}
+\qquad
+\frac{b}{d}
+\qquad
+\frac{d}{e}
+\qquad
+\frac{e}{b}
+\qquad
+\frac{f\quad g}{c}
+\qquad
+\frac{g}{f}
+\qquad
+\frac{}{g}.
+\]
+由这些规则可直接计算题目给出的两个集合；图中的
+\(\mu E=\{c,f,g\}\) 与
+\(\nu E=\{a,b,c,d,e,f,g\}\) 也分别满足最小、最大不动点的定义。
+
+\taplsolutionbacklink{ex:21.5.4}{返回练习21.5.4}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:21.5.6}
+\textbf{21.5.6 解答}
+
+逆命题不成立。\(\nu F\setminus\mu F\) 中的元素也可能通向一条无限链，而非
+环。例如定义
+\[
+F:\powerset(\mathbb N)\to\powerset(\mathbb N),\qquad
+F(X)=\{0\}\cup\{n\mid n+1\in X\}.
+\]
+则 \(\mu F=\{0\}\)，\(\nu F=\mathbb N\)。对每个 \(n>0\)，有
+\(\operatorname{support}(n)=\{n+1\}\)，所以从 \(n\) 出发得到没有环的无限链。
+
+\taplsolutionbacklink{ex:21.5.6}{返回练习21.5.6}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:21.5.13}
+\textbf{21.5.13 解答}
+
+先证部分正确性。两项都对一次算法运行的递归结构作归纳。
+\begin{enumerate}
+  \item 若算法因 \(X=\varnothing\) 返回真，则 \(X\subseteq\mu F\) 显然。
+        若因为 \(\operatorname{lfp}(\operatorname{support}(X))\) 返回真，归纳
+        假设给出 \(\operatorname{support}(X)\subseteq\mu F\)，再由
+        \cref{lem:21.5.8}得到 \(X\subseteq\mu F\)。
+  \item 若因 \(\operatorname{support}(X)\uparrow\) 返回假，
+        \cref{lem:21.5.8}给出 \(X\not\subseteq\mu F\)。否则递归调用返回假，
+        归纳假设给出 \(\operatorname{support}(X)\not\subseteq\mu F\)，再由
+        同一引理得到结论。
+\end{enumerate}
+
+下面刻画保证算法对有限输入终止的一类生成函数。对有限状态生成函数 \(F\)，令
+偏函数 \(\operatorname{height}_F:U\rightharpoonup\mathbb N\) 为满足以下条件的
+最小偏函数：
+\[
+\operatorname{height}(x)=
+\begin{cases}
+0,&\operatorname{support}(x)=\varnothing,\\
+0,&\operatorname{support}(x)\uparrow,\\
+1+\max\{\operatorname{height}(y)\mid y\in\operatorname{support}(x)\},
+  &\operatorname{support}(x)\ne\varnothing.
+\end{cases}
+\]
+若 \(x\) 位于可达环中，或依赖环中元素，则高度无定义。若
+\(\operatorname{height}_F\) 是全函数，称 \(F\) 具有有限高度。若
+\(y\in\operatorname{support}(x)\) 且二者高度都有定义，则
+\(\operatorname{height}(y)<\operatorname{height}(x)\)。
+
+若 \(F\) 同时有限状态且具有有限高度，\(\operatorname{lfp}(X)\) 对每个有限
+输入都终止。递归调用中的集合始终有限，而
+\[
+h(Y)=\max\{\operatorname{height}(y)\mid y\in Y\}
+\]
+每次严格减小且非负，可作为终止度量。
+
+\taplsolutionbacklink{ex:21.5.13}{返回练习21.5.13}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:21.8.5}
+\textbf{21.8.5 解答}
+
+\(\mathcal S_d\) 与 \(\mathcal S_\mu\) 的定义相同，只是最后一项不要求
+\(T\ne\mu X.T_1\) 和 \(T\ne\tapltype{Top}\)。它不可逆，因为
+\(\mathcal G_{(\mu X.\tapltype{Top},\mu Y.\tapltype{Top})}\) 含有两个彼此不
+包含的生成集
+\[
+\{(\tapltype{Top},\mu Y.\tapltype{Top})\},\qquad
+\{(\mu X.\tapltype{Top},\tapltype{Top})\}.
+\]
+
+\(\mathcal S_\mu\) 的最后一项是 \(\mathcal S_d\) 最后一项的限制，其他各项
+相同，因此
+\(\nu\mathcal S_\mu\subseteq\nu\mathcal S_d\)。反向包含关系由余归纳和下面
+的引理得到；该引理说明 \(\nu\mathcal S_d\) 是
+\(\mathcal S_\mu\)-一致的。
+
+\begin{lemma}
+\label{lem:a.17}
+对任意 \(\mu\)-类型 \(S,T\)，若
+\((S,T)\in\nu\mathcal S_d\)，则
+\((S,T)\in\mathcal S_\mu(\nu\mathcal S_d)\)。
+\end{lemma}
+
+\begin{proof}[证明概要]
+对 \((n,k)\) 作字典序归纳，其中
+\(k=\mu\text{-}\operatorname{height}(S)\)，
+\(n=\mu\text{-}\operatorname{height}(T)\)。归纳把
+\((S,T)\in\nu\mathcal S_d\) 的任意推导变换为同一判断在
+\(\mathcal S_\mu\) 中的推导。左 \(\mu\)-折叠规则的限制保证，变换后的每段
+折叠序列都先连续应用若干次左折叠，再连续应用若干次右折叠。
+\end{proof}
+
+\taplsolutionbacklink{ex:21.8.5}{返回练习21.8.5}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:21.9.2}
+\textbf{21.9.2 解答}
+
+\[
+\frac{}{T\sqsubseteq T}
+\qquad
+\frac{S\sqsubseteq T_1}{S\sqsubseteq T_1\times T_2}
+\qquad
+\frac{S\sqsubseteq T_2}{S\sqsubseteq T_1\times T_2}
+\]
+\[
+\frac{S\sqsubseteq T_1}{S\sqsubseteq T_1\to T_2}
+\qquad
+\frac{S\sqsubseteq T_2}{S\sqsubseteq T_1\to T_2}
+\qquad
+\frac{S\sqsubseteq[X\mapsto\mu X.T]T}{S\sqsubseteq\mu X.T}.
+\]
+
+值得注意的是，\(\operatorname{TD}\) 不可逆。例如判断
+\(B\sqsubseteq(A\times B)\to(B\times C)\) 有两个生成集
+\(\{B\sqsubseteq A\times B\}\) 与
+\(\{B\sqsubseteq B\times C\}\)，二者互不包含。
+
+\taplsolutionbacklink{ex:21.9.2}{返回练习21.9.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:21.9.7}
+\textbf{21.9.7 解答}
+
+除以 \(\mu\) 开头的类型外，\(\operatorname{BU}\) 的规则与
+\hyperref[sol:author:21.9.2]{21.9.2 解答中的 \(\operatorname{TD}\) 规则}相同；
+\(\mu\) 分支改为
+\[
+\frac{S\preccurlyeq T}
+     {[X\mapsto\mu X.T]S\preccurlyeq\mu X.T}.
+\]
+
+\taplsolutionbacklink{ex:21.9.7}{返回练习21.9.7}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:21.11.1}
+\textbf{21.11.1 解答}
+
+例子很多。对几乎任意 \(T\)，\(\mu X.T\) 与
+\([X\mapsto\mu X.T]T\) 就是一个简单例子。更有意思的例子是
+\[
+\mu X.\tapltype{Nat}\times(\tapltype{Nat}\times X)
+\qquad\text{和}\qquad
+\mu X.\tapltype{Nat}\times X.
+\]
+
+\taplsolutionbacklink{ex:21.11.1}{返回练习21.11.1}
+\end{taplauthorsolutionentrybox}

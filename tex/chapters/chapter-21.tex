@@ -1,5 +1,1501 @@
-% Chapter 21 — Metatheory of Recursive Types
-% Source: ../source/split/chapters/ch21-metatheory-of-recursive-types_p267-p300.pdf
+% 第 21 章：递归类型的元理论
+% Source: source/split/chapters/ch21-metatheory-of-recursive-types_p267-p300.pdf
 % Original print pages: 281--314
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:21}
+% Status: 待独立初审
+
+\chapter{递归类型的元理论}
+\label{chap:21}
+
+\section*{概览}
+
+第 20 章介绍了递归类型的两种表示。等递归类型在定义上就等同于自身的展开；
+同构递归类型则使用 \texttt{fold} 和 \texttt{unfold} 项，显式见证递归类型与其
+展开之间的等价。本章为等递归类型的类型检查器建立理论基础；同构递归类型的
+实现相对直接。实际语言经常把递归类型与子类型化结合起来，因此本章同时讨论
+二者。即使去掉子类型化，系统也只会略微简单一些，因为类型检查器仍须判断两个
+递归类型是否等价。
+
+第 20 章曾用无限类型上的无限子类型推导，直观说明等递归类型的子类型关系。
+本章将借助余归纳把这一理解精确化，并严格联系
+无限树、无限推导与实际子类型算法所处理的有限表示。
+
+\taplsecref{21.1}{sec:21.1}回顾归纳定义、余归纳定义及其证明原则；
+\taplsecref{21.2}{sec:21.2}与\taplsecref{21.3}{sec:21.3}把一般理论用于
+子类型关系，分别给出有限类型上的归纳定义和无限类型上的余归纳定义。
+\taplsecref{21.4}{sec:21.4}暂时转向传递性规则；\taplsecref{21.5}{sec:21.5}
+给出检查归纳集合和余归纳集合成员关系的简单算法，\taplsecref{21.6}{sec:21.6}
+进一步改进这些算法。\taplsecref{21.7}{sec:21.7}把算法用于正则无限类型；
+\taplsecref{21.8}{sec:21.8}用有限的 \(\mu\)-类型表示无限类型，并证明
+\(\mu\)-类型的子类型关系对应于无限类型上的普通余归纳定义。
+\taplsecref{21.9}{sec:21.9}证明算法终止；\taplsecref{21.10}{sec:21.10}
+把它与 Amadio 和 Cardelli 的算法比较；\taplsecref{21.11}{sec:21.11}简要讨论
+同构递归类型的子类型化。\footnote{本章研究的系统，是带子类型化的简单类型演算
+（\cref{fig:15-1}），再加上二元积（\cref{fig:11-5}）和等递归类型。原书配套
+检查器名为 \texttt{equirec}。}
+
+\section{归纳与余归纳}
+\label{sec:21.1}
+
+先固定一个全集 \(U\)，作为归纳定义和余归纳定义的论域。\(U\) 包含当前讨论中
+所有可能的对象；归纳定义或余归纳定义的作用，是从中选出某个子集。稍后将取
+\(U\) 为全部类型对的集合，使 \(U\) 的子集成为类型上的关系；眼下任意集合均可。
+
+\begin{definition}
+\label{def:21.1.1}
+函数 \(F:\powerset(U)\to\powerset(U)\) 是\termfirst{单调的}{monotone}，若
+\(X\subseteq Y\) 蕴含 \(F(X)\subseteq F(Y)\)。这里 \(\powerset(U)\) 表示
+\(U\) 的所有子集组成的集合。
+\end{definition}
+
+本节以下假定 \(F\) 是 \(\powerset(U)\) 上的单调函数，并常称它为
+\termfirst{生成函数}{generating function}。
+
+\begin{definition}
+\label{def:21.1.2}
+设 \(X\subseteq U\)。
+\begin{enumerate}
+  \item 若 \(F(X)\subseteq X\)，则称 \(X\) 为 \(F\)-闭的；
+  \item 若 \(X\subseteq F(X)\)，则称 \(X\) 为 \(F\)-一致的；
+  \item 若 \(F(X)=X\)，则称 \(X\) 为 \(F\) 的不动点。
+\end{enumerate}
+\end{definition}
+
+可以把 \(U\) 的元素看作陈述，把 \(F\) 看作一种“论证关系”：给定一组作为
+前提的陈述，\(F\) 告诉我们能够推出哪些结论。一个 \(F\)-闭集合已经包含其成员
+所能推出的全部结论；一个 \(F\)-一致集合中的每条陈述，都能由集合内的其他陈述
+提供根据。\(F\) 的不动点同时满足这两个条件：成员需要的根据和成员能够推出的
+结论都在集合中，除此以外没有别的元素。
+
+\begin{example}
+\label{exm:21.1.3}
+在三元素全集 \(U=\{a,b,c\}\) 上考虑生成函数 \(E_1\)：
+\[
+\begin{array}{c@{\quad=\quad}c@{\qquad}c@{\quad=\quad}c}
+E_1(\varnothing)&\{c\}&E_1(\{a,b\})&\{c\}\\
+E_1(\{a\})&\{c\}&E_1(\{a,c\})&\{b,c\}\\
+E_1(\{b\})&\{c\}&E_1(\{b,c\})&\{a,b,c\}\\
+E_1(\{c\})&\{b,c\}&E_1(\{a,b,c\})&\{a,b,c\}
+\end{array}
+\]
+唯一的 \(E_1\)-闭集合是 \(\{a,b,c\}\)；四个 \(E_1\)-一致集合是
+\(\varnothing\)、\(\{c\}\)、\(\{b,c\}\) 和 \(\{a,b,c\}\)。
+
+也可以用以下推导规则紧凑地表示 \(E_1\)：
+\[
+\frac{}{c}
+\qquad
+\frac{c}{b}
+\qquad
+\frac{b\quad c}{a}
+\]
+每条规则的含义是：若横线上方的元素都属于输入集合，横线下方的元素就属于
+输出集合。
+\end{example}
+
+\begin{theorem}[Knaster--Tarski（Tarski，1955）]
+\label{thm:21.1.4}
+\begin{enumerate}
+  \item 所有 \(F\)-闭集合的交，是 \(F\) 的最小不动点；
+  \item 所有 \(F\)-一致集合的并，是 \(F\) 的最大不动点。
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+只证第 2 项；第 1 项对称。令
+\(\mathcal C=\{X\mid X\subseteq F(X)\}\)，即全部 \(F\)-一致集合组成的集合，
+并令 \(P=\bigcup_{X\in\mathcal C}X\)。对任意 \(X\in\mathcal C\)，有
+\[
+X\subseteq F(X)\subseteq F(P),
+\]
+第二个包含关系来自 \(F\) 的单调性。对所有这样的 \(X\) 取并，得到
+\(P\subseteq F(P)\)，所以 \(P\) 是 \(F\)-一致的；按定义，它也是最大的
+\(F\)-一致集合。
+
+再由单调性和 \(P\subseteq F(P)\)，得到
+\(F(P)\subseteq F(F(P))\)，所以 \(F(P)\in\mathcal C\)。既然 \(P\) 是
+\(\mathcal C\) 全部成员的并，便有 \(F(P)\subseteq P\)。合并两边的包含关系
+可知 \(F(P)=P\)。因此 \(P\) 既是最大 \(F\)-一致集合，也是最大不动点。
+\end{proof}
+
+\begin{definition}
+\label{def:21.1.5}
+\(F\) 的最小不动点写作 \(\mu F\)，最大不动点写作 \(\nu F\)。
+\end{definition}
+
+\begin{example}
+对\cref{exm:21.1.3}的生成函数 \(E_1\)，有
+\(\mu E_1=\nu E_1=\{a,b,c\}\)。
+\end{example}
+
+\begin{exercise}[\(\star\)]
+\label{ex:21.1.7}
+设全集 \(\{a,b,c\}\) 上的生成函数 \(E_2\) 由以下规则定义：
+\[
+\frac{}{a}
+\qquad
+\frac{c}{b}
+\qquad
+\frac{a\quad b}{c}
+\]
+像\cref{exm:21.1.3}那样，显式列出关系 \(E_2\) 中的各个数对；列出所有
+\(E_2\)-闭集合和 \(E_2\)-一致集合，并求 \(\mu E_2\) 与 \(\nu E_2\)。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:21.1.7}{21.1.7}
+
+注意，\(\mu F\) 本身是 \(F\)-闭的，因而是最小的 \(F\)-闭集合；\(\nu F\)
+本身是 \(F\)-一致的，因而是最大的 \(F\)-一致集合。这给出两条基本推理原则。
+
+\begin{corollary}
+\label{cor:21.1.8}
+\begin{enumerate}
+  \item \textbf{归纳原理：}若 \(X\) 是 \(F\)-闭的，则 \(\mu F\subseteq X\)；
+  \item \textbf{余归纳原理：}若 \(X\) 是 \(F\)-一致的，则 \(X\subseteq\nu F\)。
+\end{enumerate}
+\end{corollary}
+
+把集合 \(X\) 看成谓词的特征集合，便容易理解这两条原则：证明性质 \(X\) 对
+元素 \(x\) 成立，等价于证明 \(x\in X\)。归纳原理说，只要某个性质在 \(F\)
+的作用下保持成立，也就是其特征集合对 \(F\) 闭合，那么它就对归纳定义集合
+\(\mu F\) 的全部元素成立。
+
+余归纳原理则给出证明 \(x\in\nu F\) 的办法：只需找到一个包含 \(x\) 的
+\(F\)-一致集合 \(X\)。余归纳虽然不如归纳熟悉，却是许多计算机科学领域的
+核心工具，例如基于互模拟的并发理论和许多模型检查算法。
+
+本章会反复使用归纳与余归纳。为简洁起见，归纳论证常写作结构归纳等熟悉形式，
+不再每次都展开为生成函数和谓词；余归纳论证则会写得更明确。
+
+\begin{exercise}[推荐，\(\star\star\star\)]
+\label{ex:21.1.9}
+证明：自然数上的普通归纳原理（\cref{ax:2.4.1}）以及自然数对上的字典序归纳
+原理（\cref{ax:2.4.4}），都可以从\cref{cor:21.1.8}的归纳原理推出。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:21.1.9}{21.1.9}
+
+\section{有限类型与无限类型}
+\label{sec:21.2}
+
+接下来要把最大不动点和余归纳证明法用于子类型关系。为此，先精确定义怎样把
+类型视为有限树或无限树。本章只使用三种类型构造子：\(\to\)、\(\times\) 和
+\(\tapltype{Top}\)。树的每个节点都用其中一个符号标记。
+
+令 \(\{1,2\}^{*}\) 表示由 1 和 2 组成的全部有限序列，空序列记为
+\(\epsilon\)，\(i^k\) 表示 \(k\) 个 \(i\) 连成的序列；若 \(\pi\) 和
+\(\sigma\) 都是序列，则 \(\pi,\sigma\) 表示二者的连接。
+
+\begin{definition}
+\label{def:21.2.1}
+\termfirst{树类型}{tree type}（简称树）是满足以下条件的偏函数
+\[
+T:\{1,2\}^{*}\rightharpoonup\{\to,\times,\tapltype{Top}\}.
+\]
+\begin{enumerate}
+  \item \(T(\epsilon)\) 有定义；
+  \item 若 \(T(\pi,\sigma)\) 有定义，则 \(T(\pi)\) 有定义；
+  \item 若 \(T(\pi)=\to\) 或 \(T(\pi)=\times\)，则
+        \(T(\pi,1)\) 与 \(T(\pi,2)\) 都有定义；
+  \item 若 \(T(\pi)=\tapltype{Top}\)，则
+        \(T(\pi,1)\) 与 \(T(\pi,2)\) 都无定义。
+\end{enumerate}
+若 \(\dom(T)\) 有限，则称 \(T\) 为有限树类型。所有树类型的集合记作
+\(\mathcal T\)，其中全部有限树类型组成的子集记作 \(\mathcal T_f\)。
+\end{definition}
+
+为方便记号，\(\tapltype{Top}\) 也表示唯一节点标为 \(\tapltype{Top}\) 的树。
+若 \(T_1,T_2\) 是树，\(T_1\times T_2\) 表示根标为 \(\times\)、两棵子树
+分别为 \(T_1,T_2\) 的树；\(T_1\to T_2\) 类似。例如，
+\((\tapltype{Top}\times\tapltype{Top})\to\tapltype{Top}\) 表示有限树
+\[
+T(\epsilon)=\to,\quad T(1)=\times,\quad
+T(2)=T(1,1)=T(1,2)=\tapltype{Top}.
+\]
+省略号可用于非有限树。例如，
+\(\tapltype{Top}\to(\tapltype{Top}\to(\tapltype{Top}\to\cdots))\)
+对应的树满足：对每个 \(k\ge0\)，\(T(2^k)=\to\) 且
+\(T(2^k,1)=\tapltype{Top}\)。
+
+\begin{figure}[!ht]
+\centering
+\begin{tikzpicture}[
+  level distance=11mm,
+  level 1/.style={sibling distance=32mm},
+  level 2/.style={sibling distance=22mm},
+  every node/.style={font=\small}
+]
+\node at (-3.4,0) {$\to$}
+  child {node {$\times$}
+    child {node {$\tapltype{Top}$} edge from parent node[left] {\scriptsize 1}}
+    child {node {$\tapltype{Top}$} edge from parent node[right] {\scriptsize 2}}
+    edge from parent node[left] {\scriptsize 1}}
+  child {node {$\tapltype{Top}$} edge from parent node[right] {\scriptsize 2}};
+\node at (2.4,0) {$\to$}
+  child {node {$\tapltype{Top}$} edge from parent node[left] {\scriptsize 1}}
+  child {node {$\to$}
+    child {node {$\tapltype{Top}$} edge from parent node[left] {\scriptsize 1}}
+    child {node {$\vdots$} edge from parent node[right] {\scriptsize 2}}
+    edge from parent node[right] {\scriptsize 2}};
+\node[below=34mm] at (-3.4,0)
+  {$({\tapltype{Top}}\times{\tapltype{Top}})\to\tapltype{Top}$};
+\node[below=34mm] at (2.4,0)
+  {$\tapltype{Top}\to(\tapltype{Top}\to\cdots)$};
+\end{tikzpicture}
+\caption{树类型示例}
+\label{fig:21-1}
+\end{figure}
+
+有限树类型还可以用文法紧凑定义：
+\[
+T ::= \tapltype{Top}\mid T\times T\mid T\to T.
+\]
+形式上，\(\mathcal T_f\) 是该文法描述的生成函数的最小不动点。若把同一
+生成函数取最大不动点，就得到全部树类型 \(\mathcal T\)。
+
+\begin{exercise}[推荐，\(\star\star\)]
+\label{ex:21.2.2}
+沿用上一段的思路，给出全集 \(U\) 和生成函数
+\(F:\powerset(U)\to\powerset(U)\)，使有限树类型集合 \(\mathcal T_f\)
+等于 \(\mu F\)，全部树类型集合 \(\mathcal T\) 等于 \(\nu F\)。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:21.2.2}{21.2.2}
+
+\section{子类型化}
+\label{sec:21.3}
+
+有限树类型上的子类型关系和任意树类型上的子类型关系，将分别定义为某个单调
+函数的最小不动点和最大不动点。有限情形的全集是
+\(\mathcal T_f\times\mathcal T_f\)；无限情形则是
+\(\mathcal T\times\mathcal T\)。
+
+\begin{definition}[有限子类型关系]
+\label{def:21.3.1}
+若 \((S,T)\in\mu\mathcal S_f\)，则称有限树类型 \(S\) 是 \(T\) 的子类型。
+单调函数
+\(\mathcal S_f:\powerset(\mathcal T_f\times\mathcal T_f)
+\to\powerset(\mathcal T_f\times\mathcal T_f)\) 定义为
+\[
+\begin{aligned}
+\mathcal S_f(R)={}&\{(T,\tapltype{Top})\mid T\in\mathcal T_f\}\\
+&\cup\{(S_1\times S_2,T_1\times T_2)
+          \mid (S_1,T_1),(S_2,T_2)\in R\}\\
+&\cup\{(S_1\to S_2,T_1\to T_2)
+          \mid (T_1,S_1),(S_2,T_2)\in R\}.
+\end{aligned}
+\]
+\end{definition}
+
+该函数与熟悉的三条子类型规则完全对应：
+\[
+\frac{}{T\subtype\tapltype{Top}}
+\qquad
+\frac{S_1\subtype T_1\quad S_2\subtype T_2}
+     {S_1\times S_2\subtype T_1\times T_2}
+\qquad
+\frac{T_1\subtype S_1\quad S_2\subtype T_2}
+     {S_1\to S_2\subtype T_1\to T_2}.
+\]
+横线上方的 \(S\subtype T\) 表示“数对 \((S,T)\) 属于
+\(\mathcal S_f\) 的输入关系”，横线下方则表示该数对属于输出关系。
+
+\begin{definition}[无限子类型关系]
+\label{def:21.3.2}
+若 \((S,T)\in\nu\mathcal S\)，则称树类型 \(S\) 是 \(T\) 的子类型，其中
+\(\mathcal S:\powerset(\mathcal T\times\mathcal T)
+\to\powerset(\mathcal T\times\mathcal T)\) 定义为
+\[
+\begin{aligned}
+\mathcal S(R)={}&\{(T,\tapltype{Top})\mid T\in\mathcal T\}\\
+&\cup\{(S_1\times S_2,T_1\times T_2)
+          \mid (S_1,T_1),(S_2,T_2)\in R\}\\
+&\cup\{(S_1\to S_2,T_1\to T_2)
+          \mid (T_1,S_1),(S_2,T_2)\in R\}.
+\end{aligned}
+\]
+\end{definition}
+
+它的推导规则与有限情形完全相同；改变的只有全集和不动点方向：类型可以是无限
+树，并取最大不动点而不是最小不动点。
+
+\begin{exercise}[\(\star\)]
+\label{ex:21.3.3}
+举出一个不属于 \(\nu\mathcal S\) 的类型对 \((S,T)\)，由此验证
+\(\nu\mathcal S\ne\mathcal T\times\mathcal T\)。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:21.3.3}{21.3.3}
+
+\begin{exercise}[\(\star\)]
+\label{ex:21.3.4}
+是否存在属于 \(\nu\mathcal S\) 却不属于 \(\mu\mathcal S\) 的类型对
+\((S,T)\)？是否存在属于 \(\nu\mathcal S_f\) 却不属于
+\(\mu\mathcal S_f\) 的有限类型对？
+\end{exercise}
+\taplauthorsolutionlink{sol:author:21.3.4}{21.3.4}
+
+无限树类型上的子类型关系必须具有传递性。若存在
+\(S\subtype T\)、\(T\subtype U\) 但 \(S\not\subtype U\)，令 \(s\) 是
+\(S\) 型值、\(f\) 是 \(U\to\tapltype{Top}\) 型函数，则
+\((\lambda x:T.\,f\,x)\,s\) 可以借助两次 T-Sub 通过类型检查，却会一步求值为
+不能赋型的 \(f\,s\)，从而破坏保持性。
+
+\begin{definition}
+\label{def:21.3.5}
+关系 \(R\subseteq U\times U\) 是传递的，若它在单调函数
+\[
+\operatorname{TR}(R)=
+\{(x,y)\mid \exists z\in U.\ (x,z),(z,y)\in R\}
+\]
+下闭合，即 \(\operatorname{TR}(R)\subseteq R\)。
+\end{definition}
+
+\begin{lemma}
+\label{lem:21.3.6}
+设 \(F:\powerset(U\times U)\to\powerset(U\times U)\) 单调。若对每个
+\(R\subseteq U\times U\) 都有
+\[
+\operatorname{TR}(F(R))\subseteq F(\operatorname{TR}(R)),
+\]
+则 \(\nu F\) 是传递关系。
+\end{lemma}
+
+\begin{proof}
+因为 \(\nu F=F(\nu F)\)，有
+\[
+\operatorname{TR}(\nu F)=\operatorname{TR}(F(\nu F))
+\subseteq F(\operatorname{TR}(\nu F)).
+\]
+所以 \(\operatorname{TR}(\nu F)\) 是 \(F\)-一致的。余归纳原理给出
+\(\operatorname{TR}(\nu F)\subseteq\nu F\)，这正是传递性。
+\end{proof}
+
+该引理与消去传递规则的传统方法相似，通常称为割消去证明。
+条件 \(\operatorname{TR}(F(R))\subseteq F(\operatorname{TR}(R))\) 表明：先用
+\(F\) 中的规则、再用传递规则得到的结论，也能调换顺序，先用传递规则、再用
+\(F\) 中的规则得到。
+
+\begin{theorem}
+\label{thm:21.3.7}
+\(\nu\mathcal S\) 是传递关系。
+\end{theorem}
+
+\begin{proof}
+依\cref{lem:21.3.6}，只需对任意 \(R\subseteq\mathcal T\times\mathcal T\)
+证明
+\(\operatorname{TR}(\mathcal S(R))\subseteq
+\mathcal S(\operatorname{TR}(R))\)。取
+\((S,T)\in\operatorname{TR}(\mathcal S(R))\)。按 \(\operatorname{TR}\)
+的定义，存在 \(U\) 使 \((S,U),(U,T)\in\mathcal S(R)\)。对 \(U\) 的根节点
+分类。
+
+若 \(U=\tapltype{Top}\)，由 \((U,T)\in\mathcal S(R)\) 可知
+\(T=\tapltype{Top}\)，故 \((S,T)\in\mathcal S(\operatorname{TR}(R))\)。
+
+若 \(U=U_1\times U_2\)，当 \(T=\tapltype{Top}\) 时仍由上一条得到结论；否则
+\(T=T_1\times T_2\)，并有 \((U_1,T_1),(U_2,T_2)\in R\)。同理，
+\(S=S_1\times S_2\)，且 \((S_1,U_1),(S_2,U_2)\in R\)。因此
+\((S_1,T_1),(S_2,T_2)\in\operatorname{TR}(R)\)，再按 \(\mathcal S\) 的积
+分支即可得到结论。若 \(U=U_1\to U_2\)，论证相同，并在参数位置使用逆变方向。
+\end{proof}
+
+\begin{exercise}[推荐，\(\star\star\)]
+\label{ex:21.3.8}
+证明无限树类型上的子类型关系也是自反的。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:21.3.8}{21.3.8}
+
+下一节继续比较有限类型与无限树类型中的传递性；初次阅读可以略读或跳过。
+
+\section{关于传递性的题外讨论}
+\label{sec:21.4}
+
+第 16 章已经看到，归纳定义的子类型关系通常有两种表示：声明式系统便于阅读，
+算法式系统则较为直接地对应实现。简单系统中的二者很相近；复杂系统中的差别
+可能很大，证明二者定义同一关系也会成为重要工作。
+
+声明式系统与算法式系统最显眼的区别之一，是前者含有显式传递规则，而后者没有。
+传递规则无法直接用于目标导向算法，因为应用它就必须猜测中间类型 \(U\)。它在
+声明式系统中却有两项作用：一是让传递性一目了然；二是让其他规则保持简单。
+例如，记录的深度、宽度和字段置换可以分别表述；去掉传递规则后，三者必须合并
+成一条同时处理所有情况的宏规则。
+
+声明式系统能够加入传递规则，来自归纳定义的一项性质。传递性要求子类型关系对
+传递规则闭合；有限类型的子类型关系本来就是一组规则的闭包，因此只需把传递
+规则加入生成规则。抽象地说，有以下命题。
+
+\begin{proposition}
+\label{prop:21.4.1}
+设 \(F,G\) 单调，并令 \(H(X)=F(X)\cup G(X)\)。则 \(\mu H\) 是同时对
+\(F\) 和 \(G\) 闭合的最小集合。
+\end{proposition}
+
+\begin{proof}
+由 \(\mu H=H(\mu H)=F(\mu H)\cup G(\mu H)\)，可知 \(\mu H\) 同时
+\(F\)-闭和 \(G\)-闭。反过来，若 \(F(X)\subseteq X\) 且
+\(G(X)\subseteq X\)，则 \(H(X)\subseteq X\)，所以 \(X\) 是 \(H\)-闭的。
+Knaster--Tarski 定理说明 \(\mu H\) 是最小的 \(H\)-闭集合，故
+\(\mu H\subseteq X\)。
+\end{proof}
+
+这个办法不能照搬到余归纳定义中。下一题说明，把传递规则加入余归纳关系的生成
+规则，会使结果退化为全关系。
+
+\begin{exercise}[\(\star\)]
+\label{ex:21.4.2}
+设 \(F\) 是全集 \(U\) 上的生成函数。证明生成函数
+\[
+F^{\operatorname{TR}}(R)=F(R)\cup\operatorname{TR}(R)
+\]
+的最大不动点 \(\nu F^{\operatorname{TR}}\) 等于 \(U\times U\)。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:21.4.2}{21.4.2}
+
+因此，在余归纳情形中，我们舍弃声明式表示，只使用算法式表示。
+
+\section{成员关系检查}
+\label{sec:21.5}
+
+现在讨论本章的核心问题：给定全集 \(U\) 上的生成函数 \(F\) 和元素
+\(x\in U\)，怎样判定 \(x\) 是否属于 \(\nu F\)。最小不动点的成员关系检查
+留到\cref{ex:21.5.13}简要处理。
+
+一个元素 \(x\) 可能由 \(F\) 以多种方式生成。凡满足 \(x\in F(X)\) 的集合
+\(X\subseteq U\)，都称为 \(x\) 的一个生成集。由单调性，生成集的任意超集仍是
+生成集，所以只需考虑极小生成集。下面进一步限制到\termfirst{可逆}{invertible}
+的生成函数：每个元素至多有一个最小生成集。
+
+\begin{definition}
+\label{def:21.5.1}
+对 \(x\in U\)，令
+\[
+\mathcal G_x=\{X\subseteq U\mid x\in F(X)\}.
+\]
+若每个 \(\mathcal G_x\) 要么为空，要么含有唯一一个被其他所有成员包含的集合，
+则称生成函数 \(F\) 可逆。此时定义偏函数
+\(\operatorname{support}_F:U\rightharpoonup\powerset(U)\)：
+\[
+\operatorname{support}_F(x)=
+\begin{cases}
+X,&X\in\mathcal G_x\text{ 且对每个 }X'\in\mathcal G_x\text{ 都有 }X\subseteq X',\\
+\uparrow,&\mathcal G_x=\varnothing.
+\end{cases}
+\]
+其中 \(\uparrow\) 表示无定义。把该函数提升到集合上：
+\[
+\operatorname{support}_F(X)=
+\begin{cases}
+\displaystyle\bigcup_{x\in X}\operatorname{support}_F(x),
+  &\text{若每个 }x\in X\text{ 的支持集均有定义},\\
+\uparrow,&\text{否则}.
+\end{cases}
+\]
+上下文能够确定 \(F\) 时，常省略下标。
+\end{definition}
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:21.5.2}
+验证\cref{def:21.3.1,def:21.3.2}的 \(\mathcal S_f\) 和 \(\mathcal S\) 都
+可逆，并写出相应的支持函数。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:21.5.2}{21.5.2}
+
+成员关系算法的基本步骤，是反向追问“\(F\) 怎样才能生成 \(x\)”。可逆性保证
+答案至多有一个；若同一元素有多个彼此不可比较的生成方式，算法就可能需要探索
+组合数量的分支。下文只讨论可逆生成函数。
+
+\begin{definition}
+\label{def:21.5.3}
+若 \(\operatorname{support}_F(x)\downarrow\)，即支持集有定义，则称 \(x\)
+得到 \(F\) 的支持；否则称 \(x\) 不受 \(F\) 支持。若
+\(\operatorname{support}_F(x)=\varnothing\)，则称 \(x\) 为
+\termfirst{基元素}{ground element}。
+\end{definition}
+
+不受支持的元素不会出现在任何 \(F(X)\) 中；基元素则出现在每个 \(F(X)\) 中。
+可逆函数可以画成支持图。\cref{fig:21-2}在全集
+\(\{a,b,c,d,e,f,g,h,i\}\) 上定义了函数 \(E\)：从 \(x\) 指向 \(y\) 的箭头
+表示 \(y\in\operatorname{support}_E(x)\)。带斜线的圆表示不受支持的元素。
+图中只有 \(i\) 不受支持，只有 \(g\) 是基元素。按定义，\(h\) 仍算得到支持，
+尽管它的支持集中含有不受支持的 \(i\)。
+
+\begin{figure}[!ht]
+\centering
+\begin{tikzpicture}[
+  >=stealth,
+  every node/.style={circle,draw,minimum size=7mm,inner sep=1pt,font=\small},
+  edge/.style={->,thick}
+]
+\node (h) at (0,3.2) {$h$};
+\node (i) at (-2.4,1.9) {$i$};
+\draw (i.north west)--(i.south east);
+\node (a) at (1.5,1.9) {$a$};
+\node (b) at (0.3,0.7) {$b$};
+\node (c) at (2.7,0.7) {$c$};
+\node (d) at (-0.7,-0.8) {$d$};
+\node (e) at (0.9,-0.8) {$e$};
+\node (f) at (2.0,-0.8) {$f$};
+\node (g) at (3.3,-0.8) {$g$};
+\draw[edge] (h)--(i);
+\draw[edge] (h)--(a);
+\draw[edge] (a)--(b);
+\draw[edge] (a)--(c);
+\draw[edge] (b)--(d);
+\draw[edge] (b)--(e);
+\draw[edge] (e)--(d);
+\draw[edge] (c)--(f);
+\draw[edge] (c)--(g);
+\draw[edge] (f)--(g);
+\draw[dashed,rounded corners] (-1.15,-1.25) rectangle (3.78,2.35);
+\node[draw=none,rectangle] at (3.35,2.12) {$\nu E$};
+\draw[dashed,rounded corners] (1.55,-1.15) rectangle (3.68,1.15);
+\node[draw=none,rectangle] at (3.28,0.92) {$\mu E$};
+\end{tikzpicture}
+\caption{支持函数示例}
+\label{fig:21-2}
+\end{figure}
+
+\begin{exercise}[\(\star\)]
+\label{ex:21.5.4}
+像\cref{exm:21.1.3}那样，给出与\cref{fig:21-2}对应的推导规则。验证
+\(E(\{b,c\})=\{g,a,d\}\)、\(E(\{a,i\})=\{g,h\}\)，并验证图中标出的
+\(\mu E\) 与 \(\nu E\) 确实分别为最小、最大不动点。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:21.5.4}{21.5.4}
+
+从支持图可以看出：若从 \(x\) 出发无法到达不受支持的元素，\(x\) 就属于
+\(\nu F\)。因此可以枚举从 \(x\) 出发经支持关系可达的全部元素；遇到不受支持
+的元素便失败，否则成功。支持图可能含环，枚举过程必须避免陷入无限循环。
+
+\begin{definition}
+\label{def:21.5.5}
+设 \(F\) 可逆。定义布尔函数 \(\operatorname{gfp}_F\)（简称
+\(\operatorname{gfp}\)）：
+\[
+\operatorname{gfp}(X)=
+\begin{cases}
+\mathsf{false},&\operatorname{support}(X)\uparrow,\\
+\mathsf{true},&\operatorname{support}(X)\subseteq X,\\
+\operatorname{gfp}(\operatorname{support}(X)\cup X),&\text{否则}.
+\end{cases}
+\]
+它从 \(X\) 开始不断加入支持集，直到得到一致集合，或发现不受支持的元素。
+对单个元素约定 \(\operatorname{gfp}(x)=\operatorname{gfp}(\{x\})\)。
+\end{definition}
+
+\begin{exercise}[\(\star\)]
+\label{ex:21.5.6}
+若 \(x\in\nu F\) 位于支持图中的环上，或可到达环上的元素，则
+\(x\notin\mu F\)。逆命题是否成立？也就是说，若
+\(x\in\nu F\setminus\mu F\)，\(x\) 是否必能到达某个环？
+\end{exercise}
+\taplauthorsolutionlink{sol:author:21.5.6}{21.5.6}
+
+本节余下部分证明 \(\operatorname{gfp}\) 的正确性与终止性；初次阅读可以直接
+跳到下一节。先记录支持函数的两项性质。
+
+\begin{lemma}
+\label{lem:21.5.7}
+\[
+X\subseteq F(Y)\quad\Longleftrightarrow\quad
+\operatorname{support}_F(X)\downarrow
+\text{ 且 }\operatorname{support}_F(X)\subseteq Y.
+\]
+\end{lemma}
+
+\begin{proof}
+只需对单个 \(x\) 证明。若 \(x\in F(Y)\)，则 \(Y\in\mathcal G_x\)，故
+\(\mathcal G_x\ne\varnothing\)。可逆性保证最小生成集
+\(\operatorname{support}(x)\) 存在，且包含于 \(Y\)。反过来，若
+\(\operatorname{support}(x)\subseteq Y\)，单调性给出
+\(F(\operatorname{support}(x))\subseteq F(Y)\)；而支持集的定义保证
+\(x\in F(\operatorname{support}(x))\)，所以 \(x\in F(Y)\)。
+\end{proof}
+
+\begin{lemma}
+\label{lem:21.5.8}
+若 \(P\) 是 \(F\) 的不动点，则
+\[
+X\subseteq P\quad\Longleftrightarrow\quad
+\operatorname{support}_F(X)\downarrow
+\text{ 且 }\operatorname{support}_F(X)\subseteq P.
+\]
+\end{lemma}
+
+\begin{proof}
+由 \(P=F(P)\) 和\cref{lem:21.5.7}立即得到。
+\end{proof}
+
+先证明 \(\operatorname{gfp}\) 的部分正确性；此时尚不保证算法总会终止。
+
+\begin{theorem}
+\label{thm:21.5.9}
+\begin{enumerate}
+  \item 若 \(\operatorname{gfp}_F(X)=\mathsf{true}\)，则 \(X\subseteq\nu F\)；
+  \item 若 \(\operatorname{gfp}_F(X)=\mathsf{false}\)，则 \(X\not\subseteq\nu F\)。
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+两项都对一次算法运行的递归结构作归纳。
+
+若算法因 \(\operatorname{support}(X)\subseteq X\) 返回真，
+\cref{lem:21.5.7}给出 \(X\subseteq F(X)\)，所以 \(X\) 是 \(F\)-一致的，
+余归纳原理给出 \(X\subseteq\nu F\)。若递归调用
+\(\operatorname{gfp}(\operatorname{support}(X)\cup X)\) 返回真，归纳假设
+给出 \(\operatorname{support}(X)\cup X\subseteq\nu F\)，结论同样成立。
+
+若算法因 \(\operatorname{support}(X)\uparrow\) 返回假，
+\cref{lem:21.5.8}给出 \(X\not\subseteq\nu F\)。若递归调用返回假，归纳假设
+说明 \(\operatorname{support}(X)\cup X\not\subseteq\nu F\)，即 \(X\) 或其
+支持集不包含于 \(\nu F\)；后一种情况再由\cref{lem:21.5.8}推出
+\(X\not\subseteq\nu F\)。
+\end{proof}
+
+下面给出保证算法终止的一项充分条件。
+
+\begin{definition}
+\label{def:21.5.10}
+对可逆生成函数 \(F\) 和 \(x\in U\)，定义 \(x\) 的直接前驱集合
+\[
+\operatorname{pred}_F(x)=
+\begin{cases}
+\varnothing,&\operatorname{support}_F(x)\uparrow,\\
+\operatorname{support}_F(x),&\operatorname{support}_F(x)\downarrow,
+\end{cases}
+\qquad
+\operatorname{pred}_F(X)=\bigcup_{x\in X}\operatorname{pred}_F(x).
+\]
+从 \(X\) 沿支持关系可达的全部元素组成
+\[
+\operatorname{reachable}_F(X)=
+\bigcup_{n\ge0}\operatorname{pred}_F^{,n}(X),
+\qquad
+\operatorname{reachable}_F(x)=\operatorname{reachable}_F(\{x\}).
+\]
+若 \(y\in\operatorname{reachable}_F(x)\)，便称 \(y\) 从 \(x\) 可达。
+\end{definition}
+
+\begin{definition}
+\label{def:21.5.11}
+若每个 \(x\in U\) 的 \(\operatorname{reachable}_F(x)\) 都有限，则称可逆生成
+函数 \(F\) 为\termfirst{有限状态的}{finite state}。
+\end{definition}
+
+\begin{theorem}
+\label{thm:21.5.12}
+若 \(\operatorname{reachable}_F(X)\) 有限，则 \(\operatorname{gfp}_F(X)\)
+有定义。因而，若 \(F\) 有限状态，则算法对任意有限 \(X\subseteq U\) 都终止。
+\end{theorem}
+
+\begin{proof}
+从初始调用 \(\operatorname{gfp}(X)\) 产生的每次递归调用
+\(\operatorname{gfp}(Y)\)，都满足
+\(Y\subseteq\operatorname{reachable}(X)\)，而且每次调用都会严格增大 \(Y\)。
+由于可达集有限，
+\[
+m(Y)=|\operatorname{reachable}(X)|-|Y|
+\]
+是严格递减且非负的终止度量。
+\end{proof}
+
+\begin{exercise}[\(\star\star\star\)]
+\label{ex:21.5.13}
+设 \(F\) 可逆，定义
+\[
+\operatorname{lfp}(X)=
+\begin{cases}
+\mathsf{false},&\operatorname{support}(X)\uparrow,\\
+\mathsf{true},&X=\varnothing,\\
+\operatorname{lfp}(\operatorname{support}(X)),&\text{否则}.
+\end{cases}
+\]
+它从 \(X\) 开始沿支持关系缩减集合，直至集合为空。证明该算法部分正确：
+\begin{enumerate}
+  \item 若 \(\operatorname{lfp}_F(X)=\mathsf{true}\)，则 \(X\subseteq\mu F\)；
+  \item 若 \(\operatorname{lfp}_F(X)=\mathsf{false}\)，则 \(X\not\subseteq\mu F\)。
+\end{enumerate}
+再找出一类生成函数，使 \(\operatorname{lfp}_F\) 对所有有限输入都保证终止。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:21.5.13}{21.5.13}
+
+\section{更高效的算法}
+\label{sec:21.6}
+
+上一节的 \(\operatorname{gfp}\) 每次递归都会重新计算整个集合的支持集。例如，
+对\cref{fig:21-2}的 \(E\) 有
+\[
+\begin{aligned}
+\operatorname{gfp}(\{a\})
+&=\operatorname{gfp}(\{a,b,c\})\\
+&=\operatorname{gfp}(\{a,b,c,e,f,g\})\\
+&=\operatorname{gfp}(\{a,b,c,e,f,g,d\})\\
+&=\mathsf{true},
+\end{aligned}
+\]
+其中 \(\operatorname{support}(a)\) 被重复计算四次。可以用假设集 \(A\) 记录
+已经检查过支持集的元素，用目标集 \(X\) 记录尚待检查的元素。
+
+\begin{definition}
+\label{def:21.6.1}
+设 \(F\) 可逆，定义函数 \(\operatorname{gfp}_F^a\)，其中上标 \(a\) 表示
+assumptions：
+\[
+\operatorname{gfp}^a(A,X)=
+\begin{cases}
+\mathsf{false},&\operatorname{support}(X)\uparrow,\\
+\mathsf{true},&X=\varnothing,\\
+\operatorname{gfp}^a(A\cup X,
+  \operatorname{support}(X)\setminus(A\cup X)),&\text{否则}.
+\end{cases}
+\]
+检查 \(x\in\nu F\) 时计算 \(\operatorname{gfp}^a(\varnothing,\{x\})\)。
+\end{definition}
+
+该算法以及本节后面的两个算法，都至多计算每个元素的支持集一次。上例的运行
+轨迹为
+\[
+\begin{aligned}
+\operatorname{gfp}^a(\varnothing,\{a\})
+&=\operatorname{gfp}^a(\{a\},\{b,c\})\\
+&=\operatorname{gfp}^a(\{a,b,c\},\{e,f,g\})\\
+&=\operatorname{gfp}^a(\{a,b,c,e,f,g\},\{d\})\\
+&=\operatorname{gfp}^a(\{a,b,c,e,f,g,d\},\varnothing)\\
+&=\mathsf{true}.
+\end{aligned}
+\]
+
+\begin{theorem}
+\label{thm:21.6.2}
+\begin{enumerate}
+  \item 若 \(\operatorname{support}_F(A)\subseteq A\cup X\) 且
+        \(\operatorname{gfp}_F^a(A,X)=\mathsf{true}\)，则
+        \(A\cup X\subseteq\nu F\)；
+  \item 若 \(\operatorname{gfp}_F^a(A,X)=\mathsf{false}\)，则
+        \(X\not\subseteq\nu F\)。
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+与\cref{thm:21.5.9}相似。
+\end{proof}
+
+本节余下部分给出两个更接近常见递归子类型算法的变体；初次阅读可以跳到下一节。
+
+\begin{definition}
+\label{def:21.6.3}
+算法 \(\operatorname{gfp}^s\) 每次只从 \(X\) 中取一个元素并展开其支持集，
+其中上标 \(s\) 表示 single：
+\[
+\operatorname{gfp}^s(A,X)=
+\begin{cases}
+\mathsf{true},&X=\varnothing,\\
+\operatorname{gfp}^s(A,X\setminus\{x\}),&x\in A,\\
+\mathsf{false},&x\notin A\text{ 且 }\operatorname{support}(x)\uparrow,\\
+\operatorname{gfp}^s(A\cup\{x\},
+  (X\cup\operatorname{support}(x))\setminus(A\cup\{x\})),&\text{否则},
+\end{cases}
+\]
+其中在 \(X\ne\varnothing\) 的分支任取 \(x\in X\)。其正确性不变量与
+\cref{thm:21.6.2}完全相同。
+\end{definition}
+
+许多现有递归子类型算法一次只接收一个候选元素，而不是候选集合。再作一次小改动
+即可得到这种形式。新算法不再尾递归，因为调用栈负责记住尚未检查的子目标；它
+同时把假设集 \(A\) 作为参数，并把更新后的假设集作为结果，从而复用已经完成的
+递归调用所发现的假设。假设集就这样贯穿整个调用图，因此算法记作
+\(\operatorname{gfp}^t\)。\footnote{尾递归调用是调用函数的最后一个动作，递归
+调用返回的结果也直接成为调用者的结果。函数式语言编译器通常把尾调用实现为
+复用当前栈帧的跳转，因此尾递归循环可以编译成与 \texttt{while} 循环相同的
+机器代码。}
+
+\begin{definition}
+\label{def:21.6.4}
+设 \(F\) 可逆，定义
+\[
+\operatorname{gfp}^t(A,x)=
+\begin{cases}
+A,&x\in A,\\
+\mathsf{fail},&\operatorname{support}(x)\uparrow,\\
+A_n,&\text{否则},
+\end{cases}
+\]
+最后一项中的 \(A_n\) 依次计算如下：
+\[
+\begin{gathered}
+\{x_1,\ldots,x_n\}=\operatorname{support}(x),\qquad
+A_0=A\cup\{x\},\\
+A_1=\operatorname{gfp}^t(A_0,x_1),\quad\ldots,\quad
+A_n=\operatorname{gfp}^t(A_{n-1},x_n).
+\end{gathered}
+\]
+检查 \(x\in\nu F\) 时计算 \(\operatorname{gfp}^t(\varnothing,x)\)：调用成功
+表示属于，失败表示不属于。若表达式 \(B\) 失败，则“令 \(A=B\)，再计算
+\(C\)”也视为失败，因而不必在每次递归调用旁重复写异常处理。
+\end{definition}
+
+由于该算法不是尾递归，正确性陈述还要加入一个“栈”集合 \(X\)，表示支持集尚待
+检查的元素。
+
+\begin{lemma}
+\label{lem:21.6.5}
+\begin{enumerate}
+  \item 若 \(\operatorname{gfp}_F^t(A,x)=A'\)，则
+        \(A\cup\{x\}\subseteq A'\)；
+  \item 对任意 \(X\)，若
+        \(\operatorname{support}_F(A)\subseteq A\cup X\cup\{x\}\) 且
+        \(\operatorname{gfp}_F^t(A,x)=A'\)，则
+        \(\operatorname{support}_F(A')\subseteq A'\cup X\)。
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+第 1 项直接对一次运行的递归结构作归纳。第 2 项也作相同归纳。若 \(x\in A\)，
+则 \(A'=A\)，结论直接来自前提。
+
+否则，以 \(\operatorname{support}(x)=\{x_1,x_2\}\) 为例；一般情形还需对
+支持集大小作一次内层归纳。算法计算 \(A_0,A_1,A_2\) 并返回 \(A_2\)。任取
+\(X_0\)，并假设
+\(\operatorname{support}(A)\subseteq A\cup\{x\}\cup X_0\)。令
+\(X_1=X_0\cup\{x_2\}\)。对第一次递归调用使用归纳假设，得到
+\(\operatorname{support}(A_1)\subseteq A_1\cup X_1\)；再对第二次递归调用以
+\(X_0\) 实例化归纳假设，得到所需的
+\(\operatorname{support}(A_2)\subseteq A_2\cup X_0\)。第一次应用归纳假设所需
+的前提来自
+\[
+\begin{aligned}
+\operatorname{support}(A_0)
+&=\operatorname{support}(A)\cup\operatorname{support}(x)\\
+&=\operatorname{support}(A)\cup\{x_1,x_2\}\\
+&\subseteq A\cup\{x\}\cup X_0\cup\{x_1,x_2\}\\
+&=A_0\cup X_1\cup\{x_1\}.
+\end{aligned}
+\]
+\end{proof}
+
+\begin{theorem}
+\label{thm:21.6.6}
+\begin{enumerate}
+  \item 若 \(\operatorname{gfp}_F^t(\varnothing,x)=A'\)，则 \(x\in\nu F\)；
+  \item 若 \(\operatorname{gfp}_F^t(\varnothing,x)=\mathsf{fail}\)，则
+        \(x\notin\nu F\)。
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+第 1 项中，\cref{lem:21.6.5}第 1 项给出 \(x\in A'\)；再把第 2 项的
+\(X\) 取为空集，得到
+\(\operatorname{support}(A')\subseteq A'\)，所以 \(A'\) 是
+\(F\)-一致的，余归纳原理给出 \(A'\subseteq\nu F\)。第 2 项对失败运行的
+深度作归纳，并使用\cref{lem:21.5.8}。
+\end{proof}
+
+本节所有算法都会检查可达集，因此同一条件足以保证它们终止：\(F\) 有限状态。
+
+\section{正则树}
+\label{sec:21.7}
+
+目前已经得到检查最大不动点成员关系的一般算法，并把无限树上的子类型关系定义为
+特定生成函数 \(\mathcal S\) 的最大不动点。自然的下一步，是把这些算法用于
+\(\mathcal S\)。任意无限树的可达状态集合仍可能无限，因而算法不一定终止；
+限制到\termfirst{正则类型}{regular type}后，可达状态保证有限。
+
+\begin{definition}
+\label{def:21.7.1}
+若存在路径 \(\pi\)，使
+\[
+S=\lambda\sigma.\,T(\pi,\sigma),
+\]
+则称树类型 \(S\) 是树类型 \(T\) 的子树。前缀 \(\pi\) 是从 \(T\) 的根到
+\(S\) 的根的路径。\(T\) 的全部子树组成的集合记作
+\(\operatorname{subtrees}(T)\)。
+\end{definition}
+
+\begin{definition}
+\label{def:21.7.2}
+若 \(\operatorname{subtrees}(T)\) 有限，则称树类型 \(T\) 正则。全部正则树
+类型的集合记作 \(\mathcal T_r\)。
+\end{definition}
+
+\begin{example}
+\label{exm:21.7.3}
+\begin{enumerate}
+  \item 每个有限树类型都正则；不同子树的数量不超过节点数。例如
+        \(T=\tapltype{Top}\to(\tapltype{Top}\times\tapltype{Top})\)
+        有五个节点，却只有 \(T\) 自身、
+        \(\tapltype{Top}\times\tapltype{Top}\) 和 \(\tapltype{Top}\) 三棵
+        不同子树。
+  \item 有些无限树也是正则的。例如
+        \(T=\tapltype{Top}\times(\tapltype{Top}\times
+        (\tapltype{Top}\times\cdots))\) 只有 \(T\) 自身和
+        \(\tapltype{Top}\) 两棵不同子树。
+  \item 若无限积中相邻的 \(B\) 之间依次夹着越来越多个 \(A\)，所得树不正则。
+        因而，证明 \(T\subtype T\) 所需的可达子类型对也会有无限多个。
+\end{enumerate}
+\end{example}
+
+\begin{proposition}
+\label{prop:21.7.4}
+生成函数 \(\mathcal S\) 在正则树类型上的限制 \(\mathcal S_r\) 是有限状态的。
+\end{proposition}
+
+\begin{proof}
+对任意正则树类型对 \((S,T)\)，
+\[
+\operatorname{reachable}_{\mathcal S_r}(S,T)
+\subseteq\operatorname{subtrees}(S)\times\operatorname{subtrees}(T).
+\]
+右侧有限，故左侧也有限。
+\end{proof}
+
+因此，把成员关系算法用于 \(\mathcal S_r\)，就得到正则树类型子类型关系的判定
+过程。实际实现还需要有限结构来表示正则树；下一节介绍一种这样的结构，即
+\(\mu\)-记法。
+
+\section{\texorpdfstring{\(\mu\)-类型}{μ-类型}}
+\label{sec:21.8}
+
+本节给出有限的 \(\mu\)-记法，定义 \(\mu\)-表达式上的子类型关系，并证明它与
+树类型上的子类型关系相对应。
+
+\begin{definition}
+\label{def:21.8.1}
+令 \(X\) 遍历固定的可数类型变量集合 \(\{X_1,X_2,\ldots\}\)。
+\termfirst{原始 \(\mu\)-类型}{raw \(\mu\)-type}由文法
+\[
+T ::= X\mid\tapltype{Top}\mid T\times T\mid T\to T\mid\mu X.T
+\]
+生成，其集合记作 \(\mathcal T_m^{\mathrm{raw}}\)。算子 \(\mu\) 是绑定子，
+因而照常产生受约束变量、自由变量、闭原始 \(\mu\)-类型以及受约束变量改名意义下
+的等价。\(\operatorname{FV}(T)\) 表示自由变量集合，
+\([X\mapsto S]T\) 表示捕获规避的类型替换。
+\end{definition}
+
+为了与正则树严格对应，还需排除一些无法通过展开读出树结构的原始类型。例如
+\(\mu X.X\) 展开后仍是自身，根节点始终没有显露出来。一般地，问题来自
+\(\mu X.\mu X_1\cdots\mu X_n.X\) 形式的子表达式。
+
+\begin{definition}
+\label{def:21.8.2}
+若对原始 \(\mu\)-类型 \(T\) 的每个子表达式
+\(\mu X.\mu X_1\cdots\mu X_n.S\)，都有 \(S\ne X\)，则称 \(T\) 是
+\termfirst{收缩的}{contractive}。等价地说，每个由 \(\mu\) 绑定的变量，其
+绑定处与它在函数体中的每次出现之间，至少隔着一个 \(\to\) 或 \(\times\)。
+
+下文把收缩的原始 \(\mu\)-类型简称为 \(\mu\)-类型，其集合记作
+\(\mathcal T_m\)。\(\mu\text{-}\operatorname{height}(T)\) 表示 \(T\) 开头
+连续出现的 \(\mu\) 绑定数量。
+\end{definition}
+
+\begin{definition}
+\label{def:21.8.3}
+把闭 \(\mu\)-类型映射到树类型的函数
+\(\operatorname{treeof}\) 归纳定义如下（\(i\in\{1,2\}\)）：
+\[
+\begin{aligned}
+\operatorname{treeof}(\tapltype{Top})(\epsilon)
+  &=\tapltype{Top},\\
+\operatorname{treeof}(T_1\to T_2)(\epsilon)&=\to,&
+\operatorname{treeof}(T_1\to T_2)(i,\pi)
+  &=\operatorname{treeof}(T_i)(\pi),\\
+\operatorname{treeof}(T_1\times T_2)(\epsilon)&=\times,&
+\operatorname{treeof}(T_1\times T_2)(i,\pi)
+  &=\operatorname{treeof}(T_i)(\pi),\\
+\operatorname{treeof}(\mu X.T)(\pi)
+  &=\operatorname{treeof}([X\mapsto\mu X.T]T)(\pi).
+\end{aligned}
+\]
+\end{definition}
+
+这个定义既穷尽所有输入，也会终止。右侧每次递归调用都会严格减小字典序数对
+\((|\pi|,\mu\text{-}\operatorname{height}(T))\)：箭头和积分支减小路径长度，
+\(\mu X.T\) 分支保持路径长度，却减少类型开头的 \(\mu\) 数量。所有调用也都
+保持参数类型的收缩性与闭性；特别是，\(\mu X.T\) 收缩且闭，当且仅当它的展开
+\([X\mapsto\mu X.T]T\) 也收缩且闭。
+
+约定
+\(\operatorname{treeof}(S,T)=(\operatorname{treeof}(S),
+\operatorname{treeof}(T))\)。\cref{fig:21-3}展示一个展开示例。
+
+\begin{figure}[!ht]
+\centering
+\begin{tikzpicture}[
+  level distance=11mm,
+  level 1/.style={sibling distance=38mm},
+  level 2/.style={sibling distance=23mm},
+  level 3/.style={sibling distance=16mm},
+  every node/.style={font=\small}
+]
+\node {$\to$}
+  child {node {$\times$}
+    child {node {$\to$}
+      child {node {$\times$}
+        child {node {$\vdots$}}
+        child {node {$\tapltype{Top}$}}}
+      child {node {$\vdots$}}}
+    child {node {$\tapltype{Top}$}}}
+  child {node {$\to$}
+    child {node {$\times$}
+      child {node {$\vdots$}}
+      child {node {$\tapltype{Top}$}}}
+    child {node {$\vdots$}}};
+\end{tikzpicture}
+\caption{\(\operatorname{treeof}(\mu X.((X\times\tapltype{Top})\to X))\) 的展开}
+\label{fig:21-3}
+\end{figure}
+
+树类型的子类型关系是 \(\mathcal S\) 的最大不动点。现在把语法扩展到
+\(\mu\)-类型，其行为可由左右 \(\mu\)-折叠规则描述：
+\[
+\frac{S\subtype[X\mapsto\mu X.T]T}{S\subtype\mu X.T}
+\qquad
+\frac{[X\mapsto\mu X.S]S\subtype T}{\mu X.S\subtype T}.
+\]
+
+\begin{definition}
+\label{def:21.8.4}
+若 \((S,T)\in\nu\mathcal S_\mu\)，则称 \(\mu\)-类型 \(S\) 是 \(T\) 的
+子类型，其中
+\(\mathcal S_\mu:\powerset(\mathcal T_m\times\mathcal T_m)
+\to\powerset(\mathcal T_m\times\mathcal T_m)\) 定义为
+\[
+\begin{aligned}
+\mathcal S_\mu(R)={}&
+\{(S,\tapltype{Top})\mid S\in\mathcal T_m\}\\
+&\cup\{(S_1\times S_2,T_1\times T_2)
+       \mid(S_1,T_1),(S_2,T_2)\in R\}\\
+&\cup\{(S_1\to S_2,T_1\to T_2)
+       \mid(T_1,S_1),(S_2,T_2)\in R\}\\
+&\cup\{(S,\mu X.T)\mid(S,[X\mapsto\mu X.T]T)\in R\}\\
+&\cup\{(\mu X.S,T)\mid([X\mapsto\mu X.S]S,T)\in R,\quad
+       T\ne\tapltype{Top},\ T\ne\mu Y.T_1\}.
+\end{aligned}
+\]
+\end{definition}
+
+最后两项故意不对称：若两边都以 \(\mu\) 开头，或右边是
+\(\tapltype{Top}\)，最后两项原本会重叠；加入条件后，生成函数才可逆。
+更自然的声明式生成函数 \(\mathcal S_d\) 与上面的折叠规则逐项对应，下一题
+说明它虽不可逆，却生成同一个最大不动点。\footnote{下标 \(d\) 表示该函数来自
+声明式（declarative）的 \(\mu\)-折叠规则；\(\mathcal S_\mu\) 则采用算法式
+分支。}
+
+\begin{exercise}[\(\star\star\star\)]
+\label{ex:21.8.5}
+写出 \(\mathcal S_d\)，证明它不可逆，并证明
+\(\nu\mathcal S_d=\nu\mathcal S_\mu\)。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:21.8.5}{21.8.5}
+
+\(\mathcal S_\mu\) 的支持函数为
+\[
+\operatorname{support}_{\mathcal S_\mu}(S,T)=
+\begin{cases}
+\varnothing,&T=\tapltype{Top},\\
+\{(S_1,T_1),(S_2,T_2)\},
+  &S=S_1\times S_2,\ T=T_1\times T_2,\\
+\{(T_1,S_1),(S_2,T_2)\},
+  &S=S_1\to S_2,\ T=T_1\to T_2,\\
+\{(S,[X\mapsto\mu X.T_1]T_1)\},&T=\mu X.T_1,\\
+\{([X\mapsto\mu X.S_1]S_1,T)\},
+  &S=\mu X.S_1,\ T\ne\mu Y.T_1,\ T\ne\tapltype{Top},\\
+\uparrow,&\text{其他情形}.
+\end{cases}
+\]
+
+还需确认：有限的 \(\mu\)-表示与无限树表示给出的子类型关系确实一致。
+
+\begin{lemma}
+\label{lem:21.8.6}
+设 \(R\subseteq\mathcal T_m\times\mathcal T_m\) 是
+\(\mathcal S_\mu\)-一致的。对任意 \((S,T)\in R\)，存在
+\((S',T')\in R\)，使
+\(\operatorname{treeof}(S',T')=\operatorname{treeof}(S,T)\)，并且
+\(S'\)、\(T'\) 都不以 \(\mu\) 开头。
+\end{lemma}
+
+\begin{proof}
+对 \(S,T\) 开头的 \(\mu\) 总数作归纳。若两边都不以 \(\mu\) 开头，取
+\((S',T')=(S,T)\)。若 \((S,T)=(S,\mu X.T_1)\)，由 \(R\) 的一致性可知
+\[
+(S,[X\mapsto\mu X.T_1]T_1)\in R.
+\]
+收缩性保证展开结果开头少一个 \(\mu\)，故可应用归纳假设；而
+\(\operatorname{treeof}\) 的定义保证展开不改变对应的树。左边以 \(\mu\)
+开头的情形相同。
+\end{proof}
+
+\begin{theorem}
+\label{thm:21.8.7}
+对 \((S,T)\in\mathcal T_m\times\mathcal T_m\)，
+\[
+(S,T)\in\nu\mathcal S_\mu
+\quad\Longleftrightarrow\quad
+\operatorname{treeof}(S,T)\in\nu\mathcal S.
+\]
+\end{theorem}
+
+\begin{proof}
+先证从左到右。令
+\((A,B)=\operatorname{treeof}(S,T)\)，并取
+\(Q=\operatorname{treeof}(\nu\mathcal S_\mu)\)。只需证明 \(Q\) 是
+\(\mathcal S\)-一致的，再由余归纳得到 \((A,B)\in\nu\mathcal S\)。
+
+任取 \((A',B')\in Q\)，选取
+\((S',T')\in\nu\mathcal S_\mu\) 使
+\(\operatorname{treeof}(S',T')=(A',B')\)。由\cref{lem:21.8.6}，可假定
+两边都不以 \(\mu\) 开头。于是 \((S',T')\) 只能由
+\(\mathcal S_\mu\) 的前三项之一支持。若 \(T'=\tapltype{Top}\)，则
+\((A',B')\in\mathcal S(Q)\)。若
+\((S',T')=(S_1\times S_2,T_1\times T_2)\)，其两个分量对属于
+\(\nu\mathcal S_\mu\)，映射到树后属于 \(Q\)，所以积分支给出
+\((A',B')\in\mathcal S(Q)\)。箭头情形相同，并在参数位置交换方向。
+
+再证从右到左。令
+\[
+R=\{(S',T')\in\mathcal T_m\times\mathcal T_m
+\mid\operatorname{treeof}(S',T')\in\nu\mathcal S\}.
+\]
+显然 \((S,T)\in R\)。只需证明 \(R\) 是 \(\mathcal S_\mu\)-一致的。
+由于 \(\nu\mathcal S\) 本身一致，其中每个类型对的根只能是
+\((A,\tapltype{Top})\)、两个积或两个箭头。结合
+\(\operatorname{treeof}\) 的定义，\(R\) 中的类型对只能对应
+\(\mathcal S_\mu\) 定义的五类分支。前三类直接由
+\(\nu\mathcal S\) 的一致性得到；若右边为 \(\mu X.T_1\)，令
+\(T''=[X\mapsto\mu X.T_1]T_1\)，则
+\(\operatorname{treeof}(T'')=\operatorname{treeof}(T')\)，故
+\((S',T'')\in R\)，右折叠分支适用。左边为 \(\mu X.S_1\) 时类似；若右边
+是 \(\tapltype{Top}\) 或也以 \(\mu\) 开头，则改用前面相应的分支。
+因此 \(R\subseteq\mathcal S_\mu(R)\)，余归纳给出结论。
+\end{proof}
+
+该定理表明，\(\mu\)-类型的子类型关系相对于其所表示的无限树子类型关系既可靠
+又完备。
+
+\section{子表达式计数}
+\label{sec:21.9}
+
+把\cref{def:21.6.4}的一般算法 \(\operatorname{gfp}^t\) 用于
+\cref{def:21.8.4}的支持函数，就得到\cref{fig:21-4}的具体子类型算法。
+\taplsecref{21.6}{sec:21.6}已经说明，只要
+\(\operatorname{reachable}_{\mathcal S_\mu}(S,T)\) 对每对 \(\mu\)-类型
+都有限，算法便会终止；本节证明这一点。
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.86\linewidth}
+\begin{align*}
+\operatorname{subtype}(A,S,T)={}&
+\begin{cases}
+A,&(S,T)\in A,\\
+\operatorname{subtype}'(A\cup\{(S,T)\},S,T),&\text{否则},
+\end{cases}\\[2pt]
+\operatorname{subtype}'(A_0,S,T)={}&
+\begin{cases}
+A_0,&T=\tapltype{Top},\\
+\operatorname{subtype}(A_1,S_2,T_2),
+ &\substack{S=S_1\times S_2,\ T=T_1\times T_2,\\
+ A_1=\operatorname{subtype}(A_0,S_1,T_1)},\\
+\operatorname{subtype}(A_1,S_2,T_2),
+ &\substack{S=S_1\to S_2,\ T=T_1\to T_2,\\
+ A_1=\operatorname{subtype}(A_0,T_1,S_1)},\\
+\operatorname{subtype}(A_0,S,[X\mapsto\mu X.T_1]T_1),
+ &T=\mu X.T_1,\\
+\operatorname{subtype}(A_0,[X\mapsto\mu X.S_1]S_1,T),
+ &S=\mu X.S_1,\\
+\mathsf{fail},&\text{其他情形}.
+\end{cases}
+\end{align*}
+\end{minipage}
+\caption{\(\mu\)-类型的具体子类型算法}
+\label{fig:21-4}
+\end{figure}
+
+看起来这几乎显然，严格证明却需要不少工作。困难在于，“闭子表达式”有两种定义。
+\termfirst{自顶向下子表达式}{top-down subexpression}正好对应支持函数在展开时
+产生的表达式；\termfirst{自底向上子表达式}{bottom-up subexpression}则便于
+证明任意闭 \(\mu\)-类型只有有限多个闭子表达式。终止性证明会同时定义二者，
+再证明前者包含于后者。
+
+\begin{definition}
+\label{def:21.9.1}
+若 \((S,T)\in\mu\operatorname{TD}\)，则称 \(S\) 是 \(T\) 的自顶向下
+子表达式，记作 \(S\sqsubseteq T\)，其中
+\[
+\begin{aligned}
+\operatorname{TD}(R)={}&\{(T,T)\mid T\in\mathcal T_m\}\\
+&\cup\{(S,T_1\times T_2)\mid(S,T_1)\in R\}\\
+&\cup\{(S,T_1\times T_2)\mid(S,T_2)\in R\}\\
+&\cup\{(S,T_1\to T_2)\mid(S,T_1)\in R\}\\
+&\cup\{(S,T_1\to T_2)\mid(S,T_2)\in R\}\\
+&\cup\{(S,\mu X.T)\mid(S,[X\mapsto\mu X.T]T)\in R\}.
+\end{aligned}
+\]
+\end{definition}
+
+\begin{exercise}[\(\star\)]
+\label{ex:21.9.2}
+用一组推导规则给出关系 \(S\sqsubseteq T\) 的等价定义。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:21.9.2}{21.9.2}
+
+\begin{lemma}
+\label{lem:21.9.3}
+若 \((S',T')\in\operatorname{support}_{\mathcal S_\mu}(S,T)\)，则
+\(S'\sqsubseteq S\) 或 \(S'\sqsubseteq T\)，且
+\(T'\sqsubseteq S\) 或 \(T'\sqsubseteq T\)。
+\end{lemma}
+
+\begin{proof}
+逐项检查 \(\operatorname{support}_{\mathcal S_\mu}\) 的定义即可。
+\end{proof}
+
+\begin{lemma}
+\label{lem:21.9.4}
+若 \(S\sqsubseteq U\) 且 \(U\sqsubseteq T\)，则 \(S\sqsubseteq T\)。
+\end{lemma}
+
+\begin{proof}
+令
+\[
+R=\{(U,T)\mid\forall S.\ S\sqsubseteq U\Rightarrow S\sqsubseteq T\}.
+\]
+要证 \(\mu\operatorname{TD}\subseteq R\)。依归纳原理，只需证明
+\(R\) 对 \(\operatorname{TD}\) 闭合。若 \((U,T)=(T,T)\)，结论直接成立。
+若 \((U,T)=(U,T_1\times T_2)\) 且 \((U,T_1)\in R\)，则对任意
+\(S\sqsubseteq U\)，先有 \(S\sqsubseteq T_1\)，再由
+\(\operatorname{TD}\) 的积分支得到 \(S\sqsubseteq T_1\times T_2\)。
+其他分支相同。
+\end{proof}
+
+\begin{proposition}
+\label{prop:21.9.5}
+若 \((S',T')\in\operatorname{reachable}_{\mathcal S_\mu}(S,T)\)，则
+\(S'\sqsubseteq S\) 或 \(S'\sqsubseteq T\)，且
+\(T'\sqsubseteq S\) 或 \(T'\sqsubseteq T\)。
+\end{proposition}
+
+\begin{proof}
+对可达关系的定义作归纳，使用\cref{lem:21.9.3,lem:21.9.4}。
+\end{proof}
+
+若每个 \(\mu\)-类型只有有限多个自顶向下子表达式，便可由上一命题推出可达集
+有限。但直接对 \(U\) 作结构归纳会在 \(U=\mu X.T\) 处失败：定义引用的是
+可能更大的展开 \([X\mapsto\mu X.T]T\)。自底向上定义把替换推迟到先收集完
+函数体的子表达式之后，从而避开这个问题。
+
+\begin{definition}
+\label{def:21.9.6}
+若 \((S,T)\in\mu\operatorname{BU}\)，则称 \(S\) 是 \(T\) 的自底向上
+子表达式，记作 \(S\preccurlyeq T\)，其中
+\[
+\begin{aligned}
+\operatorname{BU}(R)={}&\{(T,T)\mid T\in\mathcal T_m\}\\
+&\cup\{(S,T_1\times T_2)\mid(S,T_1)\in R\}\\
+&\cup\{(S,T_1\times T_2)\mid(S,T_2)\in R\}\\
+&\cup\{(S,T_1\to T_2)\mid(S,T_1)\in R\}\\
+&\cup\{(S,T_1\to T_2)\mid(S,T_2)\in R\}\\
+&\cup\{([X\mapsto\mu X.T]S,\mu X.T)\mid(S,T)\in R\}.
+\end{aligned}
+\]
+\end{definition}
+
+两个定义只在 \(\mu\) 分支不同。自顶向下方法先展开类型，再收集展开结果的
+子表达式；自底向上方法先收集函数体中未必闭合的子表达式，再用展开替换把它们
+闭合。
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:21.9.7}
+用一组推导规则给出关系 \(S\preccurlyeq T\) 的等价定义。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:21.9.7}{21.9.7}
+
+\begin{lemma}
+\label{lem:21.9.8}
+对每个 \(T\)，集合 \(\{S\mid S\preccurlyeq T\}\) 都有限。
+\end{lemma}
+
+\begin{proof}
+对 \(T\) 作结构归纳。定义直接给出：
+\begin{itemize}
+  \item 若 \(T=\tapltype{Top}\) 或 \(T=X\)，子表达式集合为 \(\{T\}\)；
+  \item 若 \(T=T_1\times T_2\) 或 \(T=T_1\to T_2\)，子表达式集合等于
+        \(\{T\}\) 与两个分量子表达式集合之并；
+  \item 若 \(T=\mu X.T'\)，子表达式集合为
+        \(\{T\}\cup\{[X\mapsto T]S\mid S\preccurlyeq T'\}\)。
+\end{itemize}
+归纳假设保证每个右侧集合有限。
+\end{proof}
+
+\begin{lemma}
+\label{lem:21.9.9}
+若 \(S\preccurlyeq[X\mapsto Q]T\)，则或者 \(S\preccurlyeq Q\)，或者存在
+\(S'\preccurlyeq T\) 使 \(S=[X\mapsto Q]S'\)。
+\end{lemma}
+
+\begin{proof}
+对 \(T\) 作结构归纳。若 \(T=\tapltype{Top}\)，只能由自反分支得到
+\(S=\tapltype{Top}\)，取 \(S'=\tapltype{Top}\)。若 \(T=Y\)，当 \(Y=X\)
+时结论的第一种情况直接成立；当 \(Y\ne X\) 时，仍只能由自反分支得到
+\(S=Y\)，取 \(S'=Y\)。
+
+若 \(T=T_1\times T_2\)，则 \(S\) 要么等于整个替换后的积，取 \(S'=T\)；
+要么来自某个分量。对该分量应用归纳假设：若 \(S\preccurlyeq Q\) 即完成；否则
+\(S=[X\mapsto Q]S'\)，而分量中的 \(S'\) 也是整个积的自底向上子表达式。箭头
+情形相同。
+
+最后设 \(T=\mu Y.T'\)。若 \(S=[X\mapsto Q]T\)，取 \(S'=T\)。否则
+\[
+S=[Y\mapsto\mu Y.[X\mapsto Q]T']S_1,
+\qquad S_1\preccurlyeq[X\mapsto Q]T'.
+\]
+对 \(S_1\) 应用归纳假设。若 \(S_1\preccurlyeq Q\)，按受约束变量命名约定
+\(Y\notin\operatorname{FV}(Q)\)，故 \(Y\notin\operatorname{FV}(S_1)\)，替换
+不起作用，得到 \(S=S_1\preccurlyeq Q\)。否则
+\(S_1=[X\mapsto Q]S_2\)，其中 \(S_2\preccurlyeq T'\)。替换可交换为
+\[
+S=[X\mapsto Q]([Y\mapsto\mu Y.T']S_2),
+\]
+而括号内的类型是 \(\mu Y.T'\) 的自底向上子表达式。
+\end{proof}
+
+\begin{proposition}
+\label{prop:21.9.10}
+若 \(S\sqsubseteq T\)，则 \(S\preccurlyeq T\)。
+\end{proposition}
+
+\begin{proof}
+要证 \(\mu\operatorname{TD}\subseteq\mu\operatorname{BU}\)。依归纳原理，只需
+证明 \(\mu\operatorname{BU}\) 对 \(\operatorname{TD}\) 闭合。两种生成函数
+除最后一项外完全相同。最后一项中，若
+\(S\preccurlyeq[X\mapsto\mu X.T]T\)，由\cref{lem:21.9.9}，或者
+\(S\preccurlyeq\mu X.T\)，结论已得；或者
+\(S=[X\mapsto\mu X.T]S'\) 且 \(S'\preccurlyeq T\)，此时
+\(\operatorname{BU}\) 的最后一项同样给出 \(S\preccurlyeq\mu X.T\)。
+\end{proof}
+
+\begin{proposition}
+\label{prop:21.9.11}
+对任意 \(\mu\)-类型 \(S,T\)，集合
+\(\operatorname{reachable}_{\mathcal S_\mu}(S,T)\) 有限。
+\end{proposition}
+
+\begin{proof}
+令 \(T_d\) 为 \(S,T\) 的全部自顶向下子表达式，\(B_u\) 为二者的全部
+自底向上子表达式。由\cref{prop:21.9.5}，可达集包含于 \(T_d\times T_d\)；
+由\cref{prop:21.9.10}，\(T_d\times T_d\subseteq B_u\times B_u\)；由
+\cref{lem:21.9.8}，最后这个集合有限。
+\end{proof}
+
+\section{题外讨论：指数时间算法}
+\label{sec:21.10}
+
+\cref{fig:21-4}的 \(\operatorname{subtype}\) 返回更新后的假设集。若把它简化为
+只返回布尔值，就得到 Amadio 和 Cardelli（1993）的算法
+\(\operatorname{subtype}^{ac}\)，见\cref{fig:21-5}。二者判定同一关系，后者
+却不在箭头和积的两次递归调用之间保留已经发现的类型对，因而效率低得多：
+\(\operatorname{subtype}\) 的递归调用次数与两个输入类型的子表达式总数平方
+成正比，\(\operatorname{subtype}^{ac}\) 则可能达到指数级。
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.93\linewidth}
+\[
+\begin{aligned}
+&\operatorname{subtype}^{ac}(A,S,T)={}\\
+&\quad \mathbf{if}\ (S,T)\in A\ \mathbf{then}\ \mathsf{true}\\
+&\quad \mathbf{else}\ \mathbf{let}\ A_0=A\cup\{(S,T)\}\ \mathbf{in}\\
+&\qquad \mathbf{if}\ T=\tapltype{Top}\ \mathbf{then}\ \mathsf{true}\\
+&\qquad \mathbf{else\ if}\ S=S_1\times S_2\ \mathbf{and}\ T=T_1\times T_2\ \mathbf{then}\\
+&\qquad\quad \operatorname{subtype}^{ac}(A_0,S_1,T_1)
+       \mathbin{\mathbf{and}}
+       \operatorname{subtype}^{ac}(A_0,S_2,T_2)\\
+&\qquad \mathbf{else\ if}\ S=S_1\to S_2\ \mathbf{and}\ T=T_1\to T_2\ \mathbf{then}\\
+&\qquad\quad \operatorname{subtype}^{ac}(A_0,T_1,S_1)
+       \mathbin{\mathbf{and}}
+       \operatorname{subtype}^{ac}(A_0,S_2,T_2)\\
+&\qquad \mathbf{else\ if}\ S=\mu X.S_1\ \mathbf{then}\\
+&\qquad\quad \operatorname{subtype}^{ac}(A_0,[X\mapsto\mu X.S_1]S_1,T)\\
+&\qquad \mathbf{else\ if}\ T=\mu X.T_1\ \mathbf{then}\\
+&\qquad\quad \operatorname{subtype}^{ac}(A_0,S,[X\mapsto\mu X.T_1]T_1)\\
+&\qquad \mathbf{else}\ \mathsf{false}
+\end{aligned}
+\]
+\end{minipage}
+\caption{Amadio--Cardelli 子类型算法}
+\label{fig:21-5}
+\end{figure}
+
+指数行为可由以下类型族看出：
+\[
+\begin{array}{rcl@{\qquad}rcl}
+S_0&=&\mu X.\tapltype{Top}\times X,&
+S_{n+1}&=&\mu X.X\to S_n,\\
+T_0&=&\mu X.\tapltype{Top}\times(\tapltype{Top}\times X),&
+T_{n+1}&=&\mu X.X\to T_n.
+\end{array}
+\]
+展开缩写后，\(S_n,T_n\) 的大小都与 \(n\) 成线性关系。然而检查
+\(S_n\subtype T_n\) 时，箭头逆变会生成方向相反的子目标，几步之后同一层会
+出现两个分别涉及 \(S_{n-1},T_{n-1}\) 的递归调用；每个调用又产生两个下一层
+调用。故总调用次数与 \(2^n\) 成正比。
+
+\section{同构递归类型的子类型化}
+\label{sec:21.11}
+
+等递归表示会把递归类型不断展开后再比较；同构递归语言中的 \(\mu\) 构造子却是
+“刚性的”：它在类型中的位置会影响该类型的项怎样使用。因此，加入子类型化时，
+必须直接规定涉及递归类型的子类型规则。
+
+最常见的定义是 \termfirst{Amber 规则}{Amber rule}，因 Cardelli 的 Amber
+语言（1986）而广为人知：
+\[
+\frac{\Sigma,X\subtype Y\vdash S\subtype T}
+     {\Sigma\vdash\mu X.S\subtype\mu Y.T}
+\quad\textsc{S-Amber}
+\qquad
+\frac{(X,Y)\in\Sigma}{\Sigma\vdash X\subtype Y}
+\quad\textsc{S-Assumption}.
+\]
+第一条规则说：要在假设集 \(\Sigma\) 下证明
+\(\mu X.S\subtype\mu Y.T\)，只需在新增假设 \(X\subtype Y\) 后证明
+\(S\subtype T\)。\(\Sigma\) 是递归变量对的集合，记录已经比较过的递归类型
+对；第二条规则允许直接使用当前假设。\footnote{与 S-All 等同时涉及两侧绑定子的
+规则不同，应用 Amber 规则前必须把受约束变量 \(X,Y\) 改名为彼此不同的名称。}
+
+把这两条规则加入第 16 章的算法式子类型系统，并让其他规则把 \(\Sigma\) 从
+前提传到结论，就会得到与\cref{fig:21-5}相似的算法。区别有二：只有当
+\(\mu\) 同时出现在子类型判断两侧时才“展开”；展开后也不把递归类型替换回
+函数体，只保留递归变量，因此终止性十分明显。FJ 等名义类型系统中的子类型规则
+与 Amber 规则关系密切。
+
+\begin{exercise}[推荐，\(\star\star\)]
+\label{ex:21.11.1}
+找出递归类型 \(S,T\)，使等递归定义能够证明 \(S\subtype T\)，Amber 规则却
+不能证明。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:21.11.1}{21.11.1}
+
+\section{说明}
+\label{sec:21.12}
+
+本章依据 Gapeyev、Levin 与 Pierce（2000）的教程论文。余归纳背景可参阅
+Barwise 与 Moss（1996）、Gordon（1995）以及 Milner 与 Tofte（1991a）；
+单调函数和不动点的基础材料见 Aczel（1977）和 Davey 与 Priestley（1990）。
+
+计算机科学中的余归纳证明方法可追溯到 20 世纪 70 年代，例如 Milner（1980）
+和 Park（1981）关于并发的工作；数学家更早便熟悉归纳的对偶形式，通用代数与
+范畴论中都有明确发展。Aczel（1988）关于非良基集合的著作附有简短历史回顾。
+
+Amadio 与 Cardelli（1993）给出了第一个递归类型子类型算法，并证明无限树的
+包含关系、\(\mu\)-类型的算法关系和声明式参考关系三者等价。他们没有使用
+余归纳，而用无限树的有限近似进行论证。Brandt 与 Henglein（1997）揭示了该
+系统的余归纳本质，给出可靠且完备的归纳公理化，并详细证明子类型算法以
+\(O(n^2)\) 时间终止；\taplsecref{21.9}{sec:21.9}紧随其证明。
+
+Kozen、Palsberg 与 Schwartzbach（1993）把正则递归类型对应到带标签状态的
+自动机，再通过积自动机和线性时间的空语言检查，得到优雅的二次时间算法。
+Hosoya、Vouillon 与 Pierce（2001）把相关的树自动机方法用于面向 XML 的递归
+类型与并类型。Jim 与 Palsberg（1999）讨论带子类型化和递归类型的类型重构，
+同样把无限树子类型关系看作余归纳关系，并从给定类型对构造最小的一致集合。
+
+\bilingualepigraph[0.68\textwidth]
+  {想得足够久，你就会发现它显而易见。}
+  {If you think about it long enough, you'll see that it's obvious.}
+  {——Saul Gorn}

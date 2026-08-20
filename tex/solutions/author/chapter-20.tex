@@ -1,0 +1,211 @@
+\newpage
+\section{第20章：递归类型}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:20.1.1}
+\textbf{20.1.1 解答}
+
+\begin{lstlisting}[mathescape=true]
+Tree = $\mu$X. <leaf:Unit, node:{Nat,X,X}>;
+leaf = <leaf=unit> as Tree;
+$\blacktriangleright$ leaf : Tree
+
+node = lambda n:Nat. lambda t1:Tree. lambda t2:Tree.
+         <node={n,t1,t2}> as Tree;
+$\blacktriangleright$ node : Nat -> Tree -> Tree -> Tree
+
+isleaf = lambda l:Tree. case l of
+           <leaf=u> ==> true | <node=p> ==> false;
+$\blacktriangleright$ isleaf : Tree -> Bool
+
+label = lambda l:Tree. case l of
+          <leaf=u> ==> 0 | <node=p> ==> p.1;
+$\blacktriangleright$ label : Tree -> Nat
+
+left = lambda l:Tree. case l of
+         <leaf=u> ==> leaf | <node=p> ==> p.2;
+$\blacktriangleright$ left : Tree -> Tree
+
+right = lambda l:Tree. case l of
+          <leaf=u> ==> leaf | <node=p> ==> p.3;
+$\blacktriangleright$ right : Tree -> Tree
+
+append = fix (lambda f:NatList->NatList->NatList.
+           lambda l1:NatList. lambda l2:NatList.
+             if isnil l1 then l2
+             else cons (hd l1) (f (tl l1) l2));
+$\blacktriangleright$ append : NatList -> NatList -> NatList
+
+preorder = fix (lambda f:Tree->NatList. lambda t:Tree.
+             if isleaf t then nil
+             else cons (label t)
+                    (append (f (left t)) (f (right t))));
+$\blacktriangleright$ preorder : Tree -> NatList
+
+t1 = node 1 leaf leaf;
+t2 = node 2 leaf leaf;
+t3 = node 3 t1 t2;
+t4 = node 4 t3 t3;
+l = preorder t4;
+
+hd l;                 $\blacktriangleright$ 4 : Nat
+hd (tl l);            $\blacktriangleright$ 3 : Nat
+hd (tl (tl l));       $\blacktriangleright$ 1 : Nat
+\end{lstlisting}
+
+\taplsolutionbacklink{ex:20.1.1}{返回练习20.1.1}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:20.1.2}
+\textbf{20.1.2 解答}
+
+\begin{lstlisting}
+fib = fix (lambda f:Nat->Nat->Stream.
+        lambda m:Nat. lambda n:Nat. lambda _:Unit.
+          {n, f n (plus m n)}) 0 1;
+\end{lstlisting}
+
+这个流当前返回 \(n\)，并把下一状态更新为相邻的两个数
+\((n,m+n)\)，所以从 \((0,1)\) 开始会依次产生
+\(1,1,2,3,5,\ldots\)。
+
+\taplsolutionbacklink{ex:20.1.2}{返回练习20.1.2}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:20.1.3}
+\textbf{20.1.3 解答}
+
+\begin{lstlisting}[mathescape=true]
+Counter = $\mu$C. {get:Nat, inc:Unit->C, dec:Unit->C,
+                    reset:Unit->C, backup:Unit->C};
+
+c = let create =
+      fix (lambda cr:{x:Nat,b:Nat}->Counter.
+             lambda s:{x:Nat,b:Nat}.
+               {get = s.x,
+                inc = lambda _:Unit.
+                        cr {x=succ(s.x),b=s.b},
+                dec = lambda _:Unit.
+                        cr {x=pred(s.x),b=s.b},
+                backup = lambda _:Unit.
+                           cr {x=s.x,b=s.x},
+                reset = lambda _:Unit.
+                          cr {x=s.b,b=s.b}})
+    in create {x=0,b=0};
+\end{lstlisting}
+状态记录中的 \texttt{x} 是当前值，\texttt{b} 是备份值。
+
+\taplsolutionbacklink{ex:20.1.3}{返回练习20.1.3}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:20.1.4}
+\textbf{20.1.4 解答}
+
+\begin{lstlisting}[mathescape=true]
+D = $\mu$X. <nat:Nat, bool:Bool, fn:X->X>;
+
+lam = lambda f:D->D. <fn=f> as D;
+ap = lambda f:D. lambda a:D. case f of
+       <nat=n>  ==> divergeD unit
+     | <bool=b> ==> divergeD unit
+     | <fn=g>   ==> g a;
+
+ifd = lambda b:D. lambda t:D. lambda e:D. case b of
+        <nat=n>  ==> divergeD unit
+      | <bool=b> ==> (if b then t else e)
+      | <fn=g>   ==> divergeD unit;
+
+tru = <bool=true> as D;
+fls = <bool=false> as D;
+
+ifd fls one zro;        $\blacktriangleright$ <nat=0> as D : D
+ifd fls one fls;        $\blacktriangleright$ <bool=false> as D : D
+\end{lstlisting}
+
+即使第二个条件表达式在原来的无类型对象语言中会被视为类型不一致，它仍能编码
+成 \(D\) 的值。这里构造的是表示无类型项的数据结构：对象语言是无类型演算，
+元语言则是带递归类型的简单类型 lambda 演算。能够在带类型的元语言中表示
+无类型对象语言，并不比用 ML 数据结构表示本书各章的带类型或无类型 lambda 项
+更令人意外。
+
+\taplsolutionbacklink{ex:20.1.4}{返回练习20.1.4}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:20.1.5}
+\textbf{20.1.5 解答}
+
+\begin{lstlisting}
+lam = lambda f:D->D. <fn=f> as D;
+ap = lambda f:D. lambda a:D. case f of
+       <nat=n> ==> divergeD unit
+     | <fn=g>  ==> g a
+     | <rcd=r> ==> divergeD unit;
+
+rcd = lambda fields:Nat->D. <rcd=fields> as D;
+prj = lambda f:D. lambda n:Nat. case f of
+        <nat=m> ==> divergeD unit
+      | <fn=g>  ==> divergeD unit
+      | <rcd=r> ==> r n;
+
+myrcd = rcd (lambda n:Nat.
+          if iszero n then zro
+          else if iszero (pred n) then one
+          else divergeD unit);
+\end{lstlisting}
+
+\translatornote{原书的 \texttt{myrcd} 定义把第一处判断写成
+\texttt{iszero 0}，这会使判断恒为真，全部字段都返回 \texttt{zro}。结合下一
+分支对 \texttt{pred n} 的检查和本题要按字段编号选择值的目的，这里把它修正为
+\texttt{iszero n}。作者官方勘误未收录这一处。}
+
+\taplsolutionbacklink{ex:20.1.5}{返回练习20.1.5}
+\end{taplauthorsolutionentrybox}
+
+\begin{taplauthorsolutionentrybox}
+\phantomsection
+\label{sol:author:20.2.1}
+\textbf{20.2.1 解答}
+
+下面把几个较有代表性的例子改写为同构递归形式。
+
+\begin{lstlisting}[mathescape=true]
+Hungry = $\mu$A. Nat->A;
+f = fix (lambda f:Nat->Hungry. lambda n:Nat.
+           fold [Hungry] f);
+ff = fold [Hungry] f;
+ff1 = (unfold [Hungry] ff) 0;
+ff2 = (unfold [Hungry] ff1) 2;
+
+fixT = lambda f:T->T.
+  (lambda x:($\mu$A.A->T).
+     f ((unfold [$\mu$A.A->T] x) x))
+  (fold [$\mu$A.A->T]
+     (lambda x:($\mu$A.A->T).
+        f ((unfold [$\mu$A.A->T] x) x)));
+
+D = $\mu$X. X->X;
+lam = lambda f:D->D. fold [D] f;
+ap = lambda f:D. lambda a:D. (unfold [D] f) a;
+
+Counter = $\mu$C. {get:Nat, inc:Unit->C};
+c = let create =
+      fix (lambda cr:{x:Nat}->Counter. lambda s:{x:Nat}.
+             fold [Counter]
+               {get = s.x,
+                inc = lambda _:Unit. cr {x=succ(s.x)}})
+    in create {x=0};
+c1 = (unfold [Counter] c).inc unit;
+(unfold [Counter] c1).get;
+\end{lstlisting}
+
+\taplsolutionbacklink{ex:20.2.1}{返回练习20.2.1}
+\end{taplauthorsolutionentrybox}

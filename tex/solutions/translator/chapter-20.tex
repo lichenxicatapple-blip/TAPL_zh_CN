@@ -1,0 +1,47 @@
+\section*{第20章：递归类型}
+\addcontentsline{toc}{section}{第20章：递归类型}
+
+\begin{taplsolutionentrybox}
+\phantomsection
+\label{sol:translator:20.2.2}
+\textbf{练习20.2.2}
+
+要证明的是\cref{fig:20-1}中的同构递归演算满足以下两项性质。
+
+\textbf{进展性。}若闭项 \(t\) 良类型，则 \(t\) 要么是值，要么存在
+\(t'\) 使 \(t\trans t'\)。证明对类型推导作归纳。旧句法形式沿用简单类型
+lambda 演算的证明，只需处理两种新增项。
+
+若最后一条规则是 \textsc{T-Fold}，则项形如 \(\mathsf{fold}[U]t_1\)。由
+归纳假设，\(t_1\) 要么可以求值一步，此时用 \textsc{E-Fold} 推进；要么已经
+是值 \(v_1\)，此时 \(\mathsf{fold}[U]v_1\) 本身就是值。
+
+若最后一条规则是 \textsc{T-Unfold}，则项形如
+\(\mathsf{unfold}[U]t_1\)。由归纳假设，若 \(t_1\) 可以求值一步，就用
+\textsc{E-Unfold}。若 \(t_1\) 已经是值，还需使用新增的典范形式事实：
+闭的 \(U=\mu X.T\) 型值只能形如 \(\mathsf{fold}[U]v\)。于是
+\textsc{E-UnfldFld} 可用，整个项可以继续求值。
+
+\textbf{保持性。}若 \(\Gamma\vdash t:T\) 且 \(t\trans t'\)，则
+\(\Gamma\vdash t':T\)。证明对单步求值推导作归纳。两个同余规则直接使用
+归纳假设，再分别应用 \textsc{T-Fold} 或 \textsc{T-Unfold}。
+
+关键情形是
+\[
+\mathsf{unfold}[S](\mathsf{fold}[U]v_1)\trans v_1.
+\]
+因为原项良类型，\textsc{T-Unfold} 给出 \(S=\mu X.T_1\)，并且
+\(\mathsf{fold}[U]v_1:S\)。再反演 \textsc{T-Fold}，可知折叠标注必须是
+同一个递归类型 \(U=S\)，且
+\[
+\Gamma\vdash v_1:\taplsubst{X}{S}{T_1}.
+\]
+这正是原项经 \textsc{T-Unfold} 得到的结果类型，因此规约后的 \(v_1\)
+保持原类型。
+
+证明中最值得注意的两点，是为递归类型补充典范形式引理，以及在
+\textsc{E-UnfldFld} 情形中借助良类型性证明两个运行时未比较的类型标注实际
+相同。
+
+\taplsolutionbacklink{ex:20.2.2}{返回练习20.2.2}
+\end{taplsolutionentrybox}

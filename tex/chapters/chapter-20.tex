@@ -1,5 +1,617 @@
-% Chapter 20 — Recursive Types
-% Source: ../source/split/chapters/ch20-recursive-types_p255-p266.pdf
+% 第 20 章：递归类型
+% Source: source/split/chapters/ch20-recursive-types_p255-p266.pdf
 % Original print pages: 267--280
-% Status: 未开始
-% \chapter{<中文章名>}\label{chap:20}
+% Status: 待独立初审
+
+\chapter{递归类型}
+\label{chap:20}
+
+\section*{概览}
+
+\taplsecref{11.12}{sec:11.12}曾把简单类型系统扩展为带有类型构造子
+\(\tapltype{List}(T)\) 的系统；该类型的元素，是由 \(T\) 型元素组成的列表。
+列表只是众多常见数据结构中的一例。队列、二叉树、带标签树、抽象语法树等结构
+都可以任意增长，却具有简单而规则的形态。例如，\(\tapltype{List}(\tapltype{Nat})\)
+中的元素要么是 \(\mathsf{nil}\)，要么是一个数与另一个
+\(\tapltype{List}(\tapltype{Nat})\) 组成的二元对，后者也称
+\termfirst{cons 单元}{cons cell}。为每一种结构分别加入一种原始语言特性显然
+不合适；我们需要一种通用机制，在需要时用较简单的成分定义它们。这个机制就是
+\termfirst{递归类型}{recursive type}。\footnote{本章不讨论怎样为元素类型任意
+的列表给出一份通用定义。为此还需要类型算子；\chapref{29}会引入这一机制。}
+
+仍以自然数列表为例。借助\taplsecref{11.9}{sec:11.9}的变体和
+\taplsecref{11.6}{sec:11.6}的二元对，可以先写出：
+\begin{lstlisting}
+NatList = <nil:Unit, cons:{...,...}>;
+\end{lstlisting}
+空列表标签 \texttt{nil} 已经包含识别空列表所需的全部信息，因此它携带的
+数据只需是 \texttt{unit}。\texttt{cons} 标签携带的值则是一个数与另一条
+列表组成的二元对。其第一分量的类型为 \texttt{Nat}：
+\begin{lstlisting}
+NatList = <nil:Unit, cons:{Nat,...}>;
+\end{lstlisting}
+第二分量仍是自然数列表，也就是我们正在定义的 \texttt{NatList} 本身：
+\begin{lstlisting}
+NatList = <nil:Unit, cons:{Nat,NatList}>;
+\end{lstlisting}
+
+这个等式并非普通的缩写定义：等号右侧又用到了尚在定义中的名称
+\texttt{NatList}，因而不能把它看成给一个含义已知的类型表达式另取名字。
+更恰当的理解，是它规定了\cref{fig:20-natlist-tree}所示的无限树。
+
+\begin{figure}[!ht]
+\centering
+\begin{tikzpicture}[
+  level distance=12mm,
+  level 1/.style={sibling distance=42mm},
+  level 2/.style={sibling distance=28mm},
+  level 3/.style={sibling distance=20mm},
+  every node/.style={font=\small}
+]
+\node {$\langle\mathsf{nil}:{},\mathsf{cons}:{}\rangle$}
+  child {node {$\tapltype{Unit}$}}
+  child {node {$\{\,\cdot,\cdot\,\}$}
+    child {node {$\tapltype{Nat}$}}
+    child {node {$\langle\mathsf{nil}:{},\mathsf{cons}:{}\rangle$}
+      child {node {$\tapltype{Unit}$}}
+      child {node {$\{\,\cdot,\cdot\,\}$}
+        child {node {$\tapltype{Nat}$}}
+        child {node {$\langle\mathsf{nil}:{},\mathsf{cons}:{}\rangle$}
+          child {node {$\vdots$}}
+        }
+      }
+    }
+  };
+\end{tikzpicture}
+\caption{自然数列表类型的无限树展开}
+\label{fig:20-natlist-tree}
+\end{figure}
+
+规定这棵无限类型树的递归等式，与第 5 章定义递归阶乘函数时使用的等式相似。
+这里也可以把等式中的“回路”移到右侧，引入显式的类型递归算子 \(\mu\)，把
+等式写成真正的定义：
+\begin{lstlisting}[mathescape=true]
+NatList = $\mu$X. <nil:Unit, cons:{Nat,X}>;
+\end{lstlisting}
+直观地说，这一定义把 \texttt{NatList} 指定为满足
+\[
+X=\langle\mathsf{nil}:\tapltype{Unit},
+          \mathsf{cons}:\{\tapltype{Nat},X\}\rangle
+\]
+的无限类型。
+
+\taplsecref{20.2}{sec:20.2}将看到，递归类型有两种略有差异的形式化方式，即
+等递归表示和同构递归表示。二者的差别在于，程序员需要用
+类型标注给类型检查器提供多少帮助。下一节的程序示例采用较为轻便的等递归表示。
+\footnote{本章研究带递归类型的简单类型演算。示例还会使用前面章节的
+多种特性，原书配套检查器为 \texttt{fullequirec}；
+\taplsecref{20.2}{sec:20.2}对应的检查器为 \texttt{fullisorec}。}
+\footnote{这样写使我们不必先给递归类型命名。不过，显式命名递归类型
+也有优点；参见\taplsecref{19.3}{sec:19.3}关于名义类型系统与结构类型系统的
+讨论。}
+
+\section{示例}
+\label{sec:20.1}
+
+\subsection*{列表}
+
+先完成前面的自然数列表示例。要操作列表，需要空列表常量 \texttt{nil}，把元素
+加入已有列表开头的构造函数 \texttt{cons}，判断列表是否为空的
+\texttt{isnil}，以及分别取出非空列表首元素和表尾的 \texttt{hd} 与
+\texttt{tl}。\cref{fig:11-13}曾把它们作为内建操作；这里要用更简单的构造
+定义它们。
+
+\texttt{nil} 与 \texttt{cons} 的定义直接来自 \texttt{NatList} 的二标签
+变体结构：
+\begin{lstlisting}[mathescape=true]
+nil = <nil=unit> as NatList;
+$\blacktriangleright$ nil : NatList
+
+cons = lambda n:Nat. lambda l:NatList.
+         <cons={n,l}> as NatList;
+$\blacktriangleright$ cons : Nat -> NatList -> NatList
+\end{lstlisting}
+回顾\taplsecref{11.9}{sec:11.9}，\texttt{<l=t> as T} 给值 \texttt{t}
+加上标签 \texttt{l}，再把它注入变体类型 \texttt{T}。这里的类型检查器会把
+递归类型 \texttt{NatList} 自动展开为
+\texttt{<nil:Unit, cons:\{Nat,NatList\}>}。
+
+其余基本操作都要检查列表的结构，再取出相应分量，因此都可以用
+\texttt{case} 实现：
+\begin{lstlisting}[mathescape=true]
+isnil = lambda l:NatList. case l of
+          <nil=u>  ==> true
+        | <cons=p> ==> false;
+$\blacktriangleright$ isnil : NatList -> Bool
+
+hd = lambda l:NatList. case l of
+       <nil=u>  ==> 0
+     | <cons=p> ==> p.1;
+$\blacktriangleright$ hd : NatList -> Nat
+
+tl = lambda l:NatList. case l of
+       <nil=u>  ==> l
+     | <cons=p> ==> p.2;
+$\blacktriangleright$ tl : NatList -> NatList
+\end{lstlisting}
+这里约定空列表的 \texttt{hd} 为 0，\texttt{tl} 仍为空列表；也可以在这两种
+情况下抛出异常。
+
+把这些定义组合起来，可以写出递归函数 \texttt{sumlist}，计算列表中全部
+元素的和：
+\begin{lstlisting}[mathescape=true]
+sumlist = fix (lambda s:NatList->Nat. lambda l:NatList.
+            if isnil l then 0
+            else plus (hd l) (s (tl l)));
+$\blacktriangleright$ sumlist : NatList -> Nat
+
+mylist = cons 2 (cons 3 (cons 5 nil));
+sumlist mylist;
+$\blacktriangleright$ 10 : Nat
+\end{lstlisting}
+虽然 \texttt{NatList} 自身表示一棵无限类型树，它的每个值却都是有限列表：
+二元对、标签和按值调用的 \texttt{fix} 都无法构造真正无限大的数据结构。
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:20.1.1}
+一种带标签二叉树的定义规定：树要么是没有标签的叶子，要么是带有自然数标签和
+两棵子树的内部节点。请定义类型 \texttt{NatTree}，并给出构造、分解和检查
+树的适当操作。再写一个函数，对树进行深度优先遍历，返回沿途遇到的标签列表。
+请用 \texttt{fullequirec} 检查这些代码。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:20.1.1}{20.1.1}
+
+\subsection*{永远“吃不饱”的函数}
+
+下面这个例子稍微微妙一些。类型 \texttt{Hungry} 的值可以不断接受自然数参数；
+每接受一个参数，仍返回一个等待更多参数的函数：
+\begin{lstlisting}[mathescape=true]
+Hungry = $\mu$A. Nat->A;
+
+f = fix (lambda f:Nat->Hungry. lambda n:Nat. f);
+$\blacktriangleright$ f : Hungry
+
+f 0 1 2 3 4 5;
+$\blacktriangleright$ <fun> : Hungry
+\end{lstlisting}
+
+\subsection*{流}
+
+\texttt{Hungry} 的一个实用变体是\termfirst{流}{stream}：它可以接受任意多个
+\texttt{unit}；每次都返回一个数，以及可以继续使用的新流。
+\begin{lstlisting}[mathescape=true]
+Stream = $\mu$A. Unit->{Nat,A};
+\end{lstlisting}
+可以为流定义两个“分解操作”。若 \texttt{s} 是流，\texttt{hd s} 是把
+\texttt{unit} 传给它时返回的第一个数，\texttt{tl s} 则是同一次调用返回的
+新流：
+\begin{lstlisting}[mathescape=true]
+hd = lambda s:Stream. (s unit).1;
+$\blacktriangleright$ hd : Stream -> Nat
+
+tl = lambda s:Stream. (s unit).2;
+$\blacktriangleright$ tl : Stream -> Stream
+\end{lstlisting}
+构造流时仍使用 \texttt{fix}：
+\begin{lstlisting}[mathescape=true]
+upfrom0 =
+  fix (lambda f:Nat->Stream. lambda n:Nat. lambda _:Unit.
+         {n,f (succ n)}) 0;
+$\blacktriangleright$ upfrom0 : Stream
+
+hd upfrom0;
+$\blacktriangleright$ 0 : Nat
+
+hd (tl (tl (tl upfrom0)));
+$\blacktriangleright$ 3 : Nat
+\end{lstlisting}
+
+\begin{exercise}[推荐，\(\star\star\)]
+\label{ex:20.1.2}
+定义一个流，依次产生 Fibonacci 数列的元素
+\(1,1,2,3,5,8,13,\ldots\)。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:20.1.2}{20.1.2}
+
+还可以把流推广成一种简单的\termfirst{进程}{process}：它接受一个数，再返回
+一个数和一个新进程。
+\begin{lstlisting}[mathescape=true]
+Process = $\mu$A. Nat->{Nat,A};
+\end{lstlisting}
+例如，下面的进程在每一步都返回迄今收到的全部数字之和：
+\begin{lstlisting}[mathescape=true]
+p = fix (lambda f:Nat->Process. lambda acc:Nat. lambda n:Nat.
+          let newacc = plus acc n in
+          {newacc, f newacc}) 0;
+$\blacktriangleright$ p : Process
+\end{lstlisting}
+与流类似，可以再定义两个辅助函数来与进程交互：
+\begin{lstlisting}[mathescape=true]
+curr = lambda s:Process. (s 0).1;
+$\blacktriangleright$ curr : Process -> Nat
+
+send = lambda n:Nat. lambda s:Process. (s n).2;
+$\blacktriangleright$ send : Nat -> Process -> Process
+
+curr (send 20 (send 3 (send 5 p)));
+$\blacktriangleright$ 28 : Nat
+\end{lstlisting}
+最后一行依次把 5、3 和 20 送给进程 \texttt{p}，最后一次交互得到 28。
+
+\subsection*{对象}
+
+稍微调整上一个例子，便得到另一种熟悉的数据交互方式：对象。例如，下面的
+计数器对象保存一个数，并允许查询或递增这个数：
+\begin{lstlisting}[mathescape=true]
+Counter = $\mu$C. {get:Nat, inc:Unit->C};
+\end{lstlisting}
+这里的对象是纯函数式的，类似\chapref{19}而不同于\chapref{18}：向计数器发送
+\texttt{inc} 消息不会在原对象内部修改状态，而会返回一个内部状态已经加一的
+新对象。递归类型保证返回对象与原对象具有完全相同的类型。
+
+这种对象与前述进程的差别只在观察方式：对象是递归定义的记录，其中包含函数；
+进程则是递归定义的函数，返回一个二元组。记录可以很自然地增加多个操作，例如
+再加入递减：
+\begin{lstlisting}[mathescape=true]
+Counter = $\mu$C. {get:Nat, inc:Unit->C, dec:Unit->C};
+\end{lstlisting}
+和前面的例子一样，可以用不动点组合子创建计数器对象：
+\begin{lstlisting}[mathescape=true]
+c = let create =
+      fix (lambda f:{x:Nat}->Counter. lambda s:{x:Nat}.
+             {get = s.x,
+              inc = lambda _:Unit. f {x=succ(s.x)},
+              dec = lambda _:Unit. f {x=pred(s.x)}})
+    in create {x=0};
+$\blacktriangleright$ c : Counter
+
+c1 = c.inc unit;
+c2 = c1.inc unit;
+c2.get;
+$\blacktriangleright$ 2 : Nat
+\end{lstlisting}
+调用对象的操作，只需投影相应字段；上例连续取得两次 \texttt{inc} 字段并调用，
+再读取 \texttt{get}。
+
+\begin{exercise}[\(\star\star\)]
+\label{ex:20.1.3}
+扩展上面的 \texttt{Counter} 类型和计数器 \texttt{c}，加入备份和重置操作，
+行为与\taplsecref{18.7}{sec:18.7}相同：调用 \texttt{backup} 时，把计数器当前值
+保存到独立的内部寄存器；调用 \texttt{reset} 时，把计数器恢复成寄存器中保存
+的值。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:20.1.3}{20.1.3}
+
+\subsection*{由递归类型构造递归值}
+
+递归类型还有一种更令人意外的用途，也最能显示它的表达能力：为不动点组合子
+给出良类型实现。对于任意类型 \(T\)，可以把 \(T\) 上函数的不动点组合子定义为
+\begin{lstlisting}[mathescape=true]
+fixT = lambda f:T->T.
+         (lambda x:($\mu$A.A->T). f (x x))
+         (lambda x:($\mu$A.A->T). f (x x));
+$\blacktriangleright$ fixT : (T->T) -> T
+\end{lstlisting}
+关键技巧是用递归类型为两处 \texttt{x x} 赋型。练习 9.3.2 已经指出，要给
+这一项赋型，\texttt{x} 必须具有箭头类型，而且其参数类型恰好就是
+\texttt{x} 自己的类型。有限类型不可能满足这个方程，无限类型
+\(\mu A.\,A\to T\) 却恰好可以。
+
+\translatornote{作者勘误澄清：上面的项擦除类型后得到的是按名调用不动点
+组合子，而不是第 5 章给出的按值调用版本；按值版本还需要在自应用处加入额外的
+lambda 抽象。这个差别不影响下文用它构造发散项，也不影响本节展示递归类型可以
+为自应用赋型的主旨。}
+
+因此，加入递归类型会破坏强规范化性质：可以用 \texttt{fixT} 写出良类型却
+不会结束求值的项，例如
+\begin{lstlisting}[mathescape=true]
+divergeT = lambda _:Unit. fixT (lambda x:T. x);
+$\blacktriangleright$ divergeT : Unit -> T
+\end{lstlisting}
+对每个类型都能构造这样的项，所以，与简单类型 lambda 演算
+\(\lambda_{\to}\) 不同，这个系统中的每个类型都有居留项。
+\footnote{这也意味着带递归类型的系统不适合作为逻辑。按照 Curry--Howard
+对应（见\taplsecref{9.4}{sec:9.4}），若把“类型 \(T\) 有居留项”理解为“命题
+\(T\) 可证”，那么每个类型都有居留项，就意味着每个命题都可证，因而该逻辑
+不一致。}
+
+\subsection*{再次考察无类型 lambda 演算}
+
+递归类型表达能力最鲜明的例证，或许是它能把整个无类型 lambda 演算以良类型
+方式嵌入带递归类型的静态类型语言。令下面的类型为 (D)：
+\footnote{熟悉指称语义的读者会注意到，(D) 的定义正是纯 lambda 演算语义模型
+所用\termfirst{通用域}{universal domain}的定义性质。}
+\begin{lstlisting}[mathescape=true]
+D = $\mu$X. X->X;
+\end{lstlisting}
+并定义“注入函数” \texttt{lam}，把从 \(D\) 到 \(D\) 的函数变成 \(D\) 的
+元素：
+\begin{lstlisting}[mathescape=true]
+lam = lambda f:D->D. f as D;
+$\blacktriangleright$ lam : (D->D) -> D
+\end{lstlisting}
+要把一个 \(D\) 的元素应用于另一个，只需把前者的类型展开成函数类型，再应用
+于后者：
+\begin{lstlisting}[mathescape=true]
+ap = lambda f:D. lambda a:D. f a;
+$\blacktriangleright$ ap : D -> D -> D
+\end{lstlisting}
+设 \(M\) 是只含变量、抽象和应用的闭 lambda 项。可以用下面的统一方式构造
+表示 \(M\) 的 \(D\) 型元素，记作 \(M^*\)：
+\[
+\begin{aligned}
+x^* &= x\\
+(\lambda x.M)^* &= \mathit{lam}\,(\lambda x:D.\,M^*)\\
+(M\,N)^* &= \mathit{ap}\,M^*\,N^*
+\end{aligned}
+\]
+例如，无类型不动点组合子可表示为 \(D\) 的元素：
+\begin{lstlisting}[mathescape=true]
+fixD = lam (lambda f:D.
+         ap (lam (lambda x:D. ap f (ap x x)))
+            (lam (lambda x:D. ap f (ap x x))));
+$\blacktriangleright$ fixD : D
+\end{lstlisting}
+
+还可以扩展这项嵌入，加入自然数等特性。把 \(D\) 改成一个变体类型，以两个
+标签分别表示数和函数：
+\begin{lstlisting}[mathescape=true]
+D = $\mu$X. <nat:Nat, fn:X->X>;
+\end{lstlisting}
+也就是说，\(D\) 的元素要么是带 \texttt{nat} 标签的数，要么是带
+\texttt{fn} 标签的 \(D\to D\) 函数。\texttt{lam} 的实现与此前基本相同：
+\begin{lstlisting}[mathescape=true]
+lam = lambda f:D->D. <fn=f> as D;
+$\blacktriangleright$ lam : (D->D) -> D
+\end{lstlisting}
+\texttt{ap} 的实现则多了一项重要工作：
+\begin{lstlisting}[mathescape=true]
+ap = lambda f:D. lambda a:D. case f of
+       <nat=n> ==> divergeD unit
+     | <fn=g>  ==> g a;
+$\blacktriangleright$ ap : D -> D -> D
+\end{lstlisting}
+应用 \texttt{f} 之前，必须先用 \texttt{case} 从中取出函数；这也迫使我们
+规定 \texttt{f} 不是函数时应用应怎样处理。这里选择发散，也可以抛出异常。
+这种标签检查与 Scheme 等动态类型语言实现中的运行时标签检查十分相似。在这个
+意义上，带类型计算可以把无类型或动态类型计算包容在自身之内。
+
+在 \(D\) 的元素上定义后继函数时也需要同样的标签检查：
+\begin{lstlisting}[mathescape=true]
+suc = lambda f:D. case f of
+        <nat=n> ==> (<nat=succ n> as D)
+      | <fn=g>  ==> divergeD unit;
+$\blacktriangleright$ suc : D -> D
+
+zro = <nat=0> as D;
+$\blacktriangleright$ zro : D
+\end{lstlisting}
+
+\begin{exercise}[\(\star\)]
+\label{ex:20.1.4}
+扩展这项编码，加入布尔值与条件表达式；再把
+\texttt{if false then 1 else 0} 和
+\texttt{if false then 1 else false} 编码为 \(D\) 的元素。对这些项求值会
+得到什么？
+\end{exercise}
+\taplauthorsolutionlink{sol:author:20.1.4}{20.1.4}
+
+\begin{exercise}[推荐，\(\star\star\)]
+\label{ex:20.1.5}
+扩展数据类型 \(D\)，加入记录：
+\begin{lstlisting}[mathescape=true]
+D = $\mu$X. <nat:Nat, fn:X->X, rcd:Nat->X>;
+\end{lstlisting}
+并实现记录构造和字段投影。为简单起见，用自然数作为字段标签，也就是把记录
+表示成从自然数到 \(D\) 的函数。请用 \texttt{fullequirec} 检查扩展。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:20.1.5}{20.1.5}
+
+\section{形式定义}
+\label{sec:20.2}
+
+类型系统文献对递归类型主要采用两种处理方式。它们对一个简单问题给出不同
+答案：\(\mu X.T\) 与其展开一次所得的类型是什么关系？例如，\texttt{NatList}
+与下面这个类型是什么关系？
+\[
+\langle\mathsf{nil}:\tapltype{Unit},
+        \mathsf{cons}:\{\tapltype{Nat},\texttt{NatList}\}\rangle
+\]
+
+\begin{enumerate}
+\item 等递归方法把两个类型表达式视为定义上相等，因而可以在所有上下文中互换；
+它们表示的是同一棵无限树。类型检查器负责保证：某函数需要其中一个类型的参数
+时，另一个类型的项也可以传入，其他场景同理。
+
+这种方法的优点是，声明式系统只需允许类型表达式表示无限的正则结构。只要已有
+定义、安全性定理和证明不依赖对类型表达式作归纳，它们都可以保持不变。实现却
+需要额外工作，因为类型检查算法不能直接操作真正的无限结构；\chapref{21}将
+说明怎样用有限表示完成检查。
+
+\item 同构递归方法把递归类型与其展开视为不同但同构的类型。
+\end{enumerate}
+
+递归类型 \(\mu X.T\) 的展开，是在类型体 \(T\) 中把 \(X\) 的全部出现替换成
+整个递归类型：
+\[
+\taplsubst{X}{\mu X.T}{T}
+\]
+例如，
+\[
+\mu X.\langle\mathsf{nil}:\tapltype{Unit},
+              \mathsf{cons}:\{\tapltype{Nat},X\}\rangle
+\]
+展开为
+\[
+\langle\mathsf{nil}:\tapltype{Unit},
+\mathsf{cons}:\{\tapltype{Nat},
+\mu X.\langle\mathsf{nil}:\tapltype{Unit},
+\mathsf{cons}:\{\tapltype{Nat},X\}\rangle\}\rangle
+\]
+同构递归系统为每个 \(\mu X.T\) 提供一对函数：
+\[
+\begin{aligned}
+\mathsf{unfold}[\mu X.T]&:\mu X.T\to\taplsubst{X}{\mu X.T}{T}\\
+\mathsf{fold}[\mu X.T]&:\taplsubst{X}{\mu X.T}{T}\to\mu X.T
+\end{aligned}
+\]
+它们在两个类型之间来回映射值，从而见证这项同构。
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.98\linewidth}
+\small
+\taplfigureheader{\(\lambda_\mu\)}{\(\lambda_{\to}\)（\cref{fig:9-1}）}
+\taplformalsystemcolumns[0.43]{
+\tapltranslateditalic{新增句法形式}
+\[
+\begin{array}{@{}rcll@{}}
+t&::=&\cdots&\text{项}\\
+ &\mid&\mathsf{fold}[T]\,t&\text{折叠}\\
+ &\mid&\mathsf{unfold}[T]\,t&\text{展开}\cr
+v&::=&\cdots&\text{值}\\
+ &\mid&\mathsf{fold}[T]\,v&\text{折叠值}\cr
+T&::=&\cdots&\text{类型}\\
+ &\mid&X&\text{类型变量}\\
+ &\mid&\mu X.T&\text{递归类型}
+\end{array}
+\]
+\tapltranslateditalic{新增求值规则}
+\[
+\inferrule*[right=\textsc{E-UnfldFld}]
+ { }
+ {\mathsf{unfold}[S](\mathsf{fold}[T]v_1)\trans v_1}
+\]
+}{
+\tapltranslateditalic{同余规则}
+\[
+\inferrule*[right=\textsc{E-Fold}]
+ {t_1\trans t_1'}
+ {\mathsf{fold}[T]t_1\trans\mathsf{fold}[T]t_1'}
+\]
+\[
+\inferrule*[right=\textsc{E-Unfold}]
+ {t_1\trans t_1'}
+ {\mathsf{unfold}[T]t_1\trans\mathsf{unfold}[T]t_1'}
+\]
+\tapltranslateditalic{类型规则}
+\[
+\inferrule*[right=\textsc{T-Fold}]
+ {U=\mu X.T_1\\\Gamma\vdash t_1:\taplsubst{X}{U}{T_1}}
+ {\Gamma\vdash\mathsf{fold}[U]t_1:U}
+\]
+\[
+\inferrule*[right=\textsc{T-Unfold}]
+ {U=\mu X.T_1\\\Gamma\vdash t_1:U}
+ {\Gamma\vdash\mathsf{unfold}[U]t_1:\taplsubst{X}{U}{T_1}}
+\]
+}
+\end{minipage}
+\caption{同构递归类型（\(\lambda_\mu\)）}
+\label{fig:20-1}
+\end{figure}
+
+语言把 \texttt{fold} 与 \texttt{unfold} 作为基本构造。
+\textsc{E-UnfldFld} 规定，对刚按某递归类型折叠起来的值再作展开，会消去这对
+操作。求值规则不要求两个类型标注相同，因为运行时验证这一约束会迫使求值器
+调用类型检查器；但在良类型程序的求值中，每次应用该规则时两个标注必然相同。
+
+两种方法都广泛用于理论研究和程序语言设计。等递归写法较为直观，却对类型
+检查器要求更高：检查器实际上要推断应在何处加入折叠和展开。等递归类型与有界
+量化、类型算子等高级类型特性的交互也可能非常复杂，带来显著的理论困难
+（Ghelli, 1993；Colazzo 与 Ghelli, 1999），甚至使类型检查不可判定
+（Solomon, 1978）。
+
+同构递归写法在记号上较重，程序每次使用递归类型时都要写出折叠或展开。不过，
+这些标注在实际语言中常能与其他构造合并。例如，ML 家族中的数据类型定义可能
+隐式引入递归类型；用构造子建立该类型的值时，构造子隐含一次折叠；在模式匹配中
+出现构造子时，则隐含一次展开。类似地，Java 的类定义隐式引入递归类型，调用
+对象方法也隐含展开。机制恰好重合，使同构递归方式在实践中并不难用。
+
+下面把 \texttt{NatList} 改写成同构递归形式。先为其展开形式定义缩写：
+\begin{lstlisting}
+NLBody = <nil:Unit, cons:{Nat,NatList}>;
+\end{lstlisting}
+\texttt{nil} 先构造 \texttt{NLBody} 型变体，再把它折叠成
+\texttt{NatList}；\texttt{cons} 同理：
+\begin{lstlisting}
+nil = fold [NatList] (<nil=unit> as NLBody);
+cons = lambda n:Nat. lambda l:NatList.
+         fold [NatList] (<cons={n,l}> as NLBody);
+\end{lstlisting}
+反过来，\texttt{isnil}、\texttt{hd} 和 \texttt{tl} 必须把
+\texttt{NatList} 看成变体，才能根据标签作分类讨论；为此先展开参数
+\texttt{l}：
+\begin{lstlisting}
+isnil = lambda l:NatList.
+  case unfold [NatList] l of
+    <nil=u>  ==> true
+  | <cons=p> ==> false;
+
+hd = lambda l:NatList.
+  case unfold [NatList] l of
+    <nil=u>  ==> 0
+  | <cons=p> ==> p.1;
+
+tl = lambda l:NatList.
+  case unfold [NatList] l of
+    <nil=u>  ==> l
+  | <cons=p> ==> p.2;
+\end{lstlisting}
+
+\begin{exercise}[推荐，\(\star\star\)]
+\label{ex:20.2.1}
+用显式 \texttt{fold} 与 \texttt{unfold} 标注，重写
+\taplsecref{20.1}{sec:20.1}的其他一些示例，尤其是 \texttt{fixT}。请用
+\texttt{fullisorec} 检查结果。
+\end{exercise}
+\taplauthorsolutionlink{sol:author:20.2.1}{20.2.1}
+
+\begin{exercise}[\(\star\star\star\), \(\nrightarrow\)]
+\label{ex:20.2.2}
+概述同构递归系统的进展性与保持性定理的证明。
+\end{exercise}
+\taplsolutionlink{sol:translator:20.2.2}{20.2.2}
+
+严格说来，等递归方法允许的不是任意无限类型表达式，而是正则的无限结构；
+\taplsecref{21.7}{sec:21.7}将给出精确定义。\(\mu\) 类型到无限树展开的映射则
+在\taplsecref{21.8}{sec:21.8}定义。
+
+\section{子类型化}
+\label{sec:20.3}
+
+最后还要考察递归类型与简单类型 lambda 演算的另一项重要扩展——子类型化——
+怎样结合。假设 \(\tapltype{Even}\subtype\tapltype{Nat}\)，那么
+\[
+\mu X.\tapltype{Nat}\to(\tapltype{Even}\times X)
+\quad\text{与}\quad
+\mu X.\tapltype{Even}\to(\tapltype{Nat}\times X)
+\]
+之间应是什么关系？
+
+最直接的分析方法，是按等递归方式把两者不断展开。两种类型的值都可以看成
+简单的反应式进程：给它一个数，它会返回另一个数和一个准备继续接收数字的新
+进程。第一种进程能接受任意自然数，却总是返回偶数；第二种进程只保证接受偶数，
+但可能返回任意自然数。第一种类型对参数接收范围和结果范围都作出了更强保证，
+因此应当是第二种类型的子类型。无限展开后，函数参数位置按逆变方向比较，结果
+中的数和后继进程则按协变方向比较；同一比较模式会在后继进程处不断重复。
+
+\chapref{21}将用余归纳把这项直观论证精确化。
+
+\section{说明}
+\label{sec:20.4}
+
+计算机科学中的递归类型至少可以追溯到 Morris（1968）。不带子类型化的递归
+类型，其基本句法和语义性质由 Huet（1976）以及 MacQueen、Plotkin 与
+Sethi（1986）的早期论文建立，并汇集于 Cardone 与 Coppo（1991）。Pair
+在 1970 年发表的一篇论文还给出了目前所知最早的等递归类型相等性可判定性
+证明之一。无限树与正则树的性质可参见 Courcelle（1983）的综述；同构递归系统
+与等递归系统之间的关系由 Abadi 与 Fiore（1996）研究。递归类型与子类型化的
+更多文献见\taplsecref{21.12}{sec:21.12}。
+
+Morris（1968, pp. 122--124）最早注意到，可以用递归类型为项构造良类型的
+\texttt{fix} 算子（\taplsecref{20.1}{sec:20.1}）。
+
+这两种递归类型形式自该领域最早期的研究便已存在；便于记忆的名称
+\emph{iso-recursive} 与 \emph{equi-recursive} 则是 Crary、Harper 与
+Puri（1999）较晚提出的。
