@@ -8,19 +8,21 @@
 
 主要的算法约束生成规则如下：
 \[
-\inferrule*[right=CA-Var]
- {x:T\in\Gamma}
+\inferrule*[right=CT-Var]
+ {\Gamma(x)=T}
  {\Gamma\vdash_Fx:T\mid_F\varnothing}
 \qquad
-\inferrule*[right=CA-Abs]
- {\Gamma,x:T_1\vdash_Ft_2:T_2\mid_{F'}C}
+\inferrule*[right=CT-Abs]
+ {\Gamma,x:T_1\vdash_Ft_2:T_2\mid_{F'}C\\
+  x\notin\dom(\Gamma)}
  {\Gamma\vdash_F\lambda x:T_1.\,t_2:T_1\to T_2\mid_{F'}C}
 \]
 \[
-\inferrule*[right=CA-App]
- {\Gamma\vdash_Ft_1:T_1\mid_{X,F_1}C_1\\
-  \Gamma\vdash_{F_1}t_2:T_2\mid_{F_2}C_2}
- {\Gamma\vdash_Ft_1\,t_2:X\mid_{F_2}
+\inferrule*[right=CT-App]
+ {\Gamma\vdash_Ft_1:T_1\mid_{F'}C_1\\
+  \Gamma\vdash_{F'}t_2:T_2\mid_{F''}C_2\\
+  F''=X,F'''}
+ {\Gamma\vdash_Ft_1\,t_2:X\mid_{F'''}
   C_1\cup C_2\cup\{T_1=T_2\to X\}}
 \]
 其余规则类似。
@@ -109,7 +111,7 @@ let rec recon ctx nextuvar t = match t with
 \[
 \inferrule*[right=CT-Fix]
  {\Gamma\vdash t_1:T_1\mid_{X_1}C_1\\
-  X\notin X_1\cup\fv(T_1)\cup\fv(C_1)}
+  X\text{ 不出现在 }X_1,\Gamma,t_1\text{ 中}}
  {\Gamma\vdash\taplterm{fix}\ t_1:X\mid_{X_1\cup\{X\}}
   C_1\cup\{T_1=X\to X\}}
 \]
@@ -147,9 +149,14 @@ let rec recon ctx nextuvar t = match t with
 \label{sol:author:22.4.6}
 \textbf{22.4.6 解答}
 
-可继续用约束列表表示替换，但要求每个数对左侧都是合一变量。先定义单变量替换、
-把整个替换作用于类型、把单变量替换作用于约束集，以及出现检查；合一函数随后
-就是\cref{def:22.4.4}伪代码的直接实现：
+本题首先需要一种替换的表示。可选的表示有很多；一种简单方案是复用
+\hyperref[sol:author:22.3.10]{解答22.3.10}中的 \texttt{constr} 数据类型：替换就是一个约束集，
+但要求每个数对的左侧都是合一变量。下面依次给出五个定义：\texttt{substinty}
+用一个类型替换单个类型变量；\texttt{applysubst} 把整个替换作用于类型；
+\texttt{substinconstr} 把一项替换作用于约束集中的所有类型；\texttt{occursin}
+执行防止循环依赖的“出现检查”；最后，\texttt{unify} 按\cref{def:22.4.4}的
+伪代码求解约束。像往常一样，\texttt{unify} 还接收文件位置 \texttt{fi} 和
+字符串 \texttt{msg}，用于在合一失败时打印错误信息。
 \begin{taplocamlcode}
 let substinty tyX tyT tyS =
   let rec f tyS = match tyS with
@@ -195,7 +202,7 @@ let unify fi ctx msg constr =
     | (TyBool,TyBool)::rest -> u rest
     | (TyArr(tyS1,tyS2),TyArr(tyT1,tyT2))::rest ->
         u ((tyS1,tyT1)::(tyS2,tyT2)::rest)
-    | _ -> error fi "Unsolvable constraints"
+    | (tyS,tyT)::rest -> error fi "Unsolvable constraints"
   in u constr
 \end{taplocamlcode}
 \taplrustcounterpart{ch22-unify}
@@ -224,7 +231,7 @@ let unify fi ctx msg constr =
 \(\{l_i:Y\}\)，因而错误地排除含其他字段的记录。
 
 Wand（1987）提出的办法后来由 Wand（1988, 1989b）、
-Rémy（1989, 1990；1992a, 1992b, 1998）等人进一步发展。其做法是增加一类
+Rémy（1989, 1990）等人进一步发展。其做法是增加一类
 \emph{行变量}。它的取值不是单个类型，而是整行“字段标签及相应类型”。令
 \(\oplus\) 合并字段互不相交的两行，则投影可生成约束
 \[

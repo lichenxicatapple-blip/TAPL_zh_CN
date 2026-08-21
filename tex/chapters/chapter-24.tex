@@ -53,13 +53,14 @@ OCaml 实现是 \texttt{fullpoly}。}；按操作语义的理解，它是一个�
 见证类型（参见\taplsecref{9.4}{sec:9.4}）；\(t\) 是值分量。可以把这样的值
 看作一个只有一个隐藏类型分量和一个项分量的小包或小模块。\footnote{为了让
 记号便于处理，这里只采用一个类型分量和一个项分量。多个类型分量可以用单类型
-存在包嵌套表示；多个项分量可以放进元组或记录。}按此约定，多分量包
+存在包嵌套表示；多个项分量可以放进元组或记录。按此约定，多分量包
 可展开为
 \[
 \{*S_1,*S_2,t_1,t_2\}
 \stackrel{\mathrm{def}}{=}
 \{*S_1,\{*S_2,\{t_1,t_2\}\}\}
 \]
+}
 
 显式类型标注不可省略，因为同一个包可能属于不止一个存在类型。例如，不带
 标注的
@@ -193,7 +194,7 @@ let {X,x}=p in x.a;
 \centering
 \begin{minipage}{0.98\linewidth}
 \footnotesize
-\taplfigureheader{存在类型}{扩展 System F（\cref{fig:23-1}）}
+\taplfigureheader{存在类型}{System F（\cref{fig:23-1}）}
 \taplformalsystemcolumns[0.47]{
 \tapltranslateditalic{新增句法形式}
 \[
@@ -220,7 +221,6 @@ T&::=&\cdots&\tapltranslateditalic{类型}\\
 \end{gathered}
 \]
 }{
-\tapltranslateditalic{同余规则}
 \[
 \inferrule*[right=E-Pack]
  {t_2\longrightarrow t_2'}
@@ -436,7 +436,8 @@ counterADT =
 出来。存在类型还支持另一种编程方式，可以表达简单的对象式数据抽象；
 \chapref{32}会继续发展这一对象模型。
 
-这里仍以计数器为例，并继续采用纯函数式风格：向计数器发送
+下面的例子既沿用本章前面的存在类型 ADT，也沿用\chapref{18}和\chapref{19}中的
+对象示例。这里仍以计数器为例，并继续采用纯函数式风格：向计数器发送
 \(\taplterm{inc}\) 消息不会就地修改其状态，而会返回一个内部状态已递增的
 新对象。计数器对象包含两类基本分量：内部状态，以及操作该状态的
 \(\taplterm{get}\) 和 \(\taplterm{inc}\) 方法。为保证状态只能经由这两个
@@ -649,7 +650,7 @@ C++ 和 Java 等主流面向对象语言的类允许某些强二元方法，更�
 看成“一个隐藏类型和一个值的对”，并让这个数据主动执行自己的消去操作：
 \[
 \llbracket\{\exists X,T\}\rrbracket
-=\forall Y.\,(\forall X.\,\llbracket T\rrbracket\to Y)\to Y
+\stackrel{\mathrm{def}}{=}\forall Y.\,(\forall X.\,\llbracket T\rrbracket\to Y)\to Y
 \]
 存在包在这种编码下接收一个结果类型和一个续延，再调用续延产生最终结果。
 续延接收两个参数：一个类型 \(X\)，以及一个 \(T\) 型的值；然后用它们计算
@@ -706,7 +707,7 @@ f[\llbracket S\rrbracket]\llbracket t\rrbracket
 \[
 \llbracket\textbf{let }\{X,x\}=t_1\textbf{ in }t_2\rrbracket
 \stackrel{\mathrm{def}}{=}
-\llbracket t_1\rrbracket[\llbracket T_2\rrbracket],\cdots
+\llbracket t_1\rrbracket[\llbracket T_2\rrbracket]\,\cdots
 \]
 此时 \(\llbracket t_1\rrbracket[\llbracket T_2\rrbracket]\) 的类型为
 \((\forall X.\llbracket T_{11}\rrbracket\to

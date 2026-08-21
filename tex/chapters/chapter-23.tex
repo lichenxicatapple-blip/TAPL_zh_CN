@@ -231,6 +231,9 @@ T-TAbs 的前提在上下文中加入 \(X\)，以记录它在子推导中的作�
 下面给出若干多态编程示例。我们先用几个短小、但难度逐渐增加的例子熟悉
 System F，再回顾列表、树等常见数据结构上的多态程序。最后两个小节将
 \chapref{5}在无类型 lambda 演算中给出的简单代数数据类型编码改写为带类型版本。
+这些编码的实际用途不大：布尔值、数和列表等重要特性若作为高级程序语言的
+基本构造，通常更容易编译出高效代码；不过，这些编码是理解 System F 的细节和能力的
+绝佳练习。
 \chapref{24}还会展示多态在模块化程序设计和抽象数据类型中的用途。
 
 \subsection*{热身}
@@ -662,8 +665,12 @@ l[X](\lambda hd:X.\,\lambda tl:X.\,hd)
 \begin{lstlisting}
 ? head : All X. List X -> X
 \end{lstlisting}
-空列表产生发散函数；非空列表产生忽略 \(\taplterm{unit}\) 并返回首元素的
-函数，最后一次应用才决定结果。
+其中，\(l\) 的折叠函数参数具有类型
+\(X\to(\tapltype{Unit}\to X)\to(\tapltype{Unit}\to X)\)，基值具有类型
+\(\tapltype{Unit}\to X\)；二者共同构造出一个 \(\tapltype{Unit}\to X\) 型函数。
+若 \(l\) 是空列表，这个结果就是 \(\taplterm{diverge}[X]\)；若 \(l\) 非空，它忽略
+\(\taplterm{unit}\) 并返回首元素。最后再把所得函数应用于 \(\taplterm{unit}\)，
+才得到真正的列表首元素（或在列表为空时发散），因此 \(\taplterm{head}\) 具有预期类型。
 
 尾部函数还需要通用的 Church 数对编码。令
 \[
@@ -711,13 +718,17 @@ l[X](\lambda hd:X.\,\lambda tl:X.\,hd)
 \tapltype{List}\,X\to X\to\tapltype{List}\,X,
 \]
 并用它构造列表排序函数。
+这个函数的三个实参依次是：比较两个 \(X\) 型元素的函数、一个已排序的
+\(X\) 型列表，以及要插入的新元素。结果应把新元素插入到恰当位置，也就是所有比它小的
+元素之后。
 \end{exercise}
 \taplauthorsolutionlink{sol:author:23.4.12}{23.4.12}
 
 \section{基本性质}
 \label{sec:23.5}
 
-System F 的类型安全性质与简单类型 lambda 演算基本相同。
+System F 的类型安全性质与简单类型 lambda 演算基本相同。其中，保持性和进展性的
+证明都是\chapref{9}中相应证明的直接扩展。
 
 \begin{theorem}[保持性；证明为推荐练习，\(\star\star\star\)]
 \label{thm:23.5.1}
@@ -833,7 +844,8 @@ Garrigue 与 Rémy（1997）提出的方案保守扩展 ML：程序员可以显�
 对于同时具有子类型和非直谓多态的系统，Pierce 与 Turner（1998；另见 Pierce
 与 Turner，1997；Hosoya 与 Pierce，1999）提出了
 \termfirst{局部类型推断}{local type inference}，亦称局部类型重构。GJ 和
-Funnel 等语言设计采用了这一办法；Funnel 还引入了能力更强的着色局部类型推断
+Funnel 等语言设计采用了这一办法，其中 GJ 见 Bracha、Odersky、Stoutamire 与
+Wadler（1998），Funnel 见 Odersky 与 Zenger（2001）；Funnel 还引入了能力更强的着色局部类型推断
 （Odersky、Zenger 与 Zenger，2001）。
 
 Cardelli（1993）提出了更简单、但较难预测的贪心算法；依赖类型证明检查器
@@ -841,7 +853,8 @@ NuPrl（Howe，1988）和 Lego（Pollack，1990）也使用过类似算法。程
 标注，解析器为每处省略生成新的合一变量。子类型检查遇到
 \(X<:T\) 或 \(T<:X\) 时，立即令 \(X=T\)，以最直接的选择满足当前约束。
 这个选择未必对后续约束最有利：其他实例化本可使整个程序通过，而贪心选择却
-可能令很远处的检查失败。Cardelli 的实现和早期 Pict 的经验表明，它几乎总能
+可能令很远处的检查失败。Cardelli 的实现和早期 Pict 的经验（Pierce 与 Turner，
+2000）表明，它几乎总能
 作出正确选择；一旦选错，错误信息却往往出现在远离错误实例化的位置，令程序员
 难以理解。
 
@@ -955,6 +968,8 @@ NuPrl（Howe，1988）和 Lego（Pollack，1990）也使用过类似算法。程
 引入的值限制会擦除类型抽象；在那里，对类型变量作泛化相当于插入类型抽象，
 但只有当它紧邻普通项抽象或其他句法值构造子时才允许泛化。这些构造本身也会
 阻止按值求值进入其内部，因而仍能保证安全。}
+这个新的擦除函数与无类型求值“可交换”：先擦除再求值，或先求值再擦除，
+都会得到相应的结果。下面的定理精确表述了这一点。
 
 \begin{exercise}[\(\star\star\)]
 \label{ex:23.7.1}
@@ -1013,6 +1028,15 @@ polymorphism}，此后又有许多研究；可参见 Jim（1995，1996）。把�
 回想\cref{sec:23.4}中的定义：
 \[
 \tapltype{CBool}=\forall X.\,X\to X\to X
+\]
+以及布尔常量
+\[
+\begin{aligned}
+\taplterm{tru}&=\lambda X.\,\lambda t:X.\,\lambda f:X.\,t,
+&\quad ?\ \taplterm{tru}:\tapltype{CBool},\\
+\taplterm{fls}&=\lambda X.\,\lambda t:X.\,\lambda f:X.\,f,
+&\quad ?\ \taplterm{fls}:\tapltype{CBool}
+\end{aligned}
 \]
 只看这个类型的结构，几乎就能机械地写出 \(\taplterm{tru}\) 和
 \(\taplterm{fls}\)。最外层是 \(\forall X\)，所以值必须先写成类型抽象

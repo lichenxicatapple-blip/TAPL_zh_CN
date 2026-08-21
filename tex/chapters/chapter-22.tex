@@ -291,7 +291,7 @@ Rémy（1992a, 1992b, 1998）的另一种改进是把赋型判断本身当作合
 类型 \(S\)。每个满足 \(C\) 的替换 \(\sigma\) 都让 \(\sigma S\) 成为项的
 一种可能类型；若 \(C\) 没有满足者，项便不存在可赋型实例。例如，项
 \(\lambda x:X\to Y.\,x\,0\) 生成约束
-\(\{\tapltype{Nat}\to Z=X\to Y\}\)，结果类型为
+\(\{X\to Y=\tapltype{Nat}\to Z\}\)，结果类型为
 \((X\to Y)\to Z\)。替换
 \([X\mapsto\tapltype{Nat},Z\mapsto\tapltype{Bool},
 Y\mapsto\tapltype{Bool}]\) 满足约束，所以
@@ -692,7 +692,7 @@ lambda w:W. if true then false else w false;
 规则：
 \[
 \inferrule*[right=CT-AbsInf]
- {X\notin X_1\cup\fv(\Gamma)\qquad
+ {X\notin X_1\qquad
   \Gamma,x:X\vdash t_2:T_2\mid_{X_1}C}
  {\Gamma\vdash\lambda x.\,t_2:X\to T_2\mid_{X_1\cup\{X\}}C}
 \]
@@ -749,7 +749,14 @@ let b = double (lambda x:Bool. x) false in
 独立的新类型变量。
 
 第一步是改变 let 的类型规则。普通规则先给右侧 \(t_1\) 求类型，再以该类型
-检查体 \(t_2\)；这里则先把 \(t_1\) 代入 \(t_2\)，再检查展开后的表达式：
+检查体 \(t_2\)：
+\[
+\inferrule*[right=T-Let]
+ {\Gamma\vdash t_1:T_1\\
+  \Gamma,x:T_1\vdash t_2:T_2}
+ {\Gamma\vdash\taplterm{let}\ x=t_1\ \taplterm{in}\ t_2:T_2}
+\]
+新规则则先把 \(t_1\) 代入 \(t_2\)，再检查展开后的表达式：
 \[
 \inferrule*[right=T-LetPoly]
  {\Gamma\vdash[x\mapsto t_1]t_2:T_2}
@@ -761,7 +768,13 @@ let b = double (lambda x:Bool. x) false in
  {\Gamma\vdash[x\mapsto t_1]t_2:T_2\mid_XC}
  {\Gamma\vdash\taplterm{let}\ x=t_1\ \taplterm{in}\ t_2:T_2\mid_XC}
 \]
-也就是说，赋型前先执行一次 let 的替换步骤。第二步是用上一节的无标注抽象定义
+也就是说，赋型前先执行一次下列 let 求值步骤：
+\[
+\inferrule*[right=E-LetV]{ }
+ {\taplterm{let}\ x=v_1\ \taplterm{in}\ t_2
+  \longrightarrow[x\mapsto v_1]t_2}
+\]
+第二步是用上一节的无标注抽象定义
 \texttt{double}：
 \begin{lstlisting}
 let double = lambda f. lambda a. f (f a) in
@@ -832,7 +845,7 @@ let l6 = (l5, l5, l5, l5) in
 let l7 = (l6, l6, l6, l6) in
 let l8 = (l7, l7, l7, l7) in
 let l9 = (l8, l8, l8, l8) in
-ignore l9
+ignore (l9)
 \end{taplocamlcode}
 从 \texttt{l0}、\texttt{l1} 逐步输入 OCaml 顶层，可以观察到类型的快速增长。
 可参见 Kfoury、Tiuryn 与 Urzyczyn（1994）的进一步讨论。
@@ -842,7 +855,8 @@ Rust 的多态机制和推断规则不同，没有逐项对应的 Rust 程序能
 最后还要处理 let 多态与可变引用等副作用的相互作用。考虑
 \begin{lstlisting}
 let r = ref (lambda x. x) in
-(r := (lambda x:Nat. succ x); (!r) true)
+(r := (lambda x:Nat. succ x);
+ (!r) true)
 \end{lstlisting}
 上述算法会先把右侧赋予主类型
 \(\tapltype{Ref}(X\to X)\)，再把 \(X\) 泛化。赋值时可将它实例化为
@@ -853,10 +867,17 @@ let r = ref (lambda x. x) in
 根源在于类型规则与按值求值规则不同步：前者仿佛立即复制 let 右侧，后者只在
 右侧求得值之后才替换，因此运行时只分配一个引用单元。调整求值规则、让右侧在
 求值前就被复制，可以恢复安全性。此时 let 的求值规则改为\footnote{严格说来，
-这里讨论的语言含有引用，所以规则应像\chapref{13}一样显式携带存储。}
+这里讨论的语言含有引用，所以规则应像\chapref{13}一样显式携带存储：
 \[
-\taplterm{let}\ x=t_1\ \taplterm{in}\ t_2
-\longrightarrow [x\mapsto t_1]t_2
+\taplterm{let}\ x=t_1\ \taplterm{in}\ t_2\mid\mu
+\longrightarrow[x\mapsto t_1]t_2\mid\mu
+\qquad\textsc{E-Let}
+\]
+}
+\[
+\inferrule*[right=E-Let]{ }
+ {\taplterm{let}\ x=t_1\ \taplterm{in}\ t_2
+  \longrightarrow [x\mapsto t_1]t_2}
 \]
 危险示例的第一步会变成
 \begin{lstlisting}
