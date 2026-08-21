@@ -9,10 +9,10 @@
 位：
 \[
 \begin{array}{rcl}
-\uparrow_c^d(X_k)&=&
+\uparrow_c^d(k)&=&
  \begin{cases}
- X_{k+d}&k\geq c,\\
- X_k&k<c,
+ k+d&k\geq c,\\
+ k&k<c,
  \end{cases}\\
 \uparrow_c^d(T_1\to T_2)&=&
  \uparrow_c^d(T_1)\to\uparrow_c^d(T_2),\\
@@ -22,19 +22,23 @@
  \exists X.\uparrow_{c+1}^d(T_2).
 \end{array}
 \]
-顶层移位简写为 \(\uparrow^d(T)=\uparrow_0^d(T)\)。实际表示还要把每个
-变量节点保存的上下文长度同步增加 \(d\)。
+顶层移位简写为 \(\uparrow^d(T)=\uparrow_0^d(T)\)。
 \taplsolutionbacklink{ex:25.2.1}{返回练习25.2.1}
 \end{taplauthorsolutionentrybox}
+
+\translatornote{在书中的无名运行时表示里，每个变量节点还保存了该位置预期的
+上下文长度；移位时，这个长度也要同步增加 \(d\)。}
 
 \begin{taplauthorsolutionentrybox}
 \phantomsection\label{sol:author:25.4.1}
 \textbf{25.4.1 解答}
 
-这次移位是为类型变量 \(X\) 腾出上下文位置。\(v_{12}\) 原来相对于
-\(\Gamma\) 表示；把它代入 \(t_2\) 后，暂时处在
-\(\Gamma,X\) 之下。因此必须先把 \(v_{12}\) 上移一位，再替换项变量。
-随后 \texttt{tytermSubstTop} 代入实际类型并删除 \(X\) 的位置，最终结果
-重新相对于 \(\Gamma\) 解释。
+这次移位是为类型变量 \(X\) 腾出上下文位置。把 \(v_{12}\) 代入 \(t_2\)
+所得的结果应当在 \(\Gamma,X\) 中具有良好的作用域，而原来的 \(v_{12}\)
+只相对于 \(\Gamma\) 定义。
 \taplsolutionbacklink{ex:25.4.1}{返回练习25.4.1}
 \end{taplauthorsolutionentrybox}
+
+\translatornote{具体顺序是：先把 \(v_{12}\) 上移一位，再替换项变量；随后
+\texttt{tytermSubstTop} 代入实际类型并删除 \(X\) 的上下文位置，使最终结果
+重新相对于 \(\Gamma\) 解释。}

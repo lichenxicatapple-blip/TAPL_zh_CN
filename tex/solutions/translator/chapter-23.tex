@@ -6,9 +6,23 @@
 \phantomsection\label{sol:translator:23.4.1}
 \textbf{23.4.1 解答}
 
-以 \(\taplterm{selfApp}\) 为例。上下文中
+对 \(\taplterm{id}\)，在 \(\Gamma,X,x:X\) 下由 T-Var 有
+\(x:X\)，连续使用 T-Abs 和 T-TAbs 得
 \[
-x:\forall X.\,X\to X.
+\vdash\lambda X.\lambda x:X.x:\forall X.X\to X.
+\]
+
+对 \(\taplterm{double}\)，固定 \(X\) 并令
+\(f:X\to X,a:X\)。两次 T-App 依次给出
+\(f\,a:X\) 和 \(f(f\,a):X\)；再依次抽象 \(a,f,X\)，得到
+\[
+\vdash\taplterm{double}:
+\forall X.(X\to X)\to X\to X.
+\]
+
+对 \(\taplterm{selfApp}\)，上下文中
+\[
+x:\forall X.\,X\to X
 \]
 由 T-TApp，在类型 \(\forall X.\,X\to X\) 处实例化 \(x\)，得到
 \[
@@ -17,8 +31,19 @@ x[\forall X.\,X\to X]:
 \]
 再把原来的 \(x\) 作为实参应用，即得结果类型
 \(\forall X.\,X\to X\)。外层 T-Abs 给出题中函数类型。
-\(\taplterm{id}\)、\(\taplterm{double}\) 与
-\(\taplterm{quadruple}\) 逐层使用 T-TAbs、T-TApp、T-Abs 和 T-App 即可。
+
+最后看 \(\taplterm{quadruple}\)。在固定的 \(X\) 下，先实例化
+\(\taplterm{double}[X]\)，得到
+\[
+(X\to X)\to X\to X.
+\]
+再把外层 \taplterm{double} 的类型变量实例化为 \(X\to X\)：
+\[
+\taplterm{double}[X\to X]:
+((X\to X)\to X\to X)\to(X\to X)\to X\to X.
+\]
+一次 T-App 正好允许它接收 \(\taplterm{double}[X]\)，结果为
+\((X\to X)\to X\to X\)。最后对 \(X\) 使用 T-TAbs，得到题中全称类型。
 \taplsolutionbacklink{ex:23.4.1}{返回练习23.4.1}
 \end{taplsolutionentrybox}
 
@@ -48,16 +73,39 @@ m(\taplterm{tail}[X]l):\tapltype{List}\,Y.
 \phantomsection\label{sol:translator:23.4.4}
 \textbf{23.4.4 解答}
 
-可采用插入排序：先定义
+可采用插入排序。允许 \taplterm{fix} 时，完整定义如下：
+\[
+\begin{aligned}
+\taplterm{insert}={}&\lambda X.\lambda leq:X\to X\to\tapltype{Bool}.\\
+&\taplterm{fix}\bigl(\lambda ins:
+ X\to\tapltype{List}\,X\to\tapltype{List}\,X.\,
+ \lambda x:X.\lambda l:\tapltype{List}\,X.\\
+&\quad\textbf{if }\taplterm{isnil}[X]\ l
+ \textbf{ then }\taplterm{cons}[X]\ x\ (\taplterm{nil}[X])\\
+&\quad\textbf{else if }leq\ x\ (\taplterm{head}[X]\ l)\\
+&\qquad\textbf{then }\taplterm{cons}[X]\ x\ l\\
+&\qquad\textbf{else }\taplterm{cons}[X]\ (\taplterm{head}[X]\ l)\,
+  (ins\ x\ (\taplterm{tail}[X]\ l))\bigr),\\[1mm]
+\taplterm{sort}={}&\lambda X.\lambda leq:X\to X\to\tapltype{Bool}.\\
+&\taplterm{fix}\bigl(\lambda s:
+ \tapltype{List}\,X\to\tapltype{List}\,X.\,
+ \lambda l:\tapltype{List}\,X.\\
+&\quad\textbf{if }\taplterm{isnil}[X]\ l
+ \textbf{ then }\taplterm{nil}[X]\\
+&\quad\textbf{else }\taplterm{insert}[X]\ leq\,
+  (\taplterm{head}[X]\ l)\,
+  (s\ (\taplterm{tail}[X]\ l))\bigr)
+\end{aligned}
+\]
+其中
 \[
 \taplterm{insert}:
-\forall X.\,(X\to X\to\tapltype{Bool})\to
-X\to\tapltype{List}\,X\to\tapltype{List}\,X,
+\forall X.(X\to X\to\tapltype{Bool})\to
+X\to\tapltype{List}\,X\to\tapltype{List}\,X
 \]
-它沿列表递归，在第一个满足比较条件的位置插入元素；再以空列表为初值，把
-原列表的每个元素依次插入。若允许 \(\taplterm{fix}\)，两个递归都可直接按
-\cref{sec:23.4}中 \(\taplterm{map}\) 的形式书写；若要求纯 System F，
-则使用\cref{sol:author:23.4.12}的折叠编码。
+沿列表递归，在第一个满足比较条件的位置插入新元素；\taplterm{sort} 再递归
+排序表尾，并把表头插入已经排好的表尾。若要求纯 System F，则可使用
+\taplnamedref{sol:author:23.4.12}{解答23.4.12}的折叠编码。
 \taplsolutionbacklink{ex:23.4.4}{返回练习23.4.4}
 \end{taplsolutionentrybox}
 

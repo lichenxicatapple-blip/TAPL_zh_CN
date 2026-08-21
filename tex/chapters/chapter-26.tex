@@ -14,26 +14,73 @@
 \section{动机}
 \label{sec:26.1}
 
-设
-\[
-f=\lambda x:\{a:\tapltype{Nat}\}.\,x.
-\]
-记录 \(\{a=0,b=\taplterm{true}\}\) 可以借助子类型规则传给 \(f\)，但结果只
-获得类型 \(\{a:\tapltype{Nat}\}\)，字段 \(b\) 的静态信息丢失。若改用
-System F 的恒等函数
-\[
-\taplterm{fpoly}=\lambda X.\lambda x:X.\,x,
-\]
-把完整记录类型作为实参即可保留字段。
+把子类型和多态组合起来，最简单的办法是把它们看作彼此正交的特性，直接合并
+\chapref{15}和\chapref{23}的系统。这样的系统在理论上没有特别困难，也同时
+拥有两项特性各自的用途。但二者出现在同一语言中后，自然会想把它们结合得更
+紧密。下面先看一个很小的例子；\taplsecref{26.3}{sec:26.3}还有更多示例，
+\chapref{27}和\chapref{32}则会给出更大的实际案例。
 
-然而，若函数还要访问 \(a\)：
-\[
-\lambda x:\{a:\tapltype{Nat}\}.
-\{\taplterm{orig}=x,\taplterm{asucc}=\taplterm{succ}(x.a)\},
-\]
-把参数类型简单改成未知 \(X\) 就不再合法，因为检查器不知道 \(X\) 一定有
-\(a\) 字段。所需约束是：\(X\) 可以是任何
-\(\{a:\tapltype{Nat}\}\) 的子类型。写成
+设 \(f\) 是带自然数字段 \(a\) 的记录上的恒等函数：
+\begin{lstlisting}
+f = lambda x:{a:Nat}. x;
+? f : {a:Nat} -> {a:Nat}
+\end{lstlisting}
+若 \(r_a\) 只有一个 \(a\) 字段，\footnote{本章主要研究纯
+\(F_{<:}\)（\taplnamedref{fig:26-1}{图26-1}）；示例还使用记录
+（\taplnamedref{fig:11-7}{图11-7}）和自然数
+（\taplnamedref{fig:8-2}{图8-2}）。原书对应的 OCaml 实现是
+\texttt{fullfsub} 和 \texttt{fullfomsub}。多数示例用 \texttt{fullfsub}
+即可；涉及带参数的类型缩写（例如 \texttt{Pair}）时，需要
+\texttt{fullfomsub}。}
+\begin{lstlisting}
+ra = {a=0};
+f ra;
+? {a=0} : {a:Nat}
+\end{lstlisting}
+把它传给 \(f\) 会得到同类型的记录。再定义一个含 \(a\)、\(b\) 两个字段的
+更大记录：
+\begin{lstlisting}
+rab = {a=0, b=true};
+f rab;
+? {a=0, b=true} : {a:Nat}
+\end{lstlisting}
+T-Sub 会把 \(r_{ab}\) 的类型提升为 \(\{a:\tapltype{Nat}\}\)，以匹配
+\(f\) 的参数类型；但应用结果的静态类型也只剩字段 \(a\)，所以
+\((f\ r_{ab}).b\) 无法通过类型检查。也就是说，仅仅让 \(r_{ab}\) 经过恒等
+函数，程序就失去了访问字段 \(b\) 的能力。
+
+System F 的多态性可以避免这项损失：
+\begin{lstlisting}
+fpoly = lambda X. lambda x:X. x;
+? fpoly : All X. X -> X
+
+fpoly [{a:Nat, b:Bool}] rab;
+? {a=0, b=true} : {a:Nat, b:Bool}
+\end{lstlisting}
+然而，把 \(x\) 的类型改成变量，也会丢掉函数体可能需要的信息。假设另一个
+函数既返回原参数，又计算其 \(a\) 字段的后继：
+\begin{lstlisting}
+f2 = lambda x:{a:Nat}. {orig=x, asucc=succ(x.a)};
+? f2 : {a:Nat} -> {orig:{a:Nat}, asucc:Nat}
+
+f2 ra;
+? {orig={a=0}, asucc=1} : {orig:{a:Nat}, asucc:Nat}
+
+f2 rab;
+? {orig={a=0,b=true}, asucc=1} : {orig:{a:Nat}, asucc:Nat}
+\end{lstlisting}
+子类型让两个调用都合法，却再次让第二个结果丢掉字段 \(b\) 的静态信息。这次
+普通多态也无济于事：
+\begin{lstlisting}
+f2poly = lambda X. lambda x:X. {orig=x, asucc=succ(x.a)};
+? Error: Expected record type
+\end{lstlisting}
+若把 \(x\) 的类型只写成未知的 \(X\)，检查器便不知道它必定含有 \(a\) 字段。
+
+我们真正想在类型中表达的是：函数接收任意含自然数字段 \(a\) 的记录类型
+\(R\)，结果同时含一个 \(R\) 型字段和一个自然数字段。借助子类型关系，可以
+说 \(R\) 是 \(\{a:\tapltype{Nat}\}\) 的任意子类型。把这项约束写进类型变量
+的绑定，得到
 \[
 \begin{aligned}
 \taplterm{f2poly}
@@ -48,10 +95,7 @@ System F 的恒等函数
 X\to\{\taplterm{orig}:X,\taplterm{asucc}:\tapltype{Nat}\}.
 \]
 量词上的上界既保证函数体可以安全使用 \(a\)，又保留实参的精确类型 \(X\)。
-
-\footnotetext{本章主要研究纯 \(F_{<:}\)（\cref{fig:26-1}）；示例还使用记录
-和自然数。原书 OCaml 实现为 \texttt{fullfsub} 和
-\texttt{fullfomsub}。}
+这种在量词上附加子类型约束的形式，就是 System \(F_{<:}\) 的标志性特征。
 
 \section{定义}
 \label{sec:26.2}
@@ -78,17 +122,36 @@ X\to\{\taplterm{orig}:X,\taplterm{asucc}:\tapltype{Nat}\}.
 
 \subsection*{作用域}
 
-上下文中的类型只能引用其左侧已经绑定的类型变量。因此
+图 26-1 本身没有显示一个重要的技术细节：类型变量的作用域。讨论
+\(\Gamma\vdash t:T\) 时，当然要求 \(t\) 和 \(T\) 的自由类型变量都在
+\(\Gamma\) 中绑定；上下文内各项所含的自由类型变量也要遵守作用域。比较
+下面四个上下文：
 \[
-X<:\tapltype{Top},\ y:X\to\tapltype{Nat}
+\begin{array}{ll}
+\Gamma_1=X<:\tapltype{Top},\ y:X\to\tapltype{Nat},&
+\Gamma_2=y:X\to\tapltype{Nat},\ X<:\tapltype{Top},\\
+\Gamma_3=X<:\{a:\tapltype{Nat},b:X\},&
+\Gamma_4=X<:\{a:\tapltype{Nat},b:Y\},\
+Y<:\{c:\tapltype{Bool},d:X\}
+\end{array}
 \]
-良构，而把两项交换顺序便不良构。本书也不让 \(X\) 出现在自己的上界中，
-所以
-\[
-X<:\{a:\tapltype{Nat},b:X\}
-\]
-不良构。允许这种自引用上界会得到 F-有界量化；它与递归类型组合时很有用，
-但不在本章范围内。
+\(\Gamma_1\) 显然良构：先引入 \(X\)，后面的项变量类型才使用它；它可来自
+\(\lambda X<:\tapltype{Top}.\lambda y:X\to\tapltype{Nat}.t\) 这样的项。
+\(\Gamma_2\) 则把使用放在绑定之前，无法说明 \(y\) 的类型中 \(X\) 的作用域，
+所以不良构。
+
+\(\Gamma_3\) 更微妙。若允许 \(X\) 的绑定作用域覆盖它自己的上界，便可以把
+它视为良构；这种系统称为 F-有界量化（Canning、Cook、Hill、Olthoff 与
+Mitchell，1989b），常见于面向对象语言的类型研究，也用于 GJ 的设计。不过，
+其理论比普通 \(F_{<:}\) 更复杂，而且只有结合递归类型时才真正有意义，因为
+不存在非递归类型 \(X\) 能满足
+\(X<:\{a:\tapltype{Nat},b:X\}\) 这样的约束。
+
+像 \(\Gamma_4\) 这样让类型变量通过上界相互递归的上下文也曾有人研究；这类
+演算通常允许每个新变量绑定引入一组涉及新变量和已有变量的不等式。本书不再
+讨论 F-有界量化，并把 \(\Gamma_2\)、\(\Gamma_3\)、\(\Gamma_4\) 全部视为
+不良构。正式地说，上下文中出现的每个类型，只能自由引用它左侧已经绑定的类型
+变量。
 
 \subsection*{子类型与赋型}
 
@@ -104,14 +167,36 @@ X<:\{a:\tapltype{Nat},b:X\}
 \begin{figure}[!ht]
 \centering
 \begin{minipage}{0.96\linewidth}
-\textbf{新增类型、项与值}
+\textbf{语法}
 \[
 \begin{array}{rcl}
 T&::=&X\mid\tapltype{Top}\mid T\to T\mid\forall X<:T.\,T,\\
 t&::=&x\mid\lambda x:T.\,t\mid t\,t
 \mid\lambda X<:T.\,t\mid t[T],\\
-v&::=&\lambda x:T.\,t\mid\lambda X<:T.\,t
+v&::=&\lambda x:T.\,t\mid\lambda X<:T.\,t,\\
+\Gamma&::=&\varnothing\mid\Gamma,x:T\mid\Gamma,X<:T
 \end{array}
+\]
+\textbf{求值}
+\[
+\inferrule*[right=E-App1]{t_1\longrightarrow t_1'}
+ {t_1\,t_2\longrightarrow t_1'\,t_2}
+\qquad
+\inferrule*[right=E-App2]{t_2\longrightarrow t_2'}
+ {v_1\,t_2\longrightarrow v_1\,t_2'}
+\]
+\[
+\inferrule*[right=E-AppAbs]{ }
+ {(\lambda x:T_{11}.t_{12})\,v_2
+  \longrightarrow[x\mapsto v_2]t_{12}}
+\]
+\[
+\inferrule*[right=E-TApp]{t_1\longrightarrow t_1'}
+ {t_1[T_2]\longrightarrow t_1'[T_2]}
+\qquad
+\inferrule*[right=E-TAppTAbs]{ }
+ {(\lambda X<:T_{11}.t_{12})[T_2]
+  \longrightarrow[X\mapsto T_2]t_{12}}
 \]
 \textbf{核子类型规则}
 \[
@@ -138,7 +223,18 @@ v&::=&\lambda x:T.\,t\mid\lambda X<:T.\,t
  {\Gamma\vdash
   \forall X<:S_1.S_2<:\forall X<:S_1.T_2}
 \]
-\textbf{新增赋型规则}
+\textbf{赋型}
+\[
+\inferrule*[right=T-Var]{x:T\in\Gamma}{\Gamma\vdash x:T}
+\]
+\[
+\inferrule*[right=T-Abs]{\Gamma,x:T_1\vdash t_2:T_2}
+ {\Gamma\vdash\lambda x:T_1.t_2:T_1\to T_2}
+\qquad
+\inferrule*[right=T-App]
+ {\Gamma\vdash t_1:T_{11}\to T_{12}\\\Gamma\vdash t_2:T_{11}}
+ {\Gamma\vdash t_1\,t_2:T_{12}}
+\]
 \[
 \inferrule*[right=T-TAbs]
  {\Gamma,X<:T_1\vdash t_2:T_2}
@@ -159,7 +255,7 @@ v&::=&\lambda x:T.\,t\mid\lambda X<:T.\,t
 \label{fig:26-1}
 \end{figure}
 
-\begin{exercise}[\(\star\star\)]
+\begin{exercise}[\(\star\)]
 \label{ex:26.2.1}
 在
 \(\Gamma=B<:\tapltype{Top},X<:B,Y<:X\) 下，画出
@@ -174,6 +270,8 @@ B\to Y<:X\to B
 
 核 S-All 要求两边量词的上界完全相同。把量词看作从类型实参到项实例的函数，
 完全规则允许上界像函数参数一样逆变：
+\begin{figure}[!ht]
+\centering
 \[
 \inferrule*[right=S-All（完全）]
  {\Gamma\vdash T_1<:S_1\\
@@ -181,10 +279,13 @@ B\to Y<:X\to B
  {\Gamma\vdash
   \forall X<:S_1.S_2<:\forall X<:T_1.T_2}.
 \]
+\caption{“完全”有界量化}
+\label{fig:26-2}
+\end{figure}
 右侧类型只要求接受 \(T_1\) 的子类型；左侧值能接受更宽的 \(S_1\) 范围，因而
 可在右侧所需的位置使用。对两边都可接受的实参，量词体再逐点满足协变关系。
 
-\begin{exercise}[\(\star\star\)]
+\begin{exercise}[\(\star\)]
 \label{ex:26.2.2}
 举出若干在完全 \(F_{<:}\) 中成立、在核 \(F_{<:}\) 中不成立的子类型对。
 \end{exercise}
@@ -201,19 +302,35 @@ B\to Y<:X\to B
 
 \subsection*{序对编码}
 
-\cref{sec:23.4}的多态序对编码
+\taplsecref{23.4}{sec:23.4}的多态序对编码
 \[
 \tapltype{Pair}\,T_1\,T_2
 =\forall X.\,(T_1\to T_2\to X)\to X
 \]
-在 \(F_{<:}\) 中还自动具有预期的子类型性质：
+的值表示由 \(T_1\) 和 \(T_2\) 元素组成的序对。构造函数及两个投影定义为
+\begin{lstlisting}
+pair = lambda X. lambda Y. lambda x:X. lambda y:Y.
+         (lambda R. lambda p:X->Y->R. p x y) as Pair X Y;
+? pair : All X. All Y. X -> Y -> Pair X Y
+
+fst = lambda X. lambda Y. lambda p:Pair X Y.
+        p [X] (lambda x:X. lambda y:Y. x);
+? fst : All X. All Y. Pair X Y -> X
+
+snd = lambda X. lambda Y. lambda p:Pair X Y.
+        p [Y] (lambda x:X. lambda y:Y. y);
+? snd : All X. All Y. Pair X Y -> Y
+\end{lstlisting}
+\(\taplterm{pair}\) 定义中的类型归属帮助检查器以更易读的形式打印类型。
+同一编码当然也能用于 \(F_{<:}\)，因为 \(F_{<:}\) 包含 System F 的全部特性。
+更有意思的是，它还自动具有预期的子类型性质：
 \[
 S_1<:T_1,\quad S_2<:T_2
 \quad\Longrightarrow\quad
 \tapltype{Pair}\,S_1\,S_2<:\tapltype{Pair}\,T_1\,T_2.
 \]
 
-\begin{exercise}[\(\star\star\)]
+\begin{exercise}[\(\star\)]
 \label{ex:26.3.1}
 从序对编码和 \(F_{<:}\) 的规则推导上述性质。
 \end{exercise}
@@ -223,16 +340,80 @@ S_1<:T_1,\quad S_2<:T_2
 
 \begin{definition}
 \label{def:26.3.2}
-长度为 \(n\) 的\emph{柔性元组}用嵌套 Church 序对表示，并在最右端附加
-\(\tapltype{Top}\)。因此向元组右侧增加分量会得到子类型；第 \(i\) 个投影
-通过逐层取第二分量、最后取第一分量实现。
+对任意 \(n\geq0\) 及类型 \(T_1,\ldots,T_n\)，定义
+\[
+\{T_i\}^{i\in1..n}
+\overset{\mathrm{def}}{=}
+\tapltype{Pair}\,T_1
+(\tapltype{Pair}\,T_2\cdots
+(\tapltype{Pair}\,T_n\,\tapltype{Top})\cdots).
+\]
+特别地，\(\{\}^{\mathrm{def}}=\tapltype{Top}\)。对项
+\(t_1,\ldots,t_n\)，相应定义
+\[
+\{t_i\}^{i\in1..n}
+\overset{\mathrm{def}}{=}
+\taplterm{pair}\ t_1
+(\taplterm{pair}\ t_2\cdots
+(\taplterm{pair}\ t_n\ \taplterm{top})\cdots),
+\]
+其中为简洁起见省略 \(\taplterm{pair}\) 的类型实参；\(\taplterm{top}\) 是
+任取的 \(\tapltype{Top}\) 型闭项。第 \(n\) 个投影定义为先取
+\(n-1\) 次 \(\taplterm{snd}\)，再取一次 \(\taplterm{fst}\)：
+\[
+t.n\overset{\mathrm{def}}{=}
+\taplterm{fst}(\underbrace{\taplterm{snd}(\cdots
+(\taplterm{snd}}_{n-1\text{ 次}}\ t))\cdots).
+\]
+这些缩写定义的就是\emph{柔性元组}；与普通元组不同，它们在子类型关系下
+可以从右端扩展。由定义直接得到
+\[
+\inferrule
+ {\Gamma\vdash S_i<:T_i\quad(i\in1..n)}
+ {\Gamma\vdash
+  \{S_i\}^{i\in1..n+k}<:\{T_i\}^{i\in1..n}}
+\]
+以及赋型规则
+\[
+\inferrule
+ {\Gamma\vdash t_i:T_i\quad(i\in1..n)}
+ {\Gamma\vdash\{t_i\}^{i\in1..n}:\{T_i\}^{i\in1..n}}
+\qquad
+\inferrule
+ {\Gamma\vdash t:\{T_i\}^{i\in1..n}}
+ {\Gamma\vdash t.i:T_i}.
+\]
 \end{definition}
+
+现在取一个可数标签集合 \(\mathcal L\)，并固定一个双射
+\(\mathit{label\mbox{-}with\mbox{-}index}:\mathbb N\to\mathcal L\)，由此
+给标签规定全序。
 
 \begin{definition}
 \label{def:26.3.3}
-固定标签集合到自然数的双射。有限记录先按标签编号排列，再编码成柔性元组；
-未出现的编号位置用 \(\tapltype{Top}\) 填充。字段投影就是对应位置的元组
-投影。
+设 \(L\subseteq\mathcal L\) 为有限集，并为每个 \(l\in L\) 给定类型
+\(S_l\)。令 \(m\) 为 \(L\) 中标签编号的最大值，并定义
+\[
+\widehat S_i=
+\begin{cases}
+S_l,&\mathit{label\mbox{-}with\mbox{-}index}(i)=l\in L,\\
+\tapltype{Top},&\mathit{label\mbox{-}with\mbox{-}index}(i)\notin L.
+\end{cases}
+\]
+记录类型 \(\{l:S_l\}^{l\in L}\) 定义为柔性元组
+\(\{\widehat S_i\}^{i\in1..m}\)。类似地，若为每个 \(l\in L\) 给定项
+\(t_l\)，定义
+\[
+\widehat t_i=
+\begin{cases}
+t_l,&\mathit{label\mbox{-}with\mbox{-}index}(i)=l\in L,\\
+\taplterm{top},&\mathit{label\mbox{-}with\mbox{-}index}(i)\notin L.
+\end{cases}
+\]
+记录值 \(\{l=t_l\}^{l\in L}\) 定义为
+\(\{\widehat t_i\}^{i\in1..m}\)。若
+\(\mathit{label\mbox{-}with\mbox{-}index}(i)=l\)，则字段投影 \(t.l\)
+就是元组投影 \(t.i\)。
 \end{definition}
 
 该编码验证记录的宽度、深度和排列子类型规则以及构造、投影赋型规则。它主要
@@ -240,11 +421,14 @@ S_1<:T_1,\quad S_2<:T_2
 
 \subsection*{带子类型的 Church 编码}
 
-普通 Church 数类型
+作为 \(F_{<:}\) 表达能力的最后一个小例子，考察给 System F 的 Church 数编码
+加入有界量化会发生什么。普通 Church 数类型
 \[
 \tapltype{CNat}=\forall X.(X\to X)\to X\to X
 \]
-可精化为
+可以拟人化地读成：“先告诉我结果类型 \(X\)，再给我一个 \(X\) 上的函数和
+一个 \(X\) 型基点；我把函数在基点上迭代 \(n\) 次，再交回一个 \(X\)。”
+加入两个有界量词，并细化参数 \(s\) 与 \(z\) 的类型，得到
 \[
 \tapltype{SNat}
 =\forall X<:\tapltype{Top}.
@@ -261,13 +445,48 @@ S_1<:T_1,\quad S_2<:T_2
    \forall S<:X.\forall Z<:X.(X\to S)\to Z\to S.
 \end{aligned}
 \]
-\(\tapltype{SZero}\) 的结果必须仍属于 \(Z\)，所以其值只能表现得像零；
-\(\tapltype{SPos}\) 的结果属于一步函数的值域 \(S\)，所以恰好描述正数。
-两者都是 \(\tapltype{SNat}\) 的子类型。于是类型系统可以表达“后继总是
-正数”：
-\[
-\taplterm{ssucc}:\tapltype{SNat}\to\tapltype{SPos}.
-\]
+\(\tapltype{SNat}\) 可以读成：“给我一般结果类型 \(X\) 及其两个子类型
+\(S\)、\(Z\)，再给我一个把任意 \(X\) 映到 \(S\) 的函数和一个特殊的
+\(Z\) 型基点；我迭代函数 \(n\) 次，返回一个 \(X\)。”
+
+\(\tapltype{SZero}\) 的形式几乎相同，却承诺最终结果属于 \(Z\)，而不只是
+\(X\)。唯一可能的做法就是直接返回参数 \(z\)：
+\begin{lstlisting}
+szero = lambda X. lambda S<:X. lambda Z<:X.
+        lambda s:X->S. lambda z:Z. z;
+? szero : SZero
+\end{lstlisting}
+在“所有值的行为都与 \(\taplterm{szero}\) 相同”的意义下，它是
+\(\tapltype{SZero}\) 的唯一值。又因为
+\(\tapltype{SZero}<:\tapltype{SNat}\)，也有
+\(\taplterm{szero}:\tapltype{SNat}\)。
+
+\(\tapltype{SPos}\) 则有更多值：
+\begin{lstlisting}
+sone = lambda X. lambda S<:X. lambda Z<:X.
+       lambda s:X->S. lambda z:Z. s z;
+stwo = lambda X. lambda S<:X. lambda Z<:X.
+       lambda s:X->S. lambda z:Z. s (s z);
+sthree = lambda X. lambda S<:X. lambda Z<:X.
+         lambda s:X->S. lambda z:Z. s (s (s z));
+\end{lstlisting}
+事实上，\(\tapltype{SPos}\) 包含除 \(\taplterm{szero}\) 外的全部
+\(\tapltype{SNat}\) 值。
+
+同样可以细化 Church 数操作的类型。类型系统能检查后继函数必定返回正数：
+\begin{lstlisting}
+ssucc = lambda n:SNat.
+        lambda X. lambda S<:X. lambda Z<:X.
+        lambda s:X->S. lambda z:Z.
+          s (n [X] [S] [Z] s z);
+? ssucc : SNat -> SPos
+
+spluspp = lambda n:SPos. lambda m:SPos.
+          lambda X. lambda S<:X. lambda Z<:X.
+          lambda s:X->S. lambda z:Z.
+            n [X] [S] [S] s (m [X] [S] [Z] s z);
+? spluspp : SPos -> SPos -> SPos
+\end{lstlisting}
 
 \begin{exercise}[\(\star\star\)]
 \label{ex:26.3.4}
@@ -280,6 +499,22 @@ S_1<:T_1,\quad S_2<:T_2
 \end{exercise}
 \taplauthorsolutionlink{sol:author:26.3.4}{26.3.4}
 
+上面的示例和练习提出一个值得注意的问题。我们显然不想为加法写许多不同名称
+的版本，再根据参数的预期类型挑选；更希望一个 \(\taplterm{plus}\) 同时具有
+全部这些类型：
+\[
+\begin{aligned}
+\taplterm{plus}:{}&
+\tapltype{SZero}\to\tapltype{SZero}\to\tapltype{SZero}\\
+&\land\ \tapltype{SNat}\to\tapltype{SPos}\to\tapltype{SPos}\\
+&\land\ \tapltype{SPos}\to\tapltype{SNat}\to\tapltype{SPos}\\
+&\land\ \tapltype{SNat}\to\tapltype{SNat}\to\tapltype{SNat}
+\end{aligned}
+\]
+其中 \(t:S\land T\) 表示 \(t\) 同时具有 \(S\) 和 \(T\) 两种类型。支持这类
+重载的需求推动了交类型（\taplsecref{15.7}{sec:15.7}）与有界量化的组合研究，
+参见 Pierce（1997b）。
+
 \begin{exercise}[推荐，\(\star\star\)]
 \label{ex:26.3.5}
 仿照 \(\tapltype{SNat}\)，把 Church 布尔值精化为
@@ -290,10 +525,18 @@ S_1<:T_1,\quad S_2<:T_2
 \end{exercise}
 \taplauthorsolutionlink{sol:author:26.3.5}{26.3.5}
 
-\begin{exercise}[\(\star\star\)]
+\begin{exercise}[\(\star\)]
 \label{ex:26.3.6}
-本章开头指出，子类型和多态组合能同时保留参数的精确类型并使用其已知字段。
-System F 的全称类型能否只用子类型和非多态构造编码？
+本章开头指出，还可以用一种比 \(F_{<:}\) 更直接、更正交的方式组合子类型与
+多态：从 System F（也可加入记录等构造）出发，像带子类型的简单类型 lambda
+演算那样加入子类型关系，但仍保留无界量化。对子类型关系只增加普通量词体的
+协变规则：
+\[
+\inferrule
+ {\Gamma,X\vdash S_2<:T_2}
+ {\Gamma\vdash\forall X.S_2<:\forall X.T_2}
+\]
+本章的哪些例子可以在这个更简单的系统中表达？
 \end{exercise}
 \taplsolutionlink{sol:translator:26.3.6}{26.3.6}
 
@@ -303,21 +546,33 @@ System F 的全称类型能否只用子类型和非多态构造编码？
 核与完全 \(F_{<:}\) 都具有类型安全性。本节详细证明核系统；完全系统的基本
 论证相似，但\chapref{28}会看到它的算法分析困难得多。
 
+先列出若干关于赋型关系和子类型关系的技术性质。这里称上下文“良构”，专指
+其中各类型变量的作用域正确；以下各项均可按推导作常规归纳证明。
+
 \begin{lemma}[排列]
 \label{lem:26.4.1}
-若 \(\Gamma'\) 是良构上下文 \(\Gamma\) 的排列，而且该排列保留类型变量的
-作用域依赖，则：
-\[
-\Gamma\vdash t:T\Longrightarrow\Gamma'\vdash t:T,
-\qquad
-\Gamma\vdash S<:T\Longrightarrow\Gamma'\vdash S<:T.
-\]
+设 \(\Gamma\) 良构，\(\Gamma'\) 是 \(\Gamma\) 的一个排列：二者包含相同的
+绑定，而且 \(\Gamma'\) 保持 \(\Gamma\) 中类型变量的作用域依赖；也就是说，
+若一个绑定引入的类型变量出现在其右侧另一个绑定中，那么这两个绑定在
+\(\Gamma'\) 中的次序不变。于是：
+\begin{enumerate}
+  \item 若 \(\Gamma\vdash t:T\)，则 \(\Gamma'\vdash t:T\)；
+  \item 若 \(\Gamma\vdash S<:T\)，则 \(\Gamma'\vdash S<:T\)。
+\end{enumerate}
 \end{lemma}
+
+这些性质的证明均对相应推导归纳；遇到抽象或量词规则时，先用排列引理把新加
+的绑定移到规则所需的位置。
 
 \begin{lemma}[弱化]
 \label{lem:26.4.2}
-在保持上下文良构的前提下，向上下文末尾加入项变量绑定或类型变量上界，不会
-破坏已有的赋型和子类型判断。
+在下面各项中，均假定扩展后的上下文良构：
+\begin{enumerate}
+  \item 若 \(\Gamma\vdash t:T\)，则 \(\Gamma,x:U\vdash t:T\)；
+  \item 若 \(\Gamma\vdash t:T\)，则 \(\Gamma,X<:U\vdash t:T\)；
+  \item 若 \(\Gamma\vdash S<:T\)，则 \(\Gamma,x:U\vdash S<:T\)；
+  \item 若 \(\Gamma\vdash S<:T\)，则 \(\Gamma,X<:U\vdash S<:T\)。
+\end{enumerate}
 \end{lemma}
 
 \begin{exercise}[\(\star\)]
@@ -332,11 +587,28 @@ System F 的全称类型能否只用子类型和非多态构造编码？
 \(\Gamma,\Delta\vdash S<:T\)。
 \end{lemma}
 
+\begin{proof}
+显然成立：项变量的赋型假设不会参与子类型推导。
+\end{proof}
+
+与以往一样，保持性证明需要把替换与赋型、子类型关系联系起来。这里由于求值
+还会把类型代入类型变量，除通常的项替换引理外，还要证明类型替换分别保持子
+类型和赋型。
+
 \begin{lemma}[收窄]
 \label{lem:26.4.5}
-若把上下文中 \(X<:Q\) 的上界收紧为 \(X<:P\)，且
-\(\Gamma\vdash P<:Q\)，则原有的子类型和赋型判断仍成立。
+\begin{enumerate}
+  \item 若 \(\Gamma,X<:Q,\Delta\vdash S<:T\) 且
+        \(\Gamma\vdash P<:Q\)，则
+        \(\Gamma,X<:P,\Delta\vdash S<:T\)；
+  \item 若 \(\Gamma,X<:Q,\Delta\vdash t:T\) 且
+        \(\Gamma\vdash P<:Q\)，则
+        \(\Gamma,X<:P,\Delta\vdash t:T\)。
+\end{enumerate}
+之所以称为“收窄”，是因为它把变量 \(X\) 可取的类型范围从 \(Q\) 的所有
+子类型缩小到 \(P\) 的所有子类型。
 \end{lemma}
+\noindent\textit{证明练习（\(\star\)）。}
 \taplauthorsolutionlink{sol:author:26.4.5}{26.4.5}
 
 \begin{lemma}[项替换保持赋型]
@@ -346,6 +618,11 @@ System F 的全称类型能否只用子类型和非多态构造编码？
 \Gamma,\Delta\vdash[x\mapsto q]t:T.
 \]
 \end{lemma}
+
+\begin{proof}
+对 \(\Gamma,x:Q,\Delta\vdash t:T\) 的推导归纳，并使用上面的排列、弱化与
+删除无关项变量等性质。
+\end{proof}
 
 \begin{definition}
 \label{def:26.4.7}
@@ -369,9 +646,34 @@ System F 的全称类型能否只用子类型和非多态构造编码？
 \end{lemma}
 
 \begin{proof}
-对子类型推导归纳。S-TVar 的关键子情形是所查变量正好为 \(X\)：替换后左侧
-成为 \(P\)，而假设已经给出 \(P<:Q\)。S-All 情形在扩展后的上下文中使用
-归纳假设，再应用 S-All。其余情形直接由归纳假设得到。
+对
+\(\Gamma,X<:Q,\Delta\vdash S<:T\) 的推导归纳。只有最后使用 S-TVar
+或 S-All 的情形需要展开说明。
+
+若最后使用 S-TVar，则 \(S=Y\)，且绑定 \(Y<:T\) 出现在上下文中。若
+\(Y\neq X\)，替换后仍可在
+\(\Gamma,[X\mapsto P]\Delta\) 中找到相应绑定，直接再次使用 S-TVar。
+若 \(Y=X\)，则 \(T=Q\)，而
+\([X\mapsto P]S=P\)、\([X\mapsto P]T=Q\)；所需结论正是前提
+\(\Gamma\vdash P<:Q\)，再由弱化把它放入替换后的完整上下文即可。
+
+若最后使用 S-All，则
+\[
+S=\forall Z<:U_1.S_2,qquad
+T=\forall Z<:U_1.T_2
+\]
+且
+\[
+\Gamma,X<:Q,\Delta,Z<:U_1\vdash S_2<:T_2.
+\]
+归纳假设给出
+\[
+\Gamma,[X\mapsto P]\Delta,
+Z<:[X\mapsto P]U_1
+\vdash[X\mapsto P]S_2<:[X\mapsto P]T_2.
+\]
+再次应用 S-All，恰好得到对原来两个全称类型整体作替换后的子类型判断。
+其余规则直接应用归纳假设即可。
 \end{proof}
 
 \begin{lemma}[类型替换保持赋型]
@@ -390,8 +692,27 @@ System F 的全称类型能否只用子类型和非多态构造编码？
 \end{lemma}
 
 \begin{proof}
-对赋型推导归纳。T-TApp 使用替换与类型代入可交换这一事实；T-Sub 使用
-\cref{lem:26.4.8}保持其子类型前提。
+对赋型推导归纳，只展开 T-TApp 与 T-Sub 两个关键情形。
+
+若最后使用 T-TApp，则
+\[
+t=t_1[T_2],\qquad
+T=[Z\mapsto T_2]T_{12},qquad
+\Gamma,X<:Q,\Delta\vdash
+t_1:\forall Z<:T_{11}.T_{12}.
+\]
+归纳假设给出替换后的 \(t_1\) 及全称类型；再次使用 T-TApp，可得
+\[
+\Gamma,[X\mapsto P]\Delta\vdash
+[X\mapsto P](t_1[T_2]):
+[Z\mapsto[X\mapsto P]T_2]([X\mapsto P]T_{12}).
+\]
+右侧正是 \([X\mapsto P]([Z\mapsto T_2]T_{12})\)。
+
+若最后使用 T-Sub，其两个前提分别是
+\(\Gamma,X<:Q,\Delta\vdash t:S\) 和
+\(\Gamma,X<:Q,\Delta\vdash S<:T\)。第一个由归纳假设在替换后仍成立，
+第二个由\cref{lem:26.4.8}在替换后仍成立；最后再应用 T-Sub。
 \end{proof}
 
 \begin{lemma}[从右向左反演子类型关系]
@@ -407,6 +728,13 @@ System F 的全称类型能否只用子类型和非多态构造编码？
         \(\Gamma,X<:U_1\vdash S_2<:T_2\)。
 \end{enumerate}
 \end{lemma}
+
+\begin{proof}
+第 1 项对子类型推导归纳。只有 S-Trans 情形需要特别说明：先把归纳假设用于
+右侧前提，得知中间类型必须是类型变量；再用于左侧前提，得知 \(S\) 也必须
+是类型变量。第 2、3 项同理；处理传递性时先使用第 1 项排除不合外层构造的
+中间类型，再分别应用相应的归纳假设。
+\end{proof}
 
 \begin{exercise}[推荐，\(\star\star\)]
 \label{ex:26.4.11}
@@ -424,9 +752,18 @@ System F 的全称类型能否只用子类型和非多态构造编码？
         \(\Gamma\vdash U_1<:S_1\)，并存在 \(S_2\) 使
         \(\Gamma,x:S_1\vdash s_2:S_2\) 且
         \(\Gamma\vdash S_2<:U_2\)。
-  \item 类型抽象有对应结论；在核系统中，两边量词上界必须相同。
+  \item 若 \(\Gamma\vdash\lambda X<:S_1.s_2:T\) 且
+        \(\Gamma\vdash T<:\forall X<:U_1.U_2\)，则 \(U_1=S_1\)，并存在
+        \(S_2\)，使
+        \(\Gamma,X<:S_1\vdash s_2:S_2\) 且
+        \(\Gamma,X<:S_1\vdash S_2<:U_2\)。
 \end{enumerate}
 \end{lemma}
+
+\begin{proof}
+对赋型推导归纳。若最后使用 T-Sub，则用\cref{lem:26.4.10}反演新增的子类型
+前提，再应用归纳假设；其余情形直接由最后一条赋型规则得到。
+\end{proof}
 
 \begin{theorem}[保持性]
 \label{thm:26.4.13}
@@ -435,9 +772,53 @@ System F 的全称类型能否只用子类型和非多态构造编码？
 \end{theorem}
 
 \begin{proof}
-对赋型推导归纳。普通 beta 归约由\cref{lem:26.4.12}取回抽象体的实际类型，
-再用项替换与 T-Sub。类型 beta 归约对应地使用类型替换保持赋型、类型替换保持
-子类型与 T-Sub。T-Sub 情形直接沿用归纳假设。
+对 \(\Gamma\vdash t:T\) 的推导归纳。T-Var、T-Abs 与 T-TAbs 不可能是
+最后一条规则，因为变量、项抽象和类型抽象都没有单步求值规则。
+
+\textbf{情形 T-App。}
+此时 \(t=t_1\,t_2\)、\(T=T_{12}\)，并有
+\(\Gamma\vdash t_1:T_{11}\to T_{12}\) 和
+\(\Gamma\vdash t_2:T_{11}\)。按实际使用的求值规则分三种子情形：
+若 \(t_1\longrightarrow t_1'\)，对左侧前提使用归纳假设，再应用 T-App；
+若 \(t_1\) 已是值而 \(t_2\longrightarrow t_2'\)，对右侧前提使用归纳假设，
+再应用 T-App；最后，若
+\(t_1=\lambda x:U_{11}.u_{12}\)、\(t_2\) 是值，且
+\(t'=[x\mapsto t_2]u_{12}\)，则由\cref{lem:26.4.12}可得某个 \(U_{12}\)，
+满足
+\[
+\Gamma,x:U_{11}\vdash u_{12}:U_{12},\qquad
+\Gamma\vdash T_{11}<:U_{11},\qquad
+\Gamma\vdash U_{12}<:T_{12}.
+\]
+先用 T-Sub 得到 \(\Gamma\vdash t_2:U_{11}\)，再用
+\cref{lem:26.4.6}得到
+\(\Gamma\vdash[x\mapsto t_2]u_{12}:U_{12}\)，最后以 T-Sub 提升至
+\(T_{12}\)。
+
+\textbf{情形 T-TApp。}
+此时 \(t=t_1[T_2]\)、
+\(T=[X\mapsto T_2]T_{12}\)，且
+\[
+\Gamma\vdash t_1:\forall X<:T_{11}.T_{12},qquad
+\Gamma\vdash T_2<:T_{11}.
+\]
+若 \(t_1\longrightarrow t_1'\)，由归纳假设和 T-TApp 得到结论。若
+\(t_1=\lambda X<:U_{11}.u_{12}\)，且
+\(t'=[X\mapsto T_2]u_{12}\)，则\cref{lem:26.4.12}给出
+\(U_{11}=T_{11}\) 及某个 \(U_{12}\)，满足
+\[
+\Gamma,X<:U_{11}\vdash u_{12}:U_{12},\qquad
+\Gamma,X<:U_{11}\vdash U_{12}<:T_{12}.
+\]
+由\cref{lem:26.4.9}把 \(T_2\) 代入第一式，得到
+\(\Gamma\vdash[X\mapsto T_2]u_{12}:[X\mapsto T_2]U_{12}\)；再由
+\cref{lem:26.4.8}把 \(T_2\) 代入第二式，并应用 T-Sub，得到所需类型
+\([X\mapsto T_2]T_{12}\)。这里按官方勘误使用的是类型替换保持赋型引理
+\cref{lem:26.4.9}。
+
+\textbf{情形 T-Sub。}
+归纳假设先给出 \(\Gamma\vdash t':S\)，再沿用原有前提
+\(\Gamma\vdash S<:T\) 应用 T-Sub。
 \end{proof}
 
 \begin{lemma}[典范形式]
@@ -448,18 +829,37 @@ System F 的全称类型能否只用子类型和非多态构造编码？
 \end{enumerate}
 \end{lemma}
 
+\begin{proof}
+两项都对赋型推导归纳；这里只写第 2 项。闭值 \(v\) 获得类型
+\(\forall X<:T_1.T_2\) 的推导，最后一条规则只能是 T-TAbs 或 T-Sub。
+前者直接说明 \(v\) 是类型抽象。若最后使用 T-Sub，则前提给出
+\(\varnothing\vdash v:S\) 和
+\(\varnothing\vdash S<:\forall X<:T_1.T_2\)。由
+\cref{lem:26.4.10}，\(S\) 只能是相同上界的全称类型；再对前一棵较小的
+赋型推导使用归纳假设，便知 \(v\) 仍是类型抽象。第 1 项对箭头类型作同样
+论证。
+\end{proof}
+
 \begin{theorem}[进展性]
 \label{thm:26.4.15}
 闭的良类型 \(F_{<:}\) 项或为值，或能作一次单步求值。
 \end{theorem}
 
 \begin{proof}
-对赋型推导归纳。应用和类型应用先使用归纳假设；若函数部分已是值，
-\cref{lem:26.4.14}给出相应抽象，从而可作 beta 归约。T-Sub 不改变项，
-直接使用其前提的归纳结论。
+对赋型推导归纳。变量情形不会出现，因为 \(t\) 是闭项；项抽象和类型抽象
+本身就是值。
+
+在 T-App 情形中，先对函数部分使用归纳假设：若它能继续求值，就应用
+E-App1；若它已是值，再对实参使用归纳假设。实参若能求值，就应用 E-App2；
+若二者都是值，\cref{lem:26.4.14}说明函数部分必为项抽象，于是可以应用
+E-AppAbs。
+
+在 T-TApp 情形中，若 \(t_1\) 能求值，就应用 E-TApp；若 \(t_1\) 是值，
+\cref{lem:26.4.14}说明它必为类型抽象，于是应用 E-TAppTAbs。T-Sub 不改变
+项本身，直接沿用其赋型前提的归纳结论。
 \end{proof}
 
-\begin{exercise}[\(\star\star\star\star\)]
+\begin{exercise}[\(\star\star\star\)]
 \label{ex:26.4.16}
 把本节安全性论证推广到完全 \(F_{<:}\)。
 \end{exercise}
@@ -473,13 +873,45 @@ System F 的全称类型能否只用子类型和非多态构造编码？
 \{\exists X<:T_1,T_2\}.
 \]
 它隐藏实际表示类型，却公开保证该表示是 \(T_1\) 的子类型。核版本比较两个
-存在类型时要求上界相同，量词体协变：
+存在类型时要求上界相同，量词体协变；相应的打包与开包规则也要记录这个上界。
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.96\linewidth}
+\textbf{新增语法}
+\[
+T::=\cdots\mid\{\exists X<:T_1,T_2\}
+\]
+
+\textbf{新增子类型规则}
 \[
 \inferrule*[right=S-Some]
  {\Gamma,X<:U\vdash S<:T}
  {\Gamma\vdash
-  \{\exists X<:U,S\}<:\{\exists X<:U,T\}}.
+  \{\exists X<:U,S\}<:\{\exists X<:U,T\}}
 \]
+
+\textbf{新增赋型规则}
+\[
+\inferrule*[right=T-Pack]
+ {\Gamma\vdash t_2:[X\mapsto U]T_2\\
+  \Gamma\vdash U<:T_1}
+ {\Gamma\vdash
+  \{*U,t_2\}\ \textbf{as}\ \{\exists X<:T_1,T_2\}:
+  \{\exists X<:T_1,T_2\}}
+\]
+\[
+\inferrule*[right=T-Unpack]
+ {\Gamma\vdash t_1:\{\exists X<:T_{11},T_{12}\}\\
+  \Gamma,X<:T_{11},x:T_{12}\vdash t_2:T_2\\
+  X\notin\taplterm{FV}(T_2)}
+ {\Gamma\vdash
+  \textbf{let}\ \{X,x\}=t_1\ \textbf{in}\ t_2:T_2}
+\]
+\end{minipage}
+\caption{有界存在量化（核版本）}
+\label{fig:26-3}
+\end{figure}
 
 \begin{exercise}[\(\star\)]
 \label{ex:26.5.1}
@@ -499,14 +931,41 @@ System F 的全称类型能否只用子类型和非多态构造编码？
 
 有界存在类型形成\termfirst{部分抽象类型}{partially abstract type}：客户
 不知道表示的确切身份，却知道它至少具有某些结构。例如
-\[
-\{\exists\ \tapltype{Counter}<:\tapltype{Nat},
-\{\taplterm{new}:\tapltype{Counter},
-\taplterm{get}:\tapltype{Counter}\to\tapltype{Nat},
-\taplterm{inc}:\tapltype{Counter}\to\tapltype{Counter}\}\}
-\]
-允许客户把计数器当自然数使用，却仍不允许任意自然数冒充计数器；实现继续控制
-计数器的创建。
+\begin{lstlisting}
+counterADT =
+  {*Nat,
+   {new = 1,
+    get = lambda i:Nat. i,
+    inc = lambda i:Nat. succ(i)}}
+  as {Some Counter<:Nat,
+      {new:Counter,
+       get:Counter->Nat,
+       inc:Counter->Counter}};
+? counterADT
+  : {Some Counter<:Nat,
+     {new:Counter,get:Counter->Nat,inc:Counter->Counter}}
+\end{lstlisting}
+包的上界 \(\tapltype{Counter}<:\tapltype{Nat}\) 向客户公开了一部分表示信息。
+像\taplsecref{24.2}{sec:24.2}一样开包后，可以通过接口操作计数器：
+\begin{lstlisting}
+let {Counter,counter} = counterADT in
+counter.get (counter.inc (counter.inc counter.new));
+? 3 : Nat
+\end{lstlisting}
+现在还可以把 \(\tapltype{Counter}\) 型值直接用作自然数：
+\begin{lstlisting}
+let {Counter,counter} = counterADT in
+succ (succ (counter.inc counter.new));
+? 4 : Nat
+\end{lstlisting}
+反方向仍不成立；普通自然数不能冒充只能由实现创建的计数器：
+\begin{lstlisting}
+let {Counter,counter} = counterADT in
+counter.inc 3;
+? Error: parameter type mismatch
+\end{lstlisting}
+因此，这个版本有意公开表示类型的一部分，让客户使用计数器更加方便，同时仍由
+实现控制哪些值可以作为计数器产生。
 
 \begin{exercise}[\(\star\star\star\)]
 \label{ex:26.5.3}
@@ -516,9 +975,31 @@ System F 的全称类型能否只用子类型和非多态构造编码？
 \end{exercise}
 \taplauthorsolutionlink{sol:author:26.5.3}{26.5.3}
 
+有界存在类型也能细化\taplsecref{24.2}{sec:24.2}用存在类型编码对象的方法。
+那里把存在包的见证类型用作对象内部状态的类型；状态本身是一条实例变量记录。
+把无界存在量词换成有界存在量词，就能只向外公开一部分实例变量的名称和类型，
+而继续隐藏其余字段。下面的计数器公开状态中的 \texttt{x}，隐藏私有字段
+\texttt{private}：
+\begin{lstlisting}
+c = {*{x:Nat, private:Bool},
+     {state = {x=5, private=false},
+      methods =
+        {get = lambda s:{x:Nat}. s.x,
+         inc = lambda s:{x:Nat,private:Bool}.
+                 {x=succ(s.x), private=s.private}}}}
+    as {Some X<:{x:Nat},
+        {state:X,
+         methods:{get:X->Nat, inc:X->X}}};
+? c
+  : {Some X<:{x:Nat},
+     {state:X,methods:{get:X->Nat,inc:X->X}}}
+\end{lstlisting}
+客户既可以调用 \texttt{get} 方法取得计数器的数值，也可以通过已公开的
+\texttt{state.x} 字段直接读取它；私有字段仍然不可见。
+
 \begin{exercise}[\(\star\star\)]
 \label{ex:26.5.4}
-把\cref{sec:24.3}的编码推广为：用有界全称类型编码有界存在类型，并验证
+把\taplsecref{24.3}{sec:24.3}的编码推广为：用有界全称类型编码有界存在类型，并验证
 S-Some 可由编码后的子类型规则推出。
 \end{exercise}
 \taplauthorsolutionlink{sol:author:26.5.4}{26.5.4}
@@ -526,7 +1007,26 @@ S-Some 可由编码后的子类型规则推出。
 \section{注记}
 \label{sec:26.6}
 
-Cardelli 与 Wegner（1985）的 Fun 系统奠定了这里的有界量化形式；其
-Kernel Fun 对应核 \(F_{<:}\)。Bruce、Longo、Curien 与 Ghelli 等人的工作
-逐步形成了完全 \(F_{<:}\)。该系统及其变体广泛用于研究对象、继承、模块和
-泛型语言设计。
+CLU（Liskov 等，1977，1981；Schaffert，1978；Scheifler，1978）可能是最早
+提供类型安全有界量化的语言。CLU 的参数界大致相当于把
+\taplsecref{26.2}{sec:26.2}的量词有界形式推广到多个类型参数。
+
+Cardelli 与 Wegner（1985）在 Fun 语言中提出了本章采用的有界量化形式；
+其 Kernel Fun 对应核 \(F_{<:}\)。Fun 把 Girard--Reynolds 多态与 Cardelli
+的一阶子类型演算结合起来，Bruce 与 Longo（1990）、Curien 与 Ghelli（1992）
+又作了简化和推广，得到本书所称的完全 \(F_{<:}\)。Cardelli、Martini、
+Mitchell 与 Scedrov（1994）的综述对有界量化作了最全面的讨论。
+
+程序语言理论与设计领域对 \(F_{<:}\) 及其近亲作了大量研究。Cardelli 与
+Wegner 最早给出有界量化的程序示例，Cardelli（1988a）在幂种类研究中给出
+更多示例。Curien 与 Ghelli（1992；Ghelli，1990）研究了 \(F_{<:}\) 的若干
+句法性质；Bruce 与 Longo、Martini、Breazu-Tannen 等、Cardone、Cardelli
+与 Longo、Cardelli 等、Curien 与 Ghelli、Bruce 与 Mitchell 等工作研究了
+密切相关系统的语义方面。带记录和更丰富继承形式的扩展，以及 Quest、Abel、
+GJ、Pict 与 Funnel 等语言设计，也都使用了有界量化。
+
+Ghelli（1990）以及 Cardelli、Martini、Mitchell 与 Scedrov（1994）研究了
+有界量化对\taplsecref{26.3}{sec:26.3}中代数数据类型 Church 编码的影响。
+Pierce（1991b，1997b）研究了加入交类型的 \(F_{<:}\)；Compagnoni 与 Pierce
+（1996）还用带高阶种类的变体刻画多重继承，其元理论由 Compagnoni（1994）
+分析。

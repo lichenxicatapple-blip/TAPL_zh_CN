@@ -58,7 +58,7 @@ C_0&=\{X=Z\to A,\ Y=Z\to B,\ A=B\to C\}.
 \label{sol:translator:22.5.2}
 \textbf{22.5.2 解答}
 
-合一\cref{sol:translator:22.3.3}得到的约束：先由 \(A=B\to C\)，再代入
+合一\taplnamedref{sol:translator:22.3.3}{解答22.3.3}得到的约束：先由 \(A=B\to C\)，再代入
 \(X=Z\to A\)、\(Y=Z\to B\)。可取主合一子
 \[
 [X\mapsto Z\to B\to C,
@@ -83,11 +83,15 @@ C_0&=\{X=Z\to A,\ Y=Z\to B,\ A=B\to C\}.
 调用\cref{def:22.4.4}的合一算法；第三层把主合一子作用于暂定结果类型。关键
 不变量是：每次为应用或无标注抽象创建的类型变量都不曾出现过。
 
-本书 Rust 对照实现位于
-\path{code/book-snippets/src/chapter22.rs}，书内核心片段见
-\taplnamedref{def:22.3.2}{定义22.3.2后的约束生成说明}和
-\taplnamedref{def:22.4.4}{定义22.4.4后的合一说明}。测试覆盖恒等函数、把未知
-函数用于自然数、自应用的出现检查失败，以及多步替换的传递应用。
+书内已经依次给出实际 Rust 实现：\taplnamedref{fig:22-1}{图22-1 后的
+类型与项定义}、\taplnamedref{sol:author:22.3.10}{解答22.3.10中的约束生成器}
+和\taplnamedref{sol:author:22.4.6}{解答22.4.6中的合一器}；主类型入口紧随
+\taplnamedref{def:22.5.3}{定义22.5.3}展示。合在一起即构成题目要求的三层实现，
+无需在本解答中重复刊载同一源码。
+
+同一份源码中的端到端测试覆盖恒等函数、把未知函数用于自然数、自应用的
+出现检查失败、多步替换的传递应用、显式标注与自动生成变量同名时的回归情形，
+以及布尔值、自然数和条件项的约束生成。
 
 \taplsolutionbacklink{ex:22.5.5}{返回练习22.5.5}
 \end{taplsolutionentrybox}
@@ -106,6 +110,10 @@ C_0&=\{X=Z\to A,\ Y=Z\to B,\ A=B\to C\}.
 每一步返回的都是当前信息下最一般的类型；因此后续发现新约束时只需继续实例化，
 无需回头重新遍历已经处理的子项。这正是算法 W 的基本组织方式。
 
+下面的实现把“替换与类型一起返回”这一流程写成可执行程序。
+\taplrustsupport{ch22-algorithm-w-support}
+\taplrustsupport{ch22-algorithm-w}
+
 \taplsolutionbacklink{ex:22.5.7}{返回练习22.5.7}
 \end{taplsolutionentrybox}
 
@@ -120,7 +128,11 @@ C_0&=\{X=Z\to A,\ Y=Z\to B,\ A=B\to C\}.
 let 变量。处理变量时，每次查询类型方案都以全新的类型变量实例化所有量化变量。
 
 若语言包含引用等副作用，泛化步骤还必须实行值限制：只有右侧是句法值时才泛化；
-其他右侧以不量化的单态方案加入上下文。至少应测试：同一恒等函数在一次 let
+其他右侧以不量化的单态方案加入上下文。下面的入口调用前述增量算法；
+\texttt{infer\_incremental} 的 let 分支已实现泛化、实例化和值限制。
+\taplrustsupport{ch22-let-principal-type}
+
+端到端测试包括：同一恒等函数在一次 let
 中分别用于自然数和布尔值；环境中自由类型变量不得被误泛化；包含引用分配的
 危险示例必须被拒绝；未使用的 let 右侧仍须接受类型检查。
 

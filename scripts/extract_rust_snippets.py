@@ -25,6 +25,14 @@ COUNTERPART_REFERENCE = re.compile(
     r"\\taplrustcounterpart(?:\[[^\]]*\])?"
     r"\{([a-z0-9][a-z0-9-]*)\}"
 )
+COUNTERPART_CHUNK_FIRST_REFERENCE = re.compile(
+    r"\\taplrustcounterpartflowchunkfirst"
+    r"\{([a-z0-9][a-z0-9-]*)\}\{\d+\}\{\d+\}"
+)
+COUNTERPART_CHUNK_REFERENCE = re.compile(
+    r"\\taplrustcounterpartflowchunk(?:first)?"
+    r"\{([a-z0-9][a-z0-9-]*)\}\{\d+\}\{\d+\}"
+)
 SUPPORT_REFERENCE = re.compile(
     r"\\taplrustsupport(?:\[[^\]]*\])?"
     r"\{([a-z0-9][a-z0-9-]*)\}"
@@ -39,8 +47,9 @@ OCAML_BEGIN = re.compile(r"\\begin\{taplocamlcode\}(?:\[[^\]]*\])?")
 OCAML_END = re.compile(r"\\end\{taplocamlcode\}")
 OCAML_WITH_RUST = re.compile(
     r"\\end\{taplocamlcode\}\s*"
-    r"\\taplrustcounterpart(?:\[[^\]]*\])?"
-    r"\{([a-z0-9][a-z0-9-]*)\}"
+    r"\\(?:taplrustcounterpart(?:\[[^\]]*\])?|"
+    r"taplrustcounterpartflowchunkfirst)"
+    r"\{([a-z0-9][a-z0-9-]*)\}(?:\{\d+\}\{\d+\})?"
 )
 OCAML_WITH_RUST_EXPLANATION = re.compile(
     r"\\end\{taplocamlcode\}"
@@ -118,6 +127,10 @@ def references() -> set[str]:
         syntax_only = OCAML_WITH_SYNTAX_ONLY.findall(contents)
         grouped = OCAML_WITH_GROUPED_COUNTERPART.findall(contents)
         counterparts_in_file = COUNTERPART_REFERENCE.findall(contents)
+        counterpart_chunk_first_in_file = (
+            COUNTERPART_CHUNK_FIRST_REFERENCE.findall(contents)
+        )
+        counterpart_chunks_in_file = COUNTERPART_CHUNK_REFERENCE.findall(contents)
         grouped_in_file = GROUPED_COUNTERPART_REFERENCE.findall(contents)
         support_in_file = SUPPORT_REFERENCE.findall(contents)
         support_chunks_in_file = SUPPORT_CHUNK_REFERENCE.findall(contents)
@@ -135,7 +148,9 @@ def references() -> set[str]:
                 "before the next OCaml block, an immediate OCaml-syntax-only marker, "
                 "or a named grouped counterpart"
             )
-        if Counter(counterparts_in_file) != Counter(paired + grouped):
+        if Counter(counterparts_in_file + counterpart_chunk_first_in_file) != Counter(
+            paired + grouped
+        ):
             errors.append(
                 f"{source.relative_to(ROOT)}: Rust counterparts do not match the "
                 "immediate and grouped OCaml counterpart declarations"
@@ -156,9 +171,11 @@ def references() -> set[str]:
                 "without an immediately preceding OCaml block"
             )
         names.extend(counterparts_in_file)
+        names.extend(counterpart_chunks_in_file)
         names.extend(support_in_file)
         names.extend(support_chunks_in_file)
         direct_names.extend(counterparts_in_file)
+        chunk_names.extend(counterpart_chunks_in_file)
         direct_names.extend(support_in_file)
         chunk_names.extend(support_chunks_in_file)
 

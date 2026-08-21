@@ -26,9 +26,7 @@ N_1=\forall X<:N_{11}.N_{12},
 \phantomsection\label{sol:author:28.5.1}
 \textbf{28.5.1 解答}
 
-\cref{thm:28.3.5}的权重下降论证在完全 S-All 情形失败：递归检查量词体前要
-把上下文中的上界改成右侧量词的上界，这个新上界可能使变量沿上下文展开后的
-权重增大，而非严格减小。
+\cref{thm:28.3.5}（具体来说，其中的 S-All 情形）对完全 \(F_{<:}\) 不成立。
 \taplsolutionbacklink{ex:28.5.1}{返回练习28.5.1}
 \end{taplauthorsolutionentrybox}
 
@@ -42,8 +40,19 @@ N_1=\forall X<:N_{11}.N_{12},
 
 但这不是对实际语言的稳定解决方案。加入带宽度子类型的记录后，空记录
 \(\{\}\) 会在记录类型中扮演类似最大类型的角色，修改后的 Ghelli 例子仍能令
-检查器发散。因此，去掉显式 \(\tapltype{Top}\) 不能阻止其他构造重新提供同样
-的编码能力。
+检查器发散。具体地，令
+\[
+T=\forall X<:\{\}.\neg\{a:\forall Y<:X.\neg Y\}
+\]
+输入
+\[
+X_0<:\{a:T\}\algturnstile
+X_0<:\{a:\forall X_1<:X_0.\neg X_1\}
+\]
+会使子类型检查器发散。
+
+Martin Hofmann 帮助作者完成了这个例子；Katiyar 与 Sankar（1992）也作出了
+同样的观察。
 \taplsolutionbacklink{ex:28.5.6}{返回练习28.5.6}
 \end{taplauthorsolutionentrybox}
 
@@ -83,26 +92,83 @@ N_1=\forall X<:N_{11}.N_{12},
 
 同时定义 \(R_{X,\Gamma}(T)\) 与 \(L_{X,\Gamma}(T)\)：前者是最小的
 \(X\)-自由超类型，后者是最大的 \(X\)-自由子类型；\(R\) 总有结果，\(L\)
-可能失败。核心递归如下。
-\begin{itemize}
-  \item 若 \(X\notin\fv(T)\)，两者都返回 \(T\)。
-  \item \(R(X)\) 沿上下文中 \(X\) 的上界继续计算；\(L(X)\) 失败。
-  \item 对箭头，
-        \[
-        R(S\to T)=L(S)\to R(T)
-        \]
-        （若 \(L(S)\) 失败则返回 \(\tapltype{Top}\)），而
-        \[
-        L(S\to T)=R(S)\to L(T)
-        \]
-        （若 \(L(T)\) 失败则失败）。
-  \item 对核系统的量词，若上界含 \(X\)，\(R\) 返回
-        \(\tapltype{Top}\)、\(L\) 失败；否则保持原上界，并在扩展上下文中
-        分别递归计算量词体。
-\end{itemize}
-箭头中 \(R\) 与 \(L\) 的交叉来自参数逆变。对递归结果作子类型归纳可验证：
-\(R(T)\) 是所有 \(X\)-自由超类型中的最小者，\(L(T)\) 在存在时是所有
-\(X\)-自由子类型中的最大者。
+可能失败。为避免版面过密，\taplnamedref{fig:appendix-a-2}{图}省略下标
+\(X,\Gamma\)。两项定义的旁条件不同：每逢使用 \(L\)，都必须检查结果是否
+有定义，写作 \(L(T)\ne\mathit{fail}\)；由于存在 \(\tapltype{Top}\)，
+\(R\) 总有定义。定义的正确性由 Ghelli 与 Pierce（1998）证明。
+
+\setcounter{taplappendixfigure}{1}
+\begin{center}
+\centering
+\scriptsize
+\begin{minipage}[t]{0.49\linewidth}
+\[
+R(\forall Y<:S.T)=
+\begin{cases}
+\forall Y<:S.R(T) & X\notin\fv(S),\\
+\tapltype{Top} & X\in\fv(S)
+\end{cases}
+\]
+\[
+R(\{\exists Y<:S,T\})=
+\begin{cases}
+\{\exists Y<:S,R(T)\} & X\notin\fv(S),\\
+\tapltype{Top} & X\in\fv(S)
+\end{cases}
+\]
+\[
+R(S\to T)=
+\begin{cases}
+L(S)\to R(T) & L(S)\ne\mathit{fail},\\
+\tapltype{Top} & L(S)=\mathit{fail}
+\end{cases}
+\]
+\[
+\begin{array}{rcll}
+R(X)&=&T&\text{其中 }X<:T\in\Gamma,\\
+R(Y)&=&Y&\text{其中 }Y\ne X,\\
+R(\tapltype{Top})&=&\tapltype{Top}
+\end{array}
+\]
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\[
+L(\forall Y<:S.T)=
+\begin{cases}
+\forall Y<:S.L(T) & \begin{array}{l}
+  L(T)\ne\mathit{fail},\\[-1pt]X\notin\fv(S),
+\end{array}\\
+\mathit{fail} & \text{其他情况}
+\end{cases}
+\]
+\[
+L(\{\exists Y<:S,T\})=
+\begin{cases}
+\{\exists Y<:S,L(T)\} & \begin{array}{l}
+  L(T)\ne\mathit{fail},\\[-1pt]X\notin\fv(S),
+\end{array}\\
+\mathit{fail} & \text{其他情况}
+\end{cases}
+\]
+\[
+L(S\to T)=
+\begin{cases}
+R(S)\to L(T) & L(T)\ne\mathit{fail},\\
+\mathit{fail} & L(T)=\mathit{fail}
+\end{cases}
+\]
+\[
+\begin{array}{rcll}
+L(X)&=&\mathit{fail},\\
+L(Y)&=&Y&\text{其中 }Y\ne X,\\
+L(\tapltype{Top})&=&\tapltype{Top}
+\end{array}
+\]
+\end{minipage}
+\captionof{taplappendixfigure}{给定类型的最小 \(X\)-自由超类型与最大
+\(X\)-自由子类型}
+\label{fig:appendix-a-2}
+\end{center}
 \taplsolutionbacklink{ex:28.7.1}{返回练习28.7.1}
 \end{taplauthorsolutionentrybox}
 

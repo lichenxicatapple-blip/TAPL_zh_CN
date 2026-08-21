@@ -8,9 +8,12 @@
 
 \section*{概述}
 
-\chapref{18}用记录、引用和子类型表达命令式对象。\cref{sec:18.12}试图把
+\chapref{18}用记录、引用和子类型表达命令式对象。\taplsecref{18.12}{sec:18.12}试图把
 构造方法表的工作从每次方法调用移到对象创建时。本章借助有界量化进一步改造
-这一编码。
+这一编码。\footnote{本章示例使用带记录（\taplnamedref{fig:15-3}{图15-3}）
+和引用（\taplnamedref{fig:13-1}{图13-1}）的 \(F_{<:}\)。原书为这些示例
+列出的 OCaml 实现名为 \texttt{fullfsubref}；当前保存的作者官方源码快照中
+未包含这一工程，故本工程没有把它列入自动编译验证。}
 
 设可设值计数器的公开接口和内部表示为
 \[
@@ -23,7 +26,7 @@
  &=\{x:\tapltype{Ref}\,\tapltype{Nat}\}.
 \end{aligned}
 \]
-\cref{sec:18.12}把 self 方法表的引用传入类：
+\taplsecref{18.12}{sec:18.12}把 self 方法表的引用传入类：
 \[
 \begin{aligned}
 \taplterm{setCounterClass}
@@ -36,11 +39,46 @@
 (\taplterm{succ}((!self).\taplterm{get}\ \taplterm{unit}))\}.
 \end{aligned}
 \]
+交互式类型检查器给出：
+\begin{lstlisting}
+? setCounterClass
+  : CounterRep -> (Source SetCounter) -> SetCounter
+\end{lstlisting}
 使用 \(\tapltype{Source}\) 而不是不变的 \(\tapltype{Ref}\)，是为了让子类
 self 能按协变关系提升为父类所需的接口。
 
+例如，带访问计数的计数器接口及其表示为
+\begin{lstlisting}
+InstrCounter =
+  {get:Unit->Nat, set:Nat->Unit,
+   inc:Unit->Unit, accesses:Unit->Nat};
+
+InstrCounterRep = {x:Ref Nat, a:Ref Nat};
+
+instrCounterClass =
+  lambda r:InstrCounterRep. lambda self:Source InstrCounter.
+  let super = setCounterClass r self in
+  {get = super.get,
+   set = lambda i:Nat.
+           (r.a:=succ(!(r.a)); super.set i),
+   inc = super.inc,
+   accesses = lambda _:Unit. !(r.a)};
+? instrCounterClass
+  : InstrCounterRep ->
+    (Source InstrCounter) -> InstrCounter
+\end{lstlisting}
+构造 \texttt{super} 时，要把子类的
+\(\tapltype{Source}\,\tapltype{InstrCounter}\) 型 \(self\) 传给只要求
+\(\tapltype{Source}\,\tapltype{SetCounter}\) 的父类。由于
+\(\tapltype{Source}\) 协变而
+\(\tapltype{InstrCounter}<:\tapltype{SetCounter}\)，这项转换成立；若
+\(self\) 使用不变的 \(\tapltype{Ref}\)，便无法通过类型检查。
+
 但同一类生成的所有对象原则上可以共享方法代码。真实面向对象实现通常让对象
-只携带指向类数据结构的指针，方法保存在类中。上面的参数顺序先接收实例变量
+只携带指向类数据结构的指针，方法保存在类中。\footnote{原书进一步把实际语言
+概括为：类只保存相对于父类新增或覆写的方法，调用时沿类层级向上查找目标方法。
+作者勘误提醒，这只是过度简化的说明；真实实现通常采用更复杂且更高效的分派
+结构。本章不研究这些运行时实现技术。}上面的参数顺序先接收实例变量
 \(r\)、再接收 \(self\)，使方法表直到每个对象创建时才形成。若先接收
 \(self\)，就可先对类作一次部分应用：
 \[
@@ -56,6 +94,18 @@ self 能按协变关系提升为父类所需的接口。
 (\taplterm{succ}((!self\ r).\taplterm{get}\ \taplterm{unit}))\}.
 \end{aligned}
 \]
+其推断类型为
+\begin{lstlisting}
+? setCounterClass
+  : (Source (CounterRep->SetCounter)) ->
+    CounterRep -> SetCounter
+\end{lstlisting}
+与旧版本相比，这里有三项实质变化。第一，\(self\) 移到了 \(r\) 之前。
+第二，\(self\) 的内容从 \(\tapltype{SetCounter}\) 改成了
+\(\tapltype{CounterRep}\to\tapltype{SetCounter}\)：类返回的方法表现在本身
+是等待实例变量记录的函数，所以 self 方法表也必须有相同类型。第三，类体中
+每个 \(!self\) 都改成 \(!self\ r\)，因为解引用得到的是函数，还要把当前
+实例变量记录传给它。
 对象创建函数为
 \[
 \begin{aligned}
@@ -68,23 +118,13 @@ self 能按协变关系提升为父类所需的接口。
   \textbf{let }r=\{x=\taplterm{ref}\ 1\}\textbf{ in }m'\ r).
 \end{aligned}
 \]
+\begin{lstlisting}
+? newSetCounter : Unit -> SetCounter
+\end{lstlisting}
 绑定建立时只执行到最后的 lambda 抽象；以后每次调用只分配新的实例变量记录并
 把 \(m'\) 应用于它。
 
-问题出现在继承处。带访问计数的子类具有
-\[
-\begin{aligned}
-\tapltype{InstrCounter}
- &=\{\taplterm{get}:\tapltype{Unit}\to\tapltype{Nat},\\
- &\qquad \taplterm{set}:\tapltype{Nat}\to\tapltype{Unit},
- \taplterm{inc}:\tapltype{Unit}\to\tapltype{Unit},\\
- &\qquad \taplterm{accesses}:\tapltype{Unit}\to\tapltype{Nat}\},\\
-\tapltype{InstrCounterRep}
- &=\{x:\tapltype{Ref}\,\tapltype{Nat},
-     a:\tapltype{Ref}\,\tapltype{Nat}\}.
-\end{aligned}
-\]
-若直接把
+参数重排后，问题重新出现在继承处。若直接把前面带访问计数的子类所用
 \[
 self:\tapltype{Source}
 (\tapltype{InstrCounterRep}\to\tapltype{InstrCounter})
@@ -98,7 +138,26 @@ self:\tapltype{Source}
 (\tapltype{CounterRep}\to\tapltype{SetCounter}),
 \]
 但箭头参数逆变，\(\tapltype{InstrCounterRep}<:\tapltype{CounterRep}\)
-使方向恰好不满足。
+的方向恰好无法满足这一判断。
+
+失败会直接出现在 \texttt{super} 的定义处。把参数重排后的子类照旧写成
+\begin{lstlisting}
+instrCounterClass =
+  lambda self:Source (InstrCounterRep->InstrCounter).
+  let super = setCounterClass self in
+  lambda r:InstrCounterRep.
+    {get = (super r).get,
+     set = lambda i:Nat.
+             (r.a:=succ(!(r.a)); (super r).set i),
+     inc = (super r).inc,
+     accesses = lambda _:Unit. !(r.a)};
+? Error: parameter type mismatch
+\end{lstlisting}
+当前 \(self\) 是指向
+\(\tapltype{InstrCounterRep}\to\tapltype{InstrCounter}\) 的只读引用；父类却
+要求指向 \(\tapltype{CounterRep}\to\tapltype{SetCounter}\) 的只读引用。
+虽然结果类型方向正确，函数参数位置逆变却要求
+\(\tapltype{CounterRep}<:\tapltype{InstrCounterRep}\)，而事实恰好相反。
 
 有界量化把具体表示类型抽成 \(R\)：
 \[
@@ -120,8 +179,18 @@ self:\tapltype{Source}
 \tapltype{Source}(R\to\tapltype{SetCounter})
 \to R\to\tapltype{SetCounter}.
 \]
-父类不再坚持 \(self\) 的参数恰为 \(\tapltype{CounterRep}\)，而只要求调用者
-选择某个含 \(x\) 字段的 \(R\)。子类便可在
+交互式检查器相应输出：
+\begin{lstlisting}
+? setCounterClass
+  : All R<:CounterRep.
+    (Source (R->SetCounter)) -> R -> SetCounter
+\end{lstlisting}
+可以把这项变化理解为父类降低了对 \(self\) 的要求。旧版本要求：“给我一个
+恰好接收 \texttt{CounterRep} 的 self，我将据此构造同样接收
+\texttt{CounterRep} 的方法表。”新版本先让调用者指定正在构造对象的表示类型
+\(R\)；上界保证 \(R\) 至少含有 \texttt{x} 字段。父类随后只要求 self 接收
+这个同一个 \(R\)，并返回至少具有 \texttt{SetCounter} 接口的方法表，自己也
+返回同类方法表。子类便可在
 \(R<:\tapltype{InstrCounterRep}\) 下定义：
 \[
 \begin{aligned}
@@ -137,6 +206,12 @@ self:\tapltype{Source}
 &\quad\taplterm{accesses}=\lambda\_:\tapltype{Unit}.!(r.a)\}.
 \end{aligned}
 \]
+其类型为
+\begin{lstlisting}
+? instrCounterClass
+  : All R<:InstrCounterRep.
+    (Source (R->InstrCounter)) -> R -> InstrCounter
+\end{lstlisting}
 现在传给父类只需
 \[
 \tapltype{Source}(R\to\tapltype{InstrCounter})
@@ -144,6 +219,9 @@ self:\tapltype{Source}
 \]
 两边箭头参数同为 \(R\)，结果位置由
 \(\tapltype{InstrCounter}<:\tapltype{SetCounter}\) 协变即可。
+换言之，\texttt{super} 处仍然使用包容规则把 self 提升为父类所需类型；但
+有界量化先把父类实例化到子类选择的 \(R\)，已经消除了原来两个函数参数类型
+相反的问题。
 
 创建子类对象时，把实际表示类型显式提供给类：
 \[
@@ -159,17 +237,35 @@ self:\tapltype{Source}
 \textbf{ in }m'\ r).
 \end{aligned}
 \]
+\begin{lstlisting}
+? newInstrCounter : Unit -> InstrCounter
+\end{lstlisting}
+唯一新增的步骤，是用实例变量记录的实际类型
+\(\tapltype{InstrCounterRep}\) 实例化 \texttt{instrCounterClass}。与前面
+一样，定义 \texttt{newInstrCounter} 时前三行只执行一次。
 
-\translatornote{作者的官方勘误指出，本章宣称的效率改进并未完全实现。虽然类先
+最后用几次调用检查对象行为：
+\begin{lstlisting}
+ic = newInstrCounter unit;
+ic.inc unit;
+ic.get unit;
+? 2 : Nat
+
+ic.accesses unit;
+? 1 : Nat
+\end{lstlisting}
+
+\translatornote{作者的官方勘误指出，本章宣称的效率改进实际上没有实现。虽然类先
 接收 \(self\)，并且 \(m'\) 只在创建函数绑定时计算一次，但 \(m'\) 仍是从
 实例变量记录到方法记录的函数。开放递归调用中的 \(!self\ r\) 会再次运行这
-个函数，重新构造方法记录。因此，本章编码在类型层面成功解决了表示类型逆变
-造成的继承障碍，却没有真正做到让所有方法表构造工作只发生一次。译文保留原书
-推导，同时据勘误明确这一限制。}
+个函数，重新构造方法记录；最终效率甚至比\taplsecref{18.12}{sec:18.12}
+末尾的编码更差。本章推导在类型层面仍展示了有界量化如何解决表示类型逆变造成
+的继承障碍，但不应把它当作成功的方法表共享方案。勘误另提到 John Tang
+Boyland 建议用第 32 章风格的 \(F_{\omega<:}\) 给出另一种案例研究。}
 
-\begin{exercise}[推荐，\(\star\star\star\)]
+\begin{chapterexercise}[推荐，\(\star\star\star\)]
 \label{ex:27.1}
 上述新编码依赖 \(\tapltype{Source}\) 的协变性。若语言只有有界量化和不变的
 \(\tapltype{Ref}\)，能否得到操作行为相同且具有同等效率的良类型类编码？
-\end{exercise}
+\end{chapterexercise}
 \taplauthorsolutionlink{sol:author:27.1}{27.1}

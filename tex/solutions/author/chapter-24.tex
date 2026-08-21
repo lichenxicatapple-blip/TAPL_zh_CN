@@ -38,6 +38,17 @@
 \taplterm{isempty}:\tapltype{Stack}\to\tapltype{Bool}\}\}.
 \end{aligned}
 \]
+检查器给出
+\[
+\begin{aligned}
+?\ \taplterm{stackADT}:\{\exists\ \tapltype{Stack},
+\{&\taplterm{new}:\tapltype{Stack},
+\taplterm{push}:\tapltype{Nat}\to\tapltype{Stack}\to\tapltype{Stack},\\
+&\taplterm{top}:\tapltype{Stack}\to\tapltype{Nat},
+\taplterm{pop}:\tapltype{Stack}\to\tapltype{Stack},\\
+&\taplterm{isempty}:\tapltype{Stack}\to\tapltype{Bool}\}\}
+\end{aligned}
+\]
 打开包后，
 \(\taplterm{stack.top}(\taplterm{stack.push}\ 5
 (\taplterm{stack.push}\ 3\ \taplterm{stack.new}))\) 得到 \(5\)。
@@ -59,6 +70,16 @@
 &\quad\{\taplterm{new}:\tapltype{Unit}\to\tapltype{Counter},
 \taplterm{get}:\tapltype{Counter}\to\tapltype{Nat},
 \taplterm{inc}:\tapltype{Counter}\to\tapltype{Unit}\}\}.
+\end{aligned}
+\]
+检查器给出
+\[
+\begin{aligned}
+?\ \taplterm{counterADT}:{}&
+\{\exists\ \tapltype{Counter},\\
+&\{\taplterm{new}:\tapltype{Unit}\to\tapltype{Counter},\\
+&\quad\taplterm{get}:\tapltype{Counter}\to\tapltype{Nat},\\
+&\quad\taplterm{inc}:\tapltype{Counter}\to\tapltype{Unit}\}\}
 \end{aligned}
 \]
 \taplsolutionbacklink{ex:24.2.2}{返回练习24.2.2}
@@ -93,6 +114,7 @@
 &\textbf{as }\tapltype{FlipFlop}.
 \end{aligned}
 \]
+检查器给出 \(?\ \taplterm{f}:\tapltype{FlipFlop}\)。
 \taplsolutionbacklink{ex:24.2.3}{返回练习24.2.3}
 \end{taplauthorsolutionentrybox}
 
@@ -144,7 +166,12 @@ t\longrightarrow^*t'
 \llbracket t\rrbracket\longrightarrow^*\llbracket t'\rrbracket.
 \]
 这两项容易验证。反向性质则不成立：翻译可能把源语言中错误或卡住的项映射为
-目标语言中良类型且可继续求值的项。
+目标语言中良类型且可继续求值的项。具体反例是
+\[
+(\{*\tapltype{Nat},0\}\textbf{ as }\{\exists X,X\})[\tapltype{Bool}].
+\]
+源项试图把存在包当作全称值作类型应用，因而既非良类型也无法求值；编码后的
+目标项却是良类型的，而且不会卡住。
 \taplsolutionbacklink{ex:24.3.2}{返回练习24.3.2}
 \end{taplauthorsolutionentrybox}
 

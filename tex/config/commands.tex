@@ -210,7 +210,9 @@
   \ifstrequal{#1}{break}{\tcbbreak}{}%
   \ifstrequal{#1}{implementation-break}{\tcbbreak}{}%
   \ifstrequal{#1}{page}{\tcbbreak\newpage}{}%
-  \par\Needspace{8\baselineskip}\smallskip
+  \par
+  \ifstrequal{#1}{compact}{\Needspace{17\baselineskip}}{\Needspace{8\baselineskip}}%
+  \smallskip
   \begingroup
     \noindent
     {\footnotesize\bfseries
@@ -220,7 +222,11 @@
       }{Rust 实现（译者增补）}{Rust 辅助实现（译者增补）}%
       \par}
     \nobreak\smallskip
-    \inputminted{rust}{../build/code-snippets/#2.rs}%
+    \ifstrequal{#1}{compact}{%
+      \inputminted[fontsize=\footnotesize]{rust}{../build/code-snippets/#2.rs}%
+    }{%
+      \inputminted{rust}{../build/code-snippets/#2.rs}%
+    }%
   \endgroup
   \par\medskip
 }
@@ -302,6 +308,26 @@
     \noindent
     {\footnotesize\bfseries Rust 实现（译者增补）\par}
     \nobreak\smallskip
+    \inputminted[firstline=#2,lastline=#3]{rust}{../build/code-snippets/#1.rs}%
+  \endgroup
+  \par\medskip
+}
+% Flowing chunks for one Rust counterpart to a preceding OCaml block.  The
+% first chunk carries the counterpart heading; later chunks continue it
+% without creating isolated headings or unbreakable page-sized boxes.
+\newcommand{\taplrustcounterpartflowchunkfirst}[3]{%
+  \par\Needspace{30\baselineskip}\smallskip
+  \begingroup
+    \noindent
+    {\footnotesize\bfseries Rust 对照实现（译者增补）\par}
+    \nobreak\smallskip
+    \inputminted[firstline=#2,lastline=#3]{rust}{../build/code-snippets/#1.rs}%
+  \endgroup
+  \par\medskip
+}
+\newcommand{\taplrustcounterpartflowchunk}[3]{%
+  \par\smallskip
+  \begingroup
     \inputminted[firstline=#2,lastline=#3]{rust}{../build/code-snippets/#1.rs}%
   \endgroup
   \par\medskip
@@ -414,6 +440,8 @@
 \theoremstyle{definition}
 \newtheorem{definition}{定义}[section]
 \newtheorem{exercise}[definition]{练习}
+% Exercises that occur directly at chapter level, without a numbered section.
+\newtheorem{chapterexercise}{练习}[chapter]
 \newtheorem{example}[definition]{例}
 \newtheorem{axiom}[definition]{公理}
 \newtheorem{convention}[definition]{约定}
@@ -423,6 +451,7 @@
 \newtheorem{lemma}[definition]{引理}
 \newtheorem{proposition}[definition]{命题}
 \newtheorem{corollary}[definition]{推论}
+\newtheorem{fact}[definition]{事实}
 
 % Numbered technical results that retain the original Appendix A numbering.
 % The counter is positioned at the corresponding source number where these
@@ -430,6 +459,8 @@
 \newtheorem{taplappendixlemma}{引理}
 \newtheorem{taplappendixproposition}[taplappendixlemma]{命题}
 \renewcommand{\thetaplappendixlemma}{A.\arabic{taplappendixlemma}}
+\DeclareCaptionType{taplappendixfigure}[图][图目录]
+\renewcommand{\thetaplappendixfigure}{A-\arabic{taplappendixfigure}}
 
 \theoremstyle{remark}
 \newtheorem{remark}[definition]{注}

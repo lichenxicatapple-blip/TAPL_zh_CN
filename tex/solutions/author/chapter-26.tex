@@ -44,6 +44,15 @@ Abadi、Cardelli 与 Viswanathan（1996）的对象编码中确实需要完全
  &=\forall X.\forall T<:X.\forall F<:X.T\to F\to F.
 \end{aligned}
 \]
+\begin{lstlisting}
+tru = lambda X. lambda T<:X. lambda F<:X.
+      lambda t:T. lambda f:F. t;
+? tru : STrue
+
+fls = lambda X. lambda T<:X. lambda F<:X.
+      lambda t:T. lambda f:F. f;
+? fls : SFalse
+\end{lstlisting}
 \[
 \begin{aligned}
 \taplterm{notft}
@@ -113,17 +122,22 @@ S-TVar 和 S-All 不可能产生箭头左侧；S-Arrow 的两个子推导正是�
 \phantomsection\label{sol:author:26.5.2}
 \textbf{26.5.2 解答}
 
-没有子类型时有四种基本选择：
-\[
-\begin{array}{ll}
-\{\exists X,\{a:\tapltype{Nat},b:\tapltype{Nat}\}\},&
-\{\exists X,\{a:X,b:\tapltype{Nat}\}\},\\
-\{\exists X,\{a:\tapltype{Nat},b:X\}\},&
-\{\exists X,\{a:X,b:X\}\}.
-\end{array}
-\]
-加入子类型和有界量化后会增加许多，例如可以忘掉字段、把字段提升为
-\(\tapltype{Top}\)，或使用上界 \(X<:\tapltype{Nat}\)。
+没有子类型时恰有四种：
+\begin{lstlisting}
+{*Nat, {a=5,b=7}} as {Some X, {a:Nat,b:Nat}};
+{*Nat, {a=5,b=7}} as {Some X, {a:X,b:Nat}};
+{*Nat, {a=5,b=7}} as {Some X, {a:Nat,b:X}};
+{*Nat, {a=5,b=7}} as {Some X, {a:X,b:X}};
+\end{lstlisting}
+加入子类型和有界量化后还会出现许多选择，例如：
+\begin{lstlisting}
+{*Nat, {a=5,b=7}} as {Some X, {a:Nat}};
+{*Nat, {a=5,b=7}} as {Some X, {b:X}};
+{*Nat, {a=5,b=7}} as {Some X, {a:Top,b:X}};
+{*Nat, {a=5,b=7}} as {Some X, Top};
+{*Nat, {a=5,b=7}} as {Some X<:Nat, {a:X,b:X}};
+{*Nat, {a=5,b=7}} as {Some X<:Nat, {a:Top,b:X}};
+\end{lstlisting}
 \taplsolutionbacklink{ex:26.5.2}{返回练习26.5.2}
 \end{taplauthorsolutionentrybox}
 
@@ -131,20 +145,55 @@ S-TVar 和 S-All 不可能产生箭头左侧；S-Arrow 的两个子推导正是�
 \phantomsection\label{sol:author:26.5.3}
 \textbf{26.5.3 解答}
 
-一种办法是把重置计数器 ADT 嵌套在普通计数器 ADT 中。外包先隐藏
-\(\tapltype{Counter}\)；其操作记录中再放一个存在包
-\[
-\begin{aligned}
-\{\exists\ \tapltype{ResetCounter}<:\tapltype{Counter},
-\{&\taplterm{new}:\tapltype{ResetCounter},\\
- &\taplterm{get}:\tapltype{ResetCounter}\to\tapltype{Nat},\\
- &\taplterm{inc}:\tapltype{ResetCounter}\to\tapltype{ResetCounter},\\
- &\taplterm{reset}:\tapltype{ResetCounter}\to\tapltype{ResetCounter}\}\}
-\end{aligned}
-\]
-依次打开两层包后，上下文同时含
-\(\tapltype{ResetCounter}<:\tapltype{Counter}\)，客户便可把重置计数器传给
-普通计数器操作，而两种具体表示仍然隐藏。
+一种办法是把重置计数器 ADT 嵌套在普通计数器 ADT 中：
+\begin{lstlisting}
+counterADT =
+  {*Nat,
+   {new = 1,
+    get = lambda i:Nat. i,
+    inc = lambda i:Nat. succ(i),
+    rcADT =
+      {*Nat,
+       {new = 1,
+        get = lambda i:Nat. i,
+        inc = lambda i:Nat. succ(i),
+        reset = lambda i:Nat. 1}}
+      as {Some ResetCounter<:Nat,
+          {new:ResetCounter,
+           get:ResetCounter->Nat,
+           inc:ResetCounter->ResetCounter,
+           reset:ResetCounter->ResetCounter}}}}
+  as {Some Counter,
+      {new:Counter,
+       get:Counter->Nat,
+       inc:Counter->Counter,
+       rcADT:
+         {Some ResetCounter<:Counter,
+          {new:ResetCounter,
+           get:ResetCounter->Nat,
+           inc:ResetCounter->ResetCounter,
+           reset:ResetCounter->ResetCounter}}}};
+? counterADT
+  : {Some Counter,
+     {new:Counter,get:Counter->Nat,inc:Counter->Counter,
+      rcADT:
+        {Some ResetCounter<:Counter,
+         {new:ResetCounter,get:ResetCounter->Nat,
+          inc:ResetCounter->ResetCounter,
+          reset:ResetCounter->ResetCounter}}}}
+\end{lstlisting}
+依次打开这两个包后，余下程序的上下文会含有
+\(\tapltype{Counter}<:\tapltype{Top}\) 与
+\(\tapltype{ResetCounter}<:\tapltype{Counter}\)，以及两套操作记录：
+\begin{lstlisting}
+let {Counter,counter} = counterADT in
+let {ResetCounter,resetCounter} = counter.rcADT in
+counter.get
+  (counter.inc
+    (resetCounter.reset
+      (resetCounter.inc resetCounter.new)));
+? 2 : Nat
+\end{lstlisting}
 \taplsolutionbacklink{ex:26.5.3}{返回练习26.5.3}
 \end{taplauthorsolutionentrybox}
 

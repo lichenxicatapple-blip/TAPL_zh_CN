@@ -7,8 +7,9 @@
 \label{chap:25}
 
 本章以简单类型 lambda 演算的实现为基础（见\chapref{10}），加入全称类型与
-存在类型；这两种系统分别见\chapref{23}与\chapref{24}。规则仍是语法导向的，
-因此实现的主要新问题不是类型检查本身，而是如何表示带绑定变量的类型。这里
+存在类型；这两种系统分别见\chapref{23}与\chapref{24}。这个系统的规则与
+简单类型 lambda 演算一样是语法导向的，不像含子类型或等式递归类型的演算，
+因此 OCaml 实现相当直接。主要的新问题是如何表示带有变量绑定的类型；这里
 再次采用\chapref{6}介绍的 de Bruijn 索引。
 
 \section{类型的无名表示}
@@ -22,7 +23,7 @@ type ty =
   | TyAll of string * ty
   | TySome of string * ty
 \end{taplocamlcode}
-\taplrustexplanation{相应的 Rust 定义与本节其余类型操作合并展示。}
+\taplrustcounterpart{ch25-type-definition}
 
 \texttt{TyVar(x,n)} 的两个整数与项变量的表示相同：\(x\) 是该变量到绑定子的
 距离，\(n\) 是变量出现处预期的上下文总长度。量词保存一个名称提示，只供
@@ -35,17 +36,16 @@ type binding =
   | VarBind of ty
   | TyVarBind
 \end{taplocamlcode}
-\taplrustexplanation{Rust 对照中的 \texttt{Binding::TypeVariable} 与
-\texttt{TyVarBind} 对应；同一枚举也保留名称绑定和带类型的项变量绑定。}
+\taplrustcounterpart{ch25-binding-error-support}
 
 \texttt{NameBind} 仍只供解析和打印使用；\texttt{VarBind} 携带项变量的类型；
 \texttt{TyVarBind} 不附加数据，因为纯 System F 的类型变量没有界或种类等
-额外假设。\chapref{26}的有界量化和\chapref{29}的高阶类型系统会改变这一点。
+额外假设。\chapref{26}的有界量化和\chapref{29}的高阶种类会改变这一点。
 
 \section{类型移位与替换}
 \label{sec:25.2}
 
-类型现在含有变量，因此需要定义类型移位和替换。
+类型现在含有变量，因此需要定义\termfirst{类型移位}{type shifting}和替换。
 
 \begin{exercise}[\(\star\)]
 \label{ex:25.2.1}
@@ -53,8 +53,10 @@ type binding =
 \end{exercise}
 \taplauthorsolutionlink{sol:author:25.2.1}{25.2.1}
 
-移位与替换只在变量叶子处行为不同，其余类型构造都只是递归遍历。作者先给出
-专用移位函数：
+\taplsecref{7.2}{sec:7.2}把项的移位与替换分别定义成两个函数，同时提到作者
+网站上的实现其实用一个通用“映射”函数完成两项工作。类型也可以用同样方法。
+移位与替换只在变量叶子处行为不同，其余类型构造都只是递归遍历。先把
+练习25.2.1的定义机械翻译成专用移位函数：
 \begin{taplocamlcode}
 let typeShiftAbove d c tyT =
   let rec walk c tyT = match tyT with
@@ -96,7 +98,11 @@ let typeShiftAbove d c tyT =
     c tyT
 
 let typeShift d tyT = typeShiftAbove d 0 tyT
+\end{taplocamlcode}
+\taplrustcounterpartflowchunkfirst{ch25-type-shift}{1}{16}
+\taplrustcounterpartflowchunk{ch25-type-shift}{17}{31}
 
+\begin{taplocamlcode}
 let typeSubst tyS j tyT =
   tymap
     (fun j x n ->
@@ -106,9 +112,9 @@ let typeSubst tyS j tyT =
 let typeSubstTop tyS tyT =
   typeShift (-1) (typeSubst (typeShift 1 tyS) 0 tyT)
 \end{taplocamlcode}
-\taplrustcounterpart{ch25-type-operations}
+\taplrustcounterpart{ch25-type-substitution}
 
-\texttt{typeSubstTop} 的三步与项替换相同：先把替换项上移一位，使它进入绑定子
+\texttt{typeSubstTop} 的三步与项替换相同：先把替换类型上移一位，使它进入绑定子
 时不会捕获变量；替换编号 \(0\)；最后整体下移一位，删除已经打开的绑定子。
 
 \section{项}
@@ -125,7 +131,7 @@ type term =
   | TmPack of info * ty * term * ty
   | TmUnpack of info * string * string * term * term
 \end{taplocamlcode}
-\taplrustexplanation{相应的 Rust 项定义与本节其余项操作合并展示。}
+\taplrustcounterpart{ch25-term-definition}
 
 项中既有项变量，也有嵌在类型标注里的类型变量。因此通用映射函数接收两个
 回调：\texttt{onvar} 处理项变量，\texttt{ontype} 处理类型标注。
@@ -149,7 +155,7 @@ let tmmap onvar ontype c t =
 \end{taplocamlcode}
 \taplrustexplanation{相应的 Rust 遍历实现与移位、替换操作合并展示。}
 
-\texttt{TmUnpack} 的函数体同时位于类型变量 \(X\) 和项变量 \(x\) 两个新绑定
+\texttt{TmUnpack} 的开包表达式体同时位于类型变量 \(X\) 和项变量 \(x\) 两个新绑定
 之下，所以截止位置增加二。由 \texttt{tmmap} 可得到项移位、项替换和把类型
 替换进项的操作：
 \begin{taplocamlcode}
@@ -166,12 +172,12 @@ let termSubst j s t =
   tmmap
     (fun fi j x n ->
       if x=j then termShift j s else TmVar(fi,x,n))
-    (fun _ tyT -> tyT)
+    (fun j tyT -> tyT)
     j t
 
 let tytermSubst tyS j t =
   tmmap
-    (fun fi _ x n -> TmVar(fi,x,n))
+    (fun fi c x n -> TmVar(fi,x,n))
     (fun j tyT -> typeSubst tyS j tyT)
     j t
 
@@ -183,8 +189,14 @@ let tytermSubstTop tyS t =
 \end{taplocamlcode}
 \taplrustcounterpart{ch25-term-operations}
 
-普通项替换不改变类型标注，因为类型中不含项变量；类型项替换则保持项变量
+普通项替换不改变类型标注，因为类型中不含项变量；把类型替换进项的操作则保持项变量
 不动，只遍历并替换项里的各个类型标注。
+
+这里第二种替换正是类型应用归约所需的操作：
+\[
+(\lambda X.t_{12})[T_2]\longrightarrow[X\mapsto T_2]t_{12}
+\qquad\textsc{E-TAppTabs}
+\]
 
 \section{求值}
 \label{sec:25.4}
@@ -193,12 +205,12 @@ let tytermSubstTop tyS t =
 \begin{taplocamlcode}
 let rec eval1 ctx t = match t with
     (* ... *)
-  | TmTApp(_,TmTAbs(_,_,t11),tyT2) ->
+  | TmTApp(fi,TmTAbs(_,x,t11),tyT2) ->
       tytermSubstTop tyT2 t11
   | TmTApp(fi,t1,tyT2) ->
       let t1' = eval1 ctx t1 in
       TmTApp(fi,t1',tyT2)
-  | TmUnpack(_,_,_,TmPack(_,tyT11,v12,_),t2)
+  | TmUnpack(fi,_,_,TmPack(_,tyT11,v12,_),t2)
       when isval ctx v12 ->
       tytermSubstTop tyT11
         (termSubstTop (termShift 1 v12) t2)
@@ -210,6 +222,8 @@ let rec eval1 ctx t = match t with
       TmPack(fi,tyT1,t2',tyT3)
     (* ... *)
 \end{taplocamlcode}
+\taplocamlgroupedcounterpart{ch25-evaluation}
+\taplrustsupport{ch25-evaluation-support}
 \taplrustcounterpart{ch25-evaluation}
 
 \begin{exercise}[\(\star\)]
@@ -239,29 +253,35 @@ let rec typeof ctx t = match t with
            if (=) tyT2 tyT11 then tyT12
            else error fi "parameter type mismatch"
        | _ -> error fi "arrow type expected")
-  | TmTAbs(_,tyX,t2) ->
-      let ctx' = addbinding ctx tyX TyVarBind in
-      TyAll(tyX,typeof ctx' t2)
+  | TmTAbs(fi,tyX,t2) ->
+      let ctx = addbinding ctx tyX TyVarBind in
+      let tyT2 = typeof ctx t2 in
+      TyAll(tyX,tyT2)
   | TmTApp(fi,t1,tyT2) ->
-      (match typeof ctx t1 with
+      let tyT1 = typeof ctx t1 in
+      (match tyT1 with
          TyAll(_,tyT12) -> typeSubstTop tyT2 tyT12
        | _ -> error fi "universal type expected")
   | TmPack(fi,tyT1,t2,tyT) ->
       (match tyT with
-         TySome(_,tyT2) ->
+         TySome(tyY,tyT2) ->
            let tyU = typeof ctx t2 in
            let tyU' = typeSubstTop tyT1 tyT2 in
            if (=) tyU tyU' then tyT
            else error fi "doesn't match declared type"
        | _ -> error fi "existential type expected")
   | TmUnpack(fi,tyX,x,t1,t2) ->
-      (match typeof ctx t1 with
-         TySome(_,tyT11) ->
+      let tyT1 = typeof ctx t1 in
+      (match tyT1 with
+         TySome(tyY,tyT11) ->
            let ctx' = addbinding ctx tyX TyVarBind in
            let ctx'' = addbinding ctx' x (VarBind tyT11) in
-           typeShift (-2) (typeof ctx'' t2)
+           let tyT2 = typeof ctx'' t2 in
+           typeShift (-2) tyT2
        | _ -> error fi "existential type expected")
 \end{taplocamlcode}
+\taplocamlgroupedcounterpart{ch25-typechecking}
+\taplrustsupport[compact]{ch25-typechecking-support}
 \taplrustcounterpart{ch25-typechecking}
 
 \texttt{TmUnpack} 先确认 \(t_1\) 具有存在类型，再依次把类型变量和项变量加入
@@ -282,3 +302,10 @@ let typeShiftAbove d c tyT =
 \taplrustexplanation{Rust 对照以无符号索引和
 \texttt{checked\_add\_signed} 实现同一检查；任何会产生负索引的下移都会
 返回 \texttt{Error::InvalidShift}。}
+
+只要开包表达式体的类型中仍含有它所绑定的隐藏类型变量 \(X\)，这项检查就会
+报告作用域错误。例如：
+\begin{lstlisting}
+let {X,x}=({*Nat,0} as {Some X,X}) in x;
+? Error: Scoping error!
+\end{lstlisting}

@@ -42,9 +42,9 @@
 \phantomsection\label{sol:author:23.4.6}
 \textbf{23.4.6 解答}
 \[
-\taplterm{iszero}=\lambda n:\tapltype{CNat}.\,
-n[\tapltype{Bool}](\lambda b:\tapltype{Bool}.\taplterm{false})
-\taplterm{true}
+\taplterm{iszro}=\lambda n:\tapltype{CNat}.\,
+n[\tapltype{CBool}](\lambda b:\tapltype{CBool}.\taplterm{fls})
+\taplterm{tru}
 \]
 \taplsolutionbacklink{ex:23.4.6}{返回练习23.4.6}
 \end{taplauthorsolutionentrybox}
@@ -79,13 +79,14 @@ n[\tapltype{Bool}](\lambda b:\tapltype{Bool}.\taplterm{false})
 \taplterm{zz}&=\taplterm{pairNat}\ \taplterm{c0}\ \taplterm{c0},\\
 \taplterm{f}&=\lambda p:\tapltype{PairNat}.\,
  \taplterm{pairNat}\,
- (\taplterm{csucc}(\taplterm{fstNat}\ p))\,
- (\taplterm{fstNat}\ p),\\
-\taplterm{pred}&=\lambda m:\tapltype{CNat}.\,
- \taplterm{sndNat}\bigl(m[\tapltype{PairNat}]\taplterm{f}\taplterm{zz}\bigr).
+ (\taplterm{sndNat}\ p)\,
+ (\taplterm{cplus}\ \taplterm{c1}\ (\taplterm{sndNat}\ p)),\\
+\taplterm{prd}&=\lambda m:\tapltype{CNat}.\,
+ \taplterm{fstNat}\bigl(m[\tapltype{PairNat}]\taplterm{f}\taplterm{zz}\bigr)
 \end{aligned}
 \]
-迭代 \(i\) 次后得到 \((i,i-1)\)（零处截断），故取第二分量即为前驱。
+原书解答迭代时保存 \((i-1,i)\)，最后取第一分量；这与题目提示建议保存
+\((i,i-1)\) 再取第二分量的方向不同，但计算结果相同。
 \taplsolutionbacklink{ex:23.4.9}{返回练习23.4.9}
 \end{taplauthorsolutionentrybox}
 
@@ -104,6 +105,8 @@ n[\tapltype{Bool}](\lambda b:\tapltype{Bool}.\taplterm{false})
 \]
 其类型为 \(\tapltype{CNat}\to\tapltype{CNat}\)。迭代过程中保留一个“尚待
 应用的后继”，最后以恒等函数收束，从而丢掉第一次迭代、留下前驱结果。
+
+作者感谢 Michael Levin 使他了解到这个例子。
 \taplsolutionbacklink{ex:23.4.10}{返回练习23.4.10}
 \end{taplauthorsolutionentrybox}
 
@@ -122,9 +125,13 @@ l[X](\lambda hd:X.\lambda tl:X.\,hd)\,default
 \phantomsection\label{sol:author:23.4.12}
 \textbf{23.4.12 解答}
 
-关键是让折叠同时构造两份列表：第一份尚未插入 \(e\)，第二份已经把 \(e\)
-插入适当位置。自右向左处理元素 \(hd\) 时，比较 \(e\) 与 \(hd\)：若
-\(e\leq hd\)，把 \(e\) 插在当前后缀之前；否则沿用后缀中已经完成的插入。
+本题最难的部分是插入函数。下面的解答把给定列表 \(l\) 用作折叠函数，折叠
+过程中同时构造两份新列表：第一份与原列表相同，第二份则已经包含新元素 \(e\)。
+从右向左处理 \(l\) 的每个元素 \(hd\) 时，折叠函数收到 \(hd\) 和右侧元素已经
+构成的列表对。它比较 \(e\) 与 \(hd\)：若 \(e\leq hd\)，则 \(e\) 应当位于
+第二份结果列表的开头，所以把 \(e\) 加到尚未包含它的第一份列表之前；若
+\(e>hd\)，则 \(e\) 应当出现在第二份列表更靠后的地方，只需把 \(hd\) 加到
+已经完成插入的第二份列表之前。
 \[
 \begin{aligned}
 \taplterm{insert}={}&\lambda X.\lambda leq:X\to X\to\tapltype{Bool}.
@@ -133,20 +140,40 @@ l[X](\lambda hd:X.\lambda tl:X.\,hd)\,default
 l[\tapltype{Pair}(\tapltype{List}\,X)(\tapltype{List}\,X)]\\
 &\quad(\lambda hd:X.\lambda acc:\tapltype{Pair}
 (\tapltype{List}\,X)(\tapltype{List}\,X).\\
-&\qquad\textbf{let }rest=\taplterm{fst}\ acc\textbf{ in}\\
-&\qquad\textbf{let }rest_e=\taplterm{snd}\ acc\textbf{ in}\\
-&\qquad\taplterm{pair}\,
-  (\taplterm{cons}[X]hd\,rest)\,
-  (\textbf{if }leq\ e\ hd\\
-&\hspace{52mm}\textbf{ then }\taplterm{cons}[X]e
-     (\taplterm{cons}[X]hd\,rest)\\
-&\hspace{52mm}\textbf{ else }\taplterm{cons}[X]hd\,rest_e))\\
-&\quad(\taplterm{pair}(\taplterm{nil}[X])
-  (\taplterm{cons}[X]e(\taplterm{nil}[X])))\\
-&\textbf{ in }\taplterm{snd}\ res.
+&\qquad\textbf{let }rest=
+ \taplterm{fst}[\tapltype{List}\,X][\tapltype{List}\,X]\ acc
+ \textbf{ in}\\
+&\qquad\textbf{let }newrest=\taplterm{cons}[X]\ hd\ rest\textbf{ in}\\
+&\qquad\textbf{let }restwithe=
+ \taplterm{snd}[\tapltype{List}\,X][\tapltype{List}\,X]\ acc
+ \textbf{ in}\\
+&\qquad\textbf{let }newrestwithe=\\
+&\qquad\quad\textbf{if }leq\ e\ hd
+   \textbf{ then }\taplterm{cons}[X]\ e\,
+     (\taplterm{cons}[X]\ hd\ rest)\\
+&\qquad\quad\textbf{else }\taplterm{cons}[X]\ hd\ restwithe
+   \textbf{ in}\\
+&\qquad\taplterm{pair}[\tapltype{List}\,X][\tapltype{List}\,X]
+  \ newrest\ newrestwithe)\\
+&\quad(\taplterm{pair}[\tapltype{List}\,X][\tapltype{List}\,X]
+  (\taplterm{nil}[X])
+  (\taplterm{cons}[X]\ e\ (\taplterm{nil}[X])))\\
+&\textbf{ in }\taplterm{snd}[\tapltype{List}\,X][\tapltype{List}\,X]\ res
 \end{aligned}
 \]
-随后再以插入函数折叠整个列表：
+接着需要一个自然数比较函数。这里使用基本自然数，因此用 \taplterm{fix} 定义
+递归；若改用 Church 自然数，就可以完全避开 \taplterm{fix}：
+\[
+\begin{aligned}
+\taplterm{leqnat}=\taplterm{fix}\bigl(&\lambda f:
+ \tapltype{Nat}\to\tapltype{Nat}\to\tapltype{Bool}.\,
+ \lambda m:\tapltype{Nat}.\,\lambda n:\tapltype{Nat}.\\
+&\textbf{if }\taplterm{iszero}\ m\textbf{ then }\taplterm{true}\\
+&\textbf{else if }\taplterm{iszero}\ n\textbf{ then }\taplterm{false}\\
+&\textbf{else }f\ (\taplterm{pred}\ m)\ (\taplterm{pred}\ n)\bigr)
+\end{aligned}
+\]
+最后，把原列表中的元素逐一插入新列表：
 \[
 \begin{aligned}
 \taplterm{sort}={}&\lambda X.\lambda leq:X\to X\to\tapltype{Bool}.\\
@@ -154,9 +181,45 @@ l[\tapltype{Pair}(\tapltype{List}\,X)(\tapltype{List}\,X)]\\
 l[\tapltype{List}\,X]\\
 &\quad
 (\lambda hd:X.\lambda rest:\tapltype{List}\,X.\,
-\taplterm{insert}[X]leq\,rest\,hd)(\taplterm{nil}[X]).
+\taplterm{insert}[X]\ leq\ rest\ hd)(\taplterm{nil}[X])
 \end{aligned}
 \]
+
+为验证排序函数，先构造乱序列表
+\[
+\taplterm{l}=\taplterm{cons}[\tapltype{Nat}]\ 9\,
+ (\taplterm{cons}[\tapltype{Nat}]\ 2\,
+  (\taplterm{cons}[\tapltype{Nat}]\ 6\,
+   (\taplterm{cons}[\tapltype{Nat}]\ 4\,
+    (\taplterm{nil}[\tapltype{Nat}]))))
+\]
+再令
+\[
+\taplterm{l}=\taplterm{sort}[\tapltype{Nat}]\ \taplterm{leqnat}\ \taplterm{l}
+\]
+并定义按下标读取列表的函数：
+\[
+\begin{aligned}
+\taplterm{nth}={}&\lambda X.\,\lambda default:X.\,
+\taplterm{fix}\bigl(\lambda f:\tapltype{List}\,X\to\tapltype{Nat}\to X.\,
+\lambda l:\tapltype{List}\,X.\,\lambda n:\tapltype{Nat}.\\
+&\quad\textbf{if }\taplterm{iszero}\ n
+ \textbf{ then }\taplterm{head}[X]\ default\ l\\
+&\quad\textbf{else }f\ (\taplterm{tail}[X]\ l)\ (\taplterm{pred}\ n)\bigr)
+\end{aligned}
+\]
+于是
+\[
+\begin{array}{rcl@{\qquad}rcl}
+\taplterm{nth}[\tapltype{Nat}]\ 0\ l\ 0&\longrightarrow^*&2,&
+\taplterm{nth}[\tapltype{Nat}]\ 0\ l\ 1&\longrightarrow^*&4,\\
+\taplterm{nth}[\tapltype{Nat}]\ 0\ l\ 2&\longrightarrow^*&6,&
+\taplterm{nth}[\tapltype{Nat}]\ 0\ l\ 3&\longrightarrow^*&9,\\
+\taplterm{nth}[\tapltype{Nat}]\ 0\ l\ 4&\longrightarrow^*&0
+\end{array}
+\]
+Reynolds（1985）曾以一项精彩工作证明：可以在 System F 中实现良类型的排序
+算法；他的算法与这里给出的版本略有不同。
 \taplsolutionbacklink{ex:23.4.12}{返回练习23.4.12}
 \end{taplauthorsolutionentrybox}
 
@@ -171,8 +234,7 @@ l[\tapltype{List}\,X]\\
 \Gamma,[X\mapsto S]\Delta\vdash[X\mapsto S]t:[X\mapsto S]T.
 \]
 保留尾部上下文 \(\Delta\) 才能得到足够强的归纳假设；否则 T-Abs 情形无法
-处理在 \(X\) 之后引入的项变量绑定。对求值推导归纳，新增的 E-TApp 情形直接
-使用归纳假设，E-TAppTabs 情形使用上述引理。
+处理在 \(X\) 之后引入的项变量绑定。
 \taplsolutionbacklink{thm:23.5.1}{返回定理23.5.1}
 \end{taplauthorsolutionentrybox}
 
@@ -185,8 +247,7 @@ l[\tapltype{List}\,X]\\
 \text{若值 }v\text{ 具有类型 }\forall X.T_{12},
 \text{ 则 }v=\lambda X.t_{12}.
 \]
-在 T-TApp 情形中，先对被实例化项使用归纳假设；若它能求值，应用 E-TApp；
-若它是值，典范形式引理说明它必为类型抽象，于是 E-TAppTabs 可用。
+主证明的类型应用情形会使用这一结论。
 \taplsolutionbacklink{thm:23.5.2}{返回定理23.5.2}
 \end{taplauthorsolutionentrybox}
 
@@ -194,29 +255,121 @@ l[\tapltype{List}\,X]\\
 \phantomsection\label{sol:author:23.6.3}
 \textbf{23.6.3 解答}
 
-证明分七步整理类型抽象、类型应用与普通项的相对位置。
+除最后一步需要看出怎样把前面的结果拼在一起导出矛盾外，各步都只是归纳或
+等式计算。Pawel Urzyczyn 建议了这个论证的结构。
 \begin{enumerate}
-  \item 对 \(t\) 归纳并使用赋型反演：若 \(t\) 良类型且擦除为 \(m\)，可
-        重排出一个同样擦除为 \(m\) 的良类型暴露项。
-  \item 对最外层类型抽象和类型应用的数量归纳，把任意装饰写成
-        “若干类型抽象、一个暴露项、若干类型应用”的形式。相邻的类型抽象和
-        类型应用可以先作一次类型 beta 归约；保持性保证重排后类型不变。
-  \item 若暴露项擦除为应用 \(m\,n\)，反演可知它必为 \(s\,u\)，其中
-        \(s:U\to T\)、\(u:U\)，且分别擦除为 \(m,n\)。
-  \item 把上述结论用于擦除为 \(x\,x\) 的项，得到同一个变量经过两组类型
-        实例化后既充当函数又充当实参的必要类型方程。
-  \item 若项擦除为 \(\lambda x.m\)，整理后的类型必由若干全称量词包住一个
-        箭头类型。
-  \item 定义类型的“最左叶”：变量的最左叶是自身，箭头类型取参数的最左叶，
-        全称类型取量词体的最左叶。对类型大小归纳可知，步骤 4 的方程迫使
-        箭头参数的最左叶等于某个外层量化变量。
-  \item 反设 \(\Omega\) 可赋型。分别把两个擦除为
-        \(\lambda x.x\,x\) 的子项整理并反演。函数位置要求某一类型的最左叶
-        等于在左侧抽象处绑定的类型变量；实参位置又要求同一最左叶等于在右侧
-        抽象处绑定的另一个类型变量。两变量由不同绑定子引入，不可能相同，
-        矛盾。
+  \item 对 \(t\) 作直接的结构归纳，并使用赋型反演引理。
+
+  \item 证明下面这个更强的命题：若
+        \[
+        t=\lambda\overline Y.\,(r[\overline B])
+        \]
+        其中 \(r\) 不一定暴露，且
+        \(\mathsf{erase}(t)=m\)、\(\Gamma\vdash t:T\)，则存在
+        \[
+        s=\lambda\overline X.\,(u[\overline A])
+        \]
+        使 \(u\) 暴露、\(\mathsf{erase}(s)=m\) 且
+        \(\Gamma\vdash s:T\)。归纳对象是 \(r\) 外层的类型抽象和类型应用
+        的总数。
+
+        基例中没有这样的外层构造，故 \(r\) 本身已暴露。归纳步骤中，\(r\)
+        的最外层若为类型应用 \(r_1[R]\)，便把 \(R\) 加到
+        \(\overline B\) 中，再用归纳假设。若最外层为 \(\lambda Z.r_1\)，
+        分两种情况：
+        \begin{enumerate}
+          \item 若 \(\overline B\) 为空，把 \(Z\) 加到
+                \(\overline Y\) 中，再用归纳假设。
+          \item 若 \(\overline B\) 非空，写成
+                \(\overline B=B_0\overline{B'}\)，于是
+                \[
+                t=\lambda\overline Y.
+                  ((\lambda Z.r_1)[B_0][\overline{B'}])
+                \]
+                其中含有一处 E-TAppTabs 红项。归约后得到
+                \[
+                t'=\lambda\overline Y.
+                   ([Z\mapsto B_0]r_1[\overline{B'}])
+                \]
+                而 \([Z\mapsto B_0]r_1\) 的外层类型抽象与类型应用严格少于
+                \(r\)。保持性定理说明 \(t'\) 与 \(t\) 类型相同，再应用
+                归纳假设即可。
+        \end{enumerate}
+
+  \item 直接使用赋型反演引理。
+
+  \item 依次使用第 2、3、2 步，并作等式计算即可。这里按作者勘误，原书所写
+        的第 1 步应改为第 2 步。
+
+  \item 直接使用第 2 步和赋型反演引理。
+
+  \item 对 \(T_1\) 的大小归纳。基例中 \(T_1\) 是类型变量；它必须来自
+        \(\overline{X_1X_2}\)，否则会有
+        \[
+        [\overline{X_1X_2\mapsto A}](\forall\overline Y.T_1)
+        =\forall\overline Y.W
+        =\forall Z.(\forall\overline Y.W)\to
+          ([\overline{X_1\mapsto B}]T_2),
+        \]
+        但左边没有箭头，右边至少有一个箭头，不可能相等。其他类型构造情形
+        直接由归纳假设得到。
+
+  \item 反设 \(\Omega\) 可赋型。由第 1、3 步，存在暴露应用
+        \(o=s\,u\)，并且
+        \[
+        \begin{array}{c@{\qquad}c}
+        \mathsf{erase}(s)=\lambda x.x\,x&
+        \mathsf{erase}(u)=\lambda y.y\,y\\
+        \Gamma\vdash s:U\to V&\Gamma\vdash u:U
+        \end{array}
+        \]
+        第 2 步给出
+        \[
+        s'=\lambda\overline R.(s_0[\overline E]),
+        \qquad
+        u'=\lambda\overline V.(u_0[\overline F]),
+        \]
+        其中 \(s_0,u_0\) 暴露，并且分别仍擦除为
+        \(\lambda x.x\,x\) 和 \(\lambda y.y\,y\)，且
+        \(\Gamma\vdash s':U\to V\)、\(\Gamma\vdash u':U\)。
+
+        因为 \(s'\) 的类型是箭头类型，\(\overline R\) 必为空；又因为
+        \(s_0,u_0\) 暴露且擦除结果以普通抽象开头，二者本身必须以普通抽象
+        开头，所以 \(\overline E,\overline F\) 也为空。于是
+        \[
+        o'=s'u'=s_0(\lambda\overline V.u_0)
+        =(\lambda x:T_x.w)(\lambda\overline V.\lambda y:T_y.v),
+        \]
+        其中 \(\mathsf{erase}(w)=x\,x\)、
+        \(\mathsf{erase}(v)=y\,y\)。由反演引理，\(U=T_x\)，且
+        \[
+        \Gamma,x:T_x\vdash w:W,
+        \qquad
+        \Gamma,\overline V,y:T_y\vdash v:P
+        \]
+
+        对左边的判断使用第 4 步。第 5 步排除了
+        \(T_x=\forall\overline X.X_i\) 的情形，所以
+        \[
+        T_x=\forall\overline{X_1}\,\overline{X_2}.T_1\to T_2
+        \]
+        并满足第 4 步的类型方程。第 6 步遂说明
+        \(\mathsf{leftmost\mbox{-}leaf}(T_1)=X_i\)，其中
+        \(X_i\in\overline{X_1X_2}\)。
+
+        对右边的判断同样使用第 4 步：无论 \(T_y\) 落入其中哪种情形，
+        它的最左叶都是某个 \(Y_i\in\overline V\)。另一方面，由 \(o'\)
+        的结构和反演引理，
+        \[
+        \forall\overline V.T_y\to V
+        =T_x
+        =\forall\overline{X_1}\,\overline{X_2}.T_1\to T_2,
+        \]
+        因而特别有 \(T_y=T_1\)。同一个类型的最左叶于是既等于
+        \(X_i\in\overline{X_1X_2}\)，又等于
+        \(Y_i\in\overline V\)。两组变量由不同绑定位置引入，不可能相同，
+        矛盾。因此 \(\Omega\) 不可赋型。
 \end{enumerate}
-因此 \(\Omega\) 在 System F 中不可赋型。
 \taplsolutionbacklink{ex:23.6.3}{返回练习23.6.3}
 \end{taplauthorsolutionentrybox}
 
@@ -229,9 +382,11 @@ l[\tapltype{List}\,X]\\
 \bigl(r[\tapltype{Nat}]:=(\lambda x:\tapltype{Nat}.\taplterm{succ}\,x);
 \,!(r[\tapltype{Bool}])\ \taplterm{true}\bigr)
 \]
-若错误地把同一个可变单元在不同实例中分别视为
-\(\tapltype{Nat}\to\tapltype{Nat}\) 和
-\(\tapltype{Bool}\to\tapltype{Bool}\)，写入自然数函数后再按布尔函数读取，
-就破坏了类型安全。
+\translatornote{按本章的类型传递语义，每次调用 \(r[T]\) 都进入类型抽象体，
+因此会新建一个引用单元；两个实例不会共享同一单元。若采用朴素的完全擦除，
+类型抽象会消失，\taplterm{ref} 的分配就被提前到 let 右侧，只执行一次，这才会
+重现\taplsecref{22.7}{sec:22.7}中的不安全共享。按值擦除
+\(\mathsf{erase}_v\) 把类型抽象保留为虚设函数，仍会令每次实例化分别执行
+分配。}
 \taplsolutionbacklink{ex:23.7.1}{返回练习23.7.1}
 \end{taplauthorsolutionentrybox}

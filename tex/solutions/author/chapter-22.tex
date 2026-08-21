@@ -51,7 +51,7 @@
 \textbf{22.3.10 解答}
 
 用类型对的列表表示约束集后，约束生成算法就是把
-\cref{sol:author:22.3.9}中的推导规则逐项写成程序：
+\taplnamedref{sol:author:22.3.9}{解答22.3.9}中的推导规则逐项写成程序：
 \begin{taplocamlcode}
 let rec recon ctx nextuvar t = match t with
     TmVar(fi,i,_) ->
@@ -88,7 +88,13 @@ let rec recon ctx nextuvar t = match t with
       (tyT3,nextuvar3,
        List.concat [newconstr; constr1; constr2; constr3])
 \end{taplocamlcode}
-\taplrustcounterpart{ch22-constraints}
+\taplrustcounterpartflowchunkfirst{ch22-constraints}{1}{30}
+\taplrustcounterpartflowchunk{ch22-constraints}{31}{49}
+\taplrustcounterpartflowchunk{ch22-constraints}{50}{71}
+\taplrustcounterpartflowchunk{ch22-constraints}{72}{95}
+\taplrustsupportflowchunkfirst{ch22-inference-support}{1}{24}
+\taplrustsupportflowchunk{ch22-inference-support}{25}{48}
+\taplrustsupportflowchunk{ch22-inference-support}{49}{60}
 
 \taplsolutionbacklink{ex:22.3.10}{返回练习22.3.10}
 \end{taplauthorsolutionentrybox}
@@ -183,7 +189,8 @@ let unify fi ctx msg constr =
         else if occursin tyX tyT then error fi (msg ^ ": circular constraints")
         else List.append (u (substinconstr tyX tyT rest))
                          [(TyId(tyX),tyT)]
-    | (TyNat,TyNat)::rest | (TyBool,TyBool)::rest -> u rest
+    | (TyNat,TyNat)::rest -> u rest
+    | (TyBool,TyBool)::rest -> u rest
     | (TyArr(tyS1,tyS2),TyArr(tyT1,tyT2))::rest ->
         u ((tyS1,tyT1)::(tyS2,tyT2)::rest)
     | _ -> error fi "Unsolvable constraints"
@@ -203,8 +210,16 @@ let unify fi ctx msg constr =
 \textbf{22.5.6 解答}
 
 把类型重构直接扩展到记录并不容易。主要困难是投影应生成什么约束。朴素规则
-会要求 \(t.l_i\) 的接收者恰好具有单字段记录类型 \({l_i:X}\)，因而错误地
-排除含其他字段的记录。
+会写成
+\[
+\inferrule*[right=CT-Proj]
+ {\Gamma\vdash t:T\mid_X C\\
+  Y\notin X\cup\fv(T)\cup\fv(C)}
+ {\Gamma\vdash t.l_i:Y\mid_{X\cup\{Y\}}
+  C\cup\{T=\{l_i:Y\}\}}
+\]
+这条规则要求 \(t.l_i\) 的接收者恰好具有单字段记录类型
+\(\{l_i:Y\}\)，因而错误地排除含其他字段的记录。
 
 Wand（1987）提出并由 Rémy 等人进一步发展的办法，是增加一类
 \emph{行变量}。它的取值不是单个类型，而是整行“字段标签及相应类型”。令

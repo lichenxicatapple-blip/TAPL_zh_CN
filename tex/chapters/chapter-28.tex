@@ -10,50 +10,81 @@
 不同：有些性质二者都有，但完全系统更难证明；另一些性质在完全系统中彻底
 失效，这是增强表达能力付出的代价。
 
+\taplsecref{28.1}{sec:28.1}与\taplsecref{28.2}{sec:28.2}先给出一套对核系统和
+完全系统都适用的类型检查算法。随后分别考察核系统
+（\taplsecref{28.3}{sec:28.3}）和完全系统
+（\taplsecref{28.4}{sec:28.4}）的子类型检查。
+\taplsecref{28.5}{sec:28.5}继续讨论完全 \(F_{<:}\)，重点是其子类型关系不可
+判定这一出人意料的结果；\taplsecref{28.6}{sec:28.6}说明核系统有并和交，而
+完全系统没有；\taplsecref{28.7}{sec:28.7}讨论有界存在类型带来的问题；最后，
+\taplsecref{28.8}{sec:28.8}考察加入最小类型 \(\tapltype{Bot}\) 的影响。
+
 \section{暴露}
 \label{sec:28.1}
 
-\cref{sec:16.2}的算法由子项最小类型计算整个项的最小类型。\(F_{<:}\) 多了
+\taplsecref{16.2}{sec:16.2}的算法由子项最小类型计算整个项的最小类型。
+\(F_{<:}\) 多了
 类型变量，因而要处理一个新问题。设
-\[
-f=\lambda X<:\tapltype{Nat}\to\tapltype{Nat}.
-\lambda y:X.\,y\ 5.
-\]
-\(y\) 的最小类型是变量 \(X\)，但检查应用需要看见箭头。上下文已经说明
-\(X<:\tapltype{Nat}\to\tapltype{Nat}\)，所以算法应沿变量上界逐步提升，
-直到得到第一个非变量类型。
+\begin{lstlisting}
+f = lambda X<:Nat->Nat. lambda y:X. y 5;
+? f : All X<:Nat->Nat. X -> Nat
+\end{lstlisting}
+该项显然良类型，因为在应用 \(y\ 5\) 中，T-Sub 可把 \(y\) 的类型提升为
+\(\tapltype{Nat}\to\tapltype{Nat}\)。但 \(y\) 的
+最小类型是变量 \(X\)，\footnote{本章研究纯
+\(F_{<:}\)（\taplnamedref{fig:26-1}{图}）。作者相应的实现是
+\texttt{purefsub}；\texttt{fullfsub} 还包括存在类型
+（\taplnamedref{fig:24-1}{图}）和\chapref{11}的若干扩展。}而检查应用
+需要得到箭头类型。为算出整个应用的最小类型，必须找到 \(y\) 所具有的最小箭头
+类型，也就是变量 \(X\) 的最小箭头超类型。做法是沿着上界反复提升 \(X\)，
+直到结果不再是类型变量。
 
-\begin{definition}
-\label{def:28.1}
-判断
-\[
-\Gamma\vdash S\Uparrow T
-\]
-读作“在 \(\Gamma\) 下，\(S\) 暴露为 \(T\)”；\(T\) 是 \(S\) 的最小
-非变量超类型。规则为
+形式上，判断
+\(\Gamma\algturnstile S\Uparrow T\) 读作“在 \(\Gamma\) 下，\(S\)
+\termfirst{暴露}{exposure}为 \(T\)”；它表示 \(T\) 是 \(S\) 的最小非变量
+超类型。暴露就是反复提升类型变量，如\taplnamedref{fig:28-1}{图}所示。
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.92\linewidth}
+\taplfigureheaderplain{\(\Gamma\algturnstile S\Uparrow T\)}
+  {\tapltranslateditalic{暴露关系}}
 \[
 \inferrule*[right=Expose-NonVar]
  {S\text{ 不是类型变量}}
- {\Gamma\vdash S\Uparrow S}
+ {\Gamma\algturnstile S\Uparrow S}
 \qquad
 \inferrule*[right=Expose-Var]
- {X<:U\in\Gamma\\\Gamma\vdash U\Uparrow T}
- {\Gamma\vdash X\Uparrow T}.
+ {X<:U\in\Gamma\\\Gamma\algturnstile U\Uparrow T}
+ {\Gamma\algturnstile X\Uparrow T}
 \]
-\end{definition}
+\end{minipage}
+\caption{\(F_{<:}\) 的暴露算法}
+\label{fig:28-1}
+\end{figure}
 
-例如，若
+这些规则定义了一个全函数：良构上下文中的变量上界只能引用更早的变量，因此
+沿上界反复查找必会遇到非变量类型。暴露结果也是具有某种非变量外形的最小超
+类型。例如，若
 \[
 \Gamma=X<:\tapltype{Top},\
 Y<:\tapltype{Nat}\to\tapltype{Nat},\
 Z<:Y,\ W<:Z,
 \]
-则 \(X\) 暴露为 \(\tapltype{Top}\)，而 \(Y,Z,W\) 都暴露为
-\(\tapltype{Nat}\to\tapltype{Nat}\)。
+则有五个判断：
+\[
+\begin{array}{lll}
+\Gamma\algturnstile\tapltype{Top}\Uparrow\tapltype{Top},&
+\Gamma\algturnstile Y\Uparrow\tapltype{Nat}\to\tapltype{Nat},&
+\Gamma\algturnstile W\Uparrow\tapltype{Nat}\to\tapltype{Nat},\\
+\Gamma\algturnstile X\Uparrow\tapltype{Top},&
+\Gamma\algturnstile Z\Uparrow\tapltype{Nat}\to\tapltype{Nat}
+\end{array}
+\]
 
 \begin{lemma}[暴露]
 \label{lem:28.1.1}
-若 \(\Gamma\vdash S\Uparrow T\)，则：
+若 \(\Gamma\algturnstile S\Uparrow T\)，则：
 \begin{enumerate}
   \item \(\Gamma\vdash S<:T\)；
   \item 若 \(\Gamma\vdash S<:U\) 且 \(U\) 不是变量，则
@@ -62,69 +93,162 @@ Z<:Y,\ W<:Z,
 \end{lemma}
 
 \begin{proof}
-第 1 项对暴露推导归纳；第 2 项对子类型推导归纳。上下文良构保证变量上界链
-不会循环，所以暴露总会终止。
+第 1 项对 \(\Gamma\algturnstile S\Uparrow T\) 的推导归纳；第 2 项对
+\(\Gamma\vdash S<:U\) 的推导归纳。
 \end{proof}
-
-\footnotetext{本章研究纯 \(F_{<:}\)。原书相应实现为
-\texttt{purefsub}；\texttt{fullfsub} 还包括存在类型和此前若干扩展。}
 
 \section{最小赋型}
 \label{sec:28.2}
 
-算法赋型判断写作
-\(\Gamma\vdash_{\!A}t:T\)，表示算法计算出 \(t\) 的最小类型 \(T\)。
-变量、抽象和类型抽象的规则与声明式规则对应；应用与类型应用先暴露函数部分：
+这里所说的\termfirst{最小赋型}{minimal typing}，是指为一项计算其最小类型。
+算法沿用带子类型简单类型 lambda 演算的思路，只增加一项处理：
+检查项应用时，先计算左侧项的最小类型，再把它暴露成箭头类型。若暴露结果不是
+箭头，TA-App 无法使用，该应用便不良类型。类型应用同理，要把左侧项的最小
+类型暴露成全称类型。完整规则见\taplnamedref{fig:28-2}{图}。
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.96\linewidth}
+\taplfigureheaderplain{\(\Gamma\algturnstile t:T\)}
+  {\tapltranslateditalic{算法赋型关系}}
 \[
 \inferrule*[right=TA-Var]
  {x:T\in\Gamma}
- {\Gamma\vdash_{\!A}x:T}
+ {\Gamma\algturnstile x:T}
 \qquad
 \inferrule*[right=TA-Abs]
- {\Gamma,x:T_1\vdash_{\!A}t_2:T_2}
- {\Gamma\vdash_{\!A}\lambda x:T_1.t_2:T_1\to T_2}
+ {\Gamma,x:T_1\algturnstile t_2:T_2}
+ {\Gamma\algturnstile\lambda x:T_1.t_2:T_1\to T_2}
 \]
 \[
 \inferrule*[right=TA-App]
- {\Gamma\vdash_{\!A}t_1:T_1\\
-  \Gamma\vdash T_1\Uparrow T_{11}\to T_{12}\\
-  \Gamma\vdash_{\!A}t_2:T_2\\
-  \Gamma\vdash T_2<:T_{11}}
- {\Gamma\vdash_{\!A}t_1\,t_2:T_{12}}
+ {\Gamma\algturnstile t_1:T_1\\
+  \Gamma\algturnstile T_1\Uparrow T_{11}\to T_{12}\\
+  \Gamma\algturnstile t_2:T_2\\
+  \Gamma\algturnstile T_2<:T_{11}}
+ {\Gamma\algturnstile t_1\,t_2:T_{12}}
 \]
 \[
 \inferrule*[right=TA-TAbs]
- {\Gamma,X<:T_1\vdash_{\!A}t_2:T_2}
- {\Gamma\vdash_{\!A}\lambda X<:T_1.t_2:
+ {\Gamma,X<:T_1\algturnstile t_2:T_2}
+ {\Gamma\algturnstile\lambda X<:T_1.t_2:
   \forall X<:T_1.T_2}
 \]
 \[
 \inferrule*[right=TA-TApp]
- {\Gamma\vdash_{\!A}t_1:T_1\\
-  \Gamma\vdash T_1\Uparrow\forall X<:T_{11}.T_{12}\\
-  \Gamma\vdash T_2<:T_{11}}
- {\Gamma\vdash_{\!A}t_1[T_2]:[X\mapsto T_2]T_{12}}.
+ {\Gamma\algturnstile t_1:T_1\\
+  \Gamma\algturnstile T_1\Uparrow\forall X<:T_{11}.T_{12}\\
+  \Gamma\algturnstile T_2<:T_{11}}
+ {\Gamma\algturnstile t_1[T_2]:[X\mapsto T_2]T_{12}}
 \]
+\end{minipage}
+\caption{\(F_{<:}\) 的算法赋型规则}
+\label{fig:28-2}
+\end{figure}
+
+下面证明该算法相对于原始赋型规则可靠且完备。这里只写核 \(F_{<:}\) 的
+证明；完全系统的相应修改见练习28.2.3。
 
 \begin{theorem}[最小赋型]
 \label{thm:28.2.1}
 \begin{enumerate}
-  \item 若 \(\Gamma\vdash_{\!A}t:T\)，则 \(\Gamma\vdash t:T\)。
+  \item 若 \(\Gamma\algturnstile t:T\)，则 \(\Gamma\vdash t:T\)。
   \item 若 \(\Gamma\vdash t:T\)，则存在 \(M\) 使
-        \(\Gamma\vdash_{\!A}t:M\) 且 \(\Gamma\vdash M<:T\)。
+        \(\Gamma\algturnstile t:M\) 且 \(\Gamma\vdash M<:T\)。
 \end{enumerate}
 \end{theorem}
 
 \begin{proof}
-第 1 项对算法推导归纳，应用情形用
-\cref{lem:28.1.1}第 1 项把函数的最小类型提升为暴露结果。
+第 1 项对算法赋型推导归纳。在应用和类型应用情形，用
+\cref{lem:28.1.1}第 1 项把左侧项的最小类型提升为暴露结果；其余前提直接
+使用归纳假设。
 
-第 2 项对声明式赋型推导归纳。T-App 情形由归纳假设得到子项最小类型
-\(M_1,M_2\)。把 \(M_1\) 暴露为非变量 \(N_1\)；暴露引理和子类型反演说明
-\(N_1=N_{11}\to N_{12}\)，且实参最小类型满足
-\(M_2<:N_{11}\)，所以 TA-App 可用，结果 \(N_{12}\) 又是原结果类型的
-子类型。T-TApp 情形同理，把 \(M_1\) 暴露为有界全称类型，再用类型替换保持
-子类型。T-Sub 情形用传递性收束。
+第 2 项对 \(\Gamma\vdash t:T\) 的推导归纳，并按最后一条规则分类。
+
+\textbf{情形 T-Var。}
+此时 \(t=x\)，且 \(x:T\in\Gamma\)。TA-Var 给出
+\(\Gamma\algturnstile x:T\)，S-Refl 给出 \(\Gamma\vdash T<:T\)。
+
+\textbf{情形 T-Abs。}
+此时 \(t=\lambda x:T_1.t_2\)、\(T=T_1\to T_2\)，且
+\(\Gamma,x:T_1\vdash t_2:T_2\)。归纳假设给出某个 \(M_2\)，满足
+\[
+\Gamma,x:T_1\algturnstile t_2:M_2,
+\qquad
+\Gamma,x:T_1\vdash M_2<:T_2.
+\]
+子类型判断不使用项变量绑定（\cref{lem:26.4.4}），故后一判断等价于
+\(\Gamma\vdash M_2<:T_2\)。TA-Abs 得到
+\(\Gamma\algturnstile t:T_1\to M_2\)，再由 S-Refl 与 S-Arrow 得
+\(\Gamma\vdash T_1\to M_2<:T_1\to T_2\)。
+
+\textbf{情形 T-App。}
+此时 \(t=t_1\,t_2\)、\(T=T_{12}\)，前提为
+\[
+\Gamma\vdash t_1:T_{11}\to T_{12},
+\qquad
+\Gamma\vdash t_2:T_{11}.
+\]
+归纳假设给出
+\(\Gamma\algturnstile t_1:M_1\) 与
+\(\Gamma\algturnstile t_2:M_2\)，并有
+\[
+\Gamma\vdash M_1<:T_{11}\to T_{12},
+\qquad
+\Gamma\vdash M_2<:T_{11}.
+\]
+令 \(N_1\) 为 \(M_1\) 的最小非变量超类型，即
+\(\Gamma\algturnstile M_1\Uparrow N_1\)。由
+\cref{lem:28.1.1}第 2 项，
+\(\Gamma\vdash N_1<:T_{11}\to T_{12}\)。\(N_1\) 不是变量，故
+\cref{lem:26.4.10}说明
+\(N_1=N_{11}\to N_{12}\)，且
+\[
+\Gamma\vdash T_{11}<:N_{11},
+\qquad
+\Gamma\vdash N_{12}<:T_{12}.
+\]
+由传递性有 \(\Gamma\vdash M_2<:N_{11}\)，所以 TA-App 得到
+\(\Gamma\algturnstile t_1\,t_2:N_{12}\)，而 \(N_{12}\) 正是所需的
+\(T_{12}\) 的子类型。
+
+\textbf{情形 T-TAbs。}
+此时 \(t=\lambda X<:T_1.t_2\)、
+\(T=\forall X<:T_1.T_2\)，且
+\(\Gamma,X<:T_1\vdash t_2:T_2\)。归纳假设给出某个 \(M_2\)，满足
+\[
+\Gamma,X<:T_1\algturnstile t_2:M_2,
+\qquad
+\Gamma,X<:T_1\vdash M_2<:T_2.
+\]
+TA-TAbs 得到最小类型 \(\forall X<:T_1.M_2\)，S-All 则给出它是原类型的
+子类型。
+
+\textbf{情形 T-TApp。}
+此时 \(t=t_1[T_2]\)、\(T=[X\mapsto T_2]T_{12}\)，且
+\[
+\Gamma\vdash t_1:\forall X<:T_{11}.T_{12},
+\qquad
+\Gamma\vdash T_2<:T_{11}.
+\]
+归纳假设给出 \(\Gamma\algturnstile t_1:M_1\) 和
+\(\Gamma\vdash M_1<:\forall X<:T_{11}.T_{12}\)。令
+\(\Gamma\algturnstile M_1\Uparrow N_1\)。暴露引理与
+\cref{lem:26.4.10}说明
+\[
+N_1=\forall X<:T_{11}.N_{12},
+\qquad
+\Gamma,X<:T_{11}\vdash N_{12}<:T_{12}.
+\]
+TA-TApp 得到
+\(\Gamma\algturnstile t_1[T_2]:[X\mapsto T_2]N_{12}\)；再由
+\cref{lem:26.4.8}可知该结果类型是
+\([X\mapsto T_2]T_{12}\) 的子类型。
+
+\textbf{情形 T-Sub。}
+归纳假设给出某个 \(M\)，满足
+\(\Gamma\algturnstile t:M\) 和 \(\Gamma\vdash M<:S\)；与原前提
+\(\Gamma\vdash S<:T\) 使用传递性，得到 \(\Gamma\vdash M<:T\)。
 \end{proof}
 
 \begin{corollary}[赋型可判定性]
@@ -133,9 +257,11 @@ Z<:Y,\ W<:Z,
 \end{corollary}
 
 \begin{proof}
-算法规则由项的外层语法唯一选择，而且递归调用总在真子项上。算法成功时由
+对任意 \(\Gamma,t\)，按算法规则尝试构造某个
+\(\Gamma\algturnstile t:T\)。算法规则由项的外层语法唯一选择，而且递归
+调用总在真子项上。算法成功时由
 \cref{thm:28.2.1}第 1 项得到声明式赋型；失败时第 2 项保证不存在声明式
-类型。
+类型。最后，算法子类型关系若可判定，全部前提也都可以有效检查。
 \end{proof}
 
 \begin{exercise}[\(\star\star\)]
@@ -148,54 +274,116 @@ Z<:Y,\ W<:Z,
 \label{sec:28.3}
 
 声明式子类型规则不能直接作为算法：S-Refl 与其他规则重叠，S-Trans 还要求
-猜测结论中没有的中间类型。像\cref{sec:16.1}一样，应删除二者并把必要用法
+猜测结论中没有的中间类型。像\taplsecref{16.1}{sec:16.1}一样，应删除二者并把必要用法
 并入更具体的规则。
 
-类型变量 \(X<:X\) 只能由反身性证明，因此保留变量专用反身规则。变量上界链
-中的传递步骤则合并进变量规则：
+在带子类型的简单类型 lambda 演算中，删除 S-Refl 不会损失可导判断；这里却
+不同，\(\Gamma\vdash X<:X\) 只能由反身性得到。因此要保留一个只适用于类型
+变量的反身规则。
 \[
 \inferrule*[right=SA-Refl-TVar]{ }
- {\Gamma\vdash_{\!A}X<:X}
+ {\Gamma\algturnstile X<:X}
+\]
+
+删除 S-Trans 前还必须处理它与 S-TVar 的必要交互。例如令
+\(
+\Gamma=W<:\tapltype{Top},X<:W,Y<:X,Z<:Y
+\)。不借助传递性，就无法从逐级上界推出 \(\Gamma\vdash Z<:W\)。其中不能
+消除的基本片段是“先用 S-TVar 查到变量的直接上界，再用传递性继续向上”：
+\[
+\inferrule*[right=S-Trans]
+ {\inferrule*[right=S-TVar]{Z<:Y\in\Gamma}{\Gamma\vdash Z<:Y}\\
+  \Gamma\vdash Y<:W}
+ {\Gamma\vdash Z<:W}
+\]
+新的 SA-Trans-TVar 把这一模式合成一条规则。由此得到
+\taplnamedref{fig:28-3}{图}中的核 \(F_{<:}\) 算法子类型关系。
+\[
+\inferrule*[right=SA-Trans-TVar]
+ {X<:U\in\Gamma\\\Gamma\algturnstile U<:T}
+ {\Gamma\algturnstile X<:T}
+\]
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.96\linewidth}
+\taplfigureheaderplain{\(\Gamma\algturnstile S<:T\)}
+  {\tapltranslateditalic{算法子类型关系}}
+\[
+\inferrule*[right=SA-Refl-TVar]{ }
+ {\Gamma\algturnstile X<:X}
 \qquad
 \inferrule*[right=SA-Trans-TVar]
- {X<:U\in\Gamma\\\Gamma\vdash_{\!A}U<:T}
- {\Gamma\vdash_{\!A}X<:T}.
+ {X<:U\in\Gamma\\\Gamma\algturnstile U<:T}
+ {\Gamma\algturnstile X<:T}
 \]
-其余算法规则为
 \[
 \inferrule*[right=SA-Top]{ }
- {\Gamma\vdash_{\!A}S<:\tapltype{Top}}
-\]
-\[
+ {\Gamma\algturnstile S<:\tapltype{Top}}
+\qquad
 \inferrule*[right=SA-Arrow]
- {\Gamma\vdash_{\!A}T_1<:S_1\\
-  \Gamma\vdash_{\!A}S_2<:T_2}
- {\Gamma\vdash_{\!A}S_1\to S_2<:T_1\to T_2}
+ {\Gamma\algturnstile T_1<:S_1\\
+  \Gamma\algturnstile S_2<:T_2}
+ {\Gamma\algturnstile S_1\to S_2<:T_1\to T_2}
 \]
 \[
 \inferrule*[right=SA-All]
- {\Gamma,X<:U\vdash_{\!A}S<:T}
- {\Gamma\vdash_{\!A}
-  \forall X<:U.S<:\forall X<:U.T}.
+ {\Gamma,X<:U\algturnstile S<:T}
+ {\Gamma\algturnstile
+  \forall X<:U.S<:\forall X<:U.T}
 \]
+\end{minipage}
+\caption{核 \(F_{<:}\) 的算法子类型规则}
+\label{fig:28-3}
+\end{figure}
 
 \begin{lemma}[算法子类型关系的反身性]
 \label{lem:28.3.1}
 对每个良构 \(\Gamma,T\)，都有
-\(\Gamma\vdash_{\!A}T<:T\)。
+\(\Gamma\algturnstile T<:T\)。
 \end{lemma}
+
+\begin{proof}
+对类型 \(T\) 的结构归纳。变量使用 SA-Refl-TVar，\(\tapltype{Top}\) 使用
+SA-Top，箭头与全称类型分别对组成部分使用归纳假设，再应用 SA-Arrow 或
+SA-All。
+\end{proof}
 
 \begin{lemma}[算法子类型关系的传递性]
 \label{lem:28.3.2}
 若
-\(\Gamma\vdash_{\!A}S<:Q\) 且
-\(\Gamma\vdash_{\!A}Q<:T\)，则
-\(\Gamma\vdash_{\!A}S<:T\)。
+\(\Gamma\algturnstile S<:Q\) 且
+\(\Gamma\algturnstile Q<:T\)，则
+\(\Gamma\algturnstile S<:T\)。
 \end{lemma}
 
 \begin{proof}
-对两份推导大小之和归纳，并按末条规则分类。SA-Trans-TVar 情形沿变量上界
-递归；箭头情形分别组合逆变参数和协变结果；全称情形在相同上界下组合量词体。
+对两份推导大小之和归纳，并对二者的最后一条规则分类。
+
+若右侧推导最后使用 SA-Top，目标立即由 SA-Top 得到。若左侧最后使用
+SA-Top，则 \(Q=\tapltype{Top}\)；检查算法规则可知右侧也只能以 SA-Top
+结束。若任一推导最后使用 SA-Refl-TVar，另一份推导本身就是所需结论。
+
+若左侧最后使用 SA-Trans-TVar，则 \(S=Y\)、\(Y<:U\in\Gamma\)，并有更小的
+子推导 \(\Gamma\algturnstile U<:Q\)。归纳假设把它与右侧推导组合成
+\(\Gamma\algturnstile U<:T\)，再用 SA-Trans-TVar 得到
+\(\Gamma\algturnstile Y<:T\)。
+
+若左侧最后使用 SA-Arrow，则
+\(S=S_1\to S_2\)、\(Q=Q_1\to Q_2\)。已经处理右侧为 SA-Top 的情形，
+所以右侧只能也以 SA-Arrow 结束，且 \(T=T_1\to T_2\)。四个子推导分别给出
+\[
+\Gamma\algturnstile Q_1<:S_1,\qquad
+\Gamma\algturnstile S_2<:Q_2,\qquad
+\Gamma\algturnstile T_1<:Q_1,\qquad
+\Gamma\algturnstile Q_2<:T_2.
+\]
+两次应用归纳假设得到参数与结果所需的传递结论，再应用 SA-Arrow。
+
+若左侧最后使用 SA-All，则
+\(S=\forall X<:U_1.S_2\)、\(Q=\forall X<:U_1.Q_2\)；右侧同样只能使用
+SA-All，故 \(T=\forall X<:U_1.T_2\)。在共同上下文
+\(\Gamma,X<:U_1\) 下，把两份量词体子推导用归纳假设组合，再应用 SA-All。
 \end{proof}
 
 \begin{theorem}[算法子类型的可靠性与完备性]
@@ -203,15 +391,41 @@ Z<:Y,\ W<:Z,
 \[
 \Gamma\vdash S<:T
 \quad\Longleftrightarrow\quad
-\Gamma\vdash_{\!A}S<:T.
+\Gamma\algturnstile S<:T.
 \]
 \end{theorem}
 
+\begin{proof}
+两个方向都对推导归纳。由右到左的可靠性直接把算法规则翻译为声明式规则；
+由左到右的完备性在声明式 S-Refl 与 S-Trans 情形分别使用
+\cref{lem:28.3.1}和\cref{lem:28.3.2}，其余情形直接使用归纳假设。
+\end{proof}
+
 \begin{definition}
 \label{def:28.3.4}
-类型在上下文中的\emph{权重}递归计入其语法大小；类型变量的权重还加上其
-上界的权重。子类型判断的权重取两边类型权重的最大值。上下文良构使这一定义
-终止。
+类型 \(T\) 在上下文 \(\Gamma\) 中的\emph{权重}写作
+\(\operatorname{weight}_{\Gamma}(T)\)，递归定义为
+\[
+\begin{aligned}
+\operatorname{weight}_{\Gamma}(\tapltype{Top})&=1,\\
+\operatorname{weight}_{\Gamma}(X)
+ &=1+\operatorname{weight}_{\Gamma}(U)
+   &&\text{若 }X<:U\in\Gamma,\\
+\operatorname{weight}_{\Gamma}(S\to T)
+ &=1+\operatorname{weight}_{\Gamma}(S)
+      +\operatorname{weight}_{\Gamma}(T),\\
+\operatorname{weight}_{\Gamma}(\forall X<:S.T)
+ &=1+\operatorname{weight}_{\Gamma}(S)
+      +\operatorname{weight}_{\Gamma,X<:S}(T).
+\end{aligned}
+\]
+子类型判断 \(\Gamma\algturnstile S<:T\) 的权重是
+\[
+\operatorname{weight}_{\Gamma}(S)
++\operatorname{weight}_{\Gamma}(T).
+\]
+上下文良构保证变量上界只引用更早的类型变量，因此变量一项的递归定义良好。
+这里按作者勘误使用两边权重之和，而非原版的最大值。
 \end{definition}
 
 \begin{theorem}
@@ -233,40 +447,134 @@ SA-Trans-TVar 沿变量的上界移动，而良构上下文中的上界只引用
 \label{sec:28.4}
 
 完全系统的算法只把 SA-All 换成允许上界逆变的版本。反身性仍与核系统相同，
-传递性却更微妙。组合
+其规则见\taplnamedref{fig:28-4}{图}。算法关系相对于声明式关系的可靠性
+与完备性，仍可由反身性和传递性推出。
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.9\linewidth}
+\taplfigureheaderplain{完全 \(F_{<:}\)}
+  {\tapltranslateditalic{替换 SA-All 的规则}}
 \[
-\forall X<:S_1.S_2<:\forall X<:Q_1.Q_2
-\quad\text{和}\quad
-\forall X<:Q_1.Q_2<:\forall X<:T_1.T_2
+\inferrule*[right=SA-All]
+ {\Gamma\algturnstile T_1<:S_1\\
+  \Gamma,X<:T_1\algturnstile S_2<:T_2}
+ {\Gamma\algturnstile
+  \forall X<:S_1.S_2<:\forall X<:T_1.T_2}
 \]
-时，两个量词体子推导分别位于 \(X<:Q_1\) 与 \(X<:T_1\) 下，不能直接套用
-传递性的归纳假设。必须先把第一份推导中的上界从 \(Q_1\) 收窄为 \(T_1\)。
-而收窄可能扩大推导，甚至插入新的传递步骤，所以不能只按推导大小证明。
+\end{minipage}
+\caption{完全 \(F_{<:}\) 的算法子类型规则}
+\label{fig:28-4}
+\end{figure}
+
+反身性的证明与核系统相同，传递性却更微妙。设有两份以 SA-All 结束的推导，
+其结论为
+\[
+\Gamma\algturnstile
+\forall X<:S_1.S_2<:\forall X<:Q_1.Q_2
+\]
+和
+\[
+\Gamma\algturnstile
+\forall X<:Q_1.Q_2<:\forall X<:T_1.T_2.
+\]
+它们分别包含四个子推导：
+\[
+\Gamma\algturnstile Q_1<:S_1,\qquad
+\Gamma,X<:Q_1\algturnstile S_2<:Q_2,
+\]
+\[
+\Gamma\algturnstile T_1<:Q_1,\qquad
+\Gamma,X<:T_1\algturnstile Q_2<:T_2.
+\]
+对两个上界子推导使用传递性的归纳假设没有问题，可以得到
+\(\Gamma\algturnstile T_1<:S_1\)。但两个量词体子推导的上下文不同：一个
+把 \(X\) 的上界写成 \(Q_1\)，另一个写成 \(T_1\)，无法直接套用同一个
+传递性归纳假设。
+
+\chapref{26}的收窄性质提供了对齐上下文的办法。由
+\(\Gamma\algturnstile T_1<:Q_1\)，可把第一份量词体推导收窄为
+\(\Gamma,X<:T_1\algturnstile S_2<:Q_2\)，再与第二份组合。但这里不能直接
+引用声明式系统的收窄引理：它构造的新推导可能比原推导更大，还可能插入新的
+传递步骤，而当前目的正是证明没有 S-Trans 的算法关系仍具有传递性。因此，
+必须把算法关系的传递性和收窄性放在同一个归纳中证明。
 
 \begin{lemma}[排列与弱化]
 \label{lem:28.4.1}
-良构地排列上下文或加入互不冲突的新绑定，不会破坏完全 \(F_{<:}\) 的算法
-子类型判断。
-\end{lemma}
-
-\begin{lemma}[完全 \(F_{<:}\) 的传递性与收窄]
-\label{lem:28.4.2}
 \begin{enumerate}
-  \item 算法子类型关系具有传递性；
-  \item 若在 \(X<:Q\) 下可导出 \(S<:T\)，且 \(P<:Q\)，则把该绑定收窄为
-        \(X<:P\) 后仍可导出 \(S<:T\)。
+  \item 设 \(\Gamma'\) 是 \(\Gamma\) 的良构排列。若
+        \(\Gamma\algturnstile S<:T\)，则
+        \(\Gamma'\algturnstile S<:T\)。
+  \item 若 \(\Gamma\algturnstile S<:T\) 且
+        \(\operatorname{dom}(\Gamma)\cap
+          \operatorname{dom}(\Delta)=\varnothing\)，则
+        \(\Gamma,\Delta\algturnstile S<:T\)。
 \end{enumerate}
 \end{lemma}
 
 \begin{proof}
-两项同时对中间类型或原上界 \(Q\) 的大小归纳。证明某一大小的收窄时，可以
-使用同一大小已经得到的传递性；证明传递性时，只在严格更小的量词上界上使用
-收窄。这个互相支撑的归纳安排避免了按推导大小循环。
+均为常规归纳；第 2 项的 SA-All 情形使用第 1 项调整新绑定的次序。
+\end{proof}
+
+\begin{lemma}[完全 \(F_{<:}\) 的传递性与收窄]
+\label{lem:28.4.2}
+\begin{enumerate}
+  \item 若 \(\Gamma\algturnstile S<:Q\) 且
+        \(\Gamma\algturnstile Q<:T\)，则
+        \(\Gamma\algturnstile S<:T\)。
+  \item 若 \(\Gamma,X<:Q,\Delta\algturnstile M<:N\) 且
+        \(\Gamma\algturnstile P<:Q\)，则
+        \(\Gamma,X<:P,\Delta\algturnstile M<:N\)。
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+两项同时对 \(Q\) 的大小归纳。每一层先证明第 1 项，再证明第 2 项；证明当前
+\(Q\) 的第 2 项时可以使用刚刚得到的传递性，而证明第 1 项只会调用严格小于
+\(Q\) 的上界所对应的收窄结论。
+
+第 1 项再对第一份推导的大小作内层归纳，并对两份推导的最后规则分类。SA-Top、
+SA-Refl-TVar 与 SA-Trans-TVar 情形和核系统相同。若两边都以 SA-Arrow 结束，
+中间类型 \(Q=Q_1\to Q_2\)，分别对严格更小的 \(Q_1,Q_2\) 使用外层归纳
+假设，再应用 SA-Arrow。
+
+关键是两边都以 SA-All 结束。此时
+\(Q=\forall X<:Q_1.Q_2\)，并有上文列出的四个子推导。先对 \(Q_1\) 使用
+第 1 项，得到 \(\Gamma\algturnstile T_1<:S_1\)。再对严格更小的 \(Q_1\)
+使用第 2 项，把
+\(\Gamma,X<:Q_1\algturnstile S_2<:Q_2\) 收窄为
+\(\Gamma,X<:T_1\algturnstile S_2<:Q_2\)。现在两个量词体判断具有相同
+上下文；对严格更小的 \(Q_2\) 使用第 1 项，得到
+\(\Gamma,X<:T_1\algturnstile S_2<:T_2\)。最后应用 SA-All。
+
+第 2 项对待收窄推导的大小作内层归纳。多数规则直接使用归纳假设。关键情形是
+最后使用 SA-Trans-TVar，且被查找的变量恰为 \(X\)。原推导含子推导
+\(\Gamma,X<:Q,\Delta\algturnstile Q<:N\)。内层归纳假设把它收窄为
+\(\Gamma,X<:P,\Delta\algturnstile Q<:N\)；弱化又把前提
+\(\Gamma\algturnstile P<:Q\) 放入同一上下文。使用当前 \(Q\) 已经证明的
+第 1 项，得到 \(P<:N\)，再由 SA-Trans-TVar 推出 \(X<:N\)。
 \end{proof}
 
 \begin{exercise}[\(\star\star\star\star\)]
 \label{ex:28.4.3}
-补全\cref{lem:28.4.2}的详细证明。
+考虑一种介于核规则与完全规则之间的量词子类型规则：
+\[
+\inferrule*[right=S-All]
+ {\Gamma\vdash S_1<:T_1\\
+  \Gamma\vdash T_1<:S_1\\
+  \Gamma,X<:T_1\vdash S_2<:T_2}
+ {\Gamma\vdash
+  \forall X<:S_1.S_2<:\forall X<:T_1.T_2}
+\]
+它不要求两个上界在语法上完全相同，只要求二者在子类型关系下等价。只有加入
+能产生非平凡等价类的构造后，它才和核规则表现不同。例如，带记录的纯核
+\(F_{<:}\) 不能推出
+\[
+\forall X<:\{a:\tapltype{Top},b:\tapltype{Top}\}.X
+<:
+\forall X<:\{b:\tapltype{Top},a:\tapltype{Top}\}.X,
+\]
+而上述规则可以。采用这条规则的系统，其子类型关系是否可判定？
 \end{exercise}
 \taplsolutionlink{sol:translator:28.4.3}{28.4.3}
 
@@ -276,16 +584,72 @@ SA-Trans-TVar 沿变量的上界移动，而良构上下文中的上界只引用
 \section{完全 \(F_{<:}\) 的不可判定性}
 \label{sec:28.5}
 
+上一节已经证明完全 \(F_{<:}\) 的算法子类型规则可靠且完备，也就是它们闭合
+生成的最小关系与原声明式规则生成的关系相同。剩下的问题是：按这些规则实现的
+过程是否对所有输入都终止？答案是否定的；这一结论刚发现时颇出人意料。
+
 \begin{exercise}[\(\star\)]
 \label{ex:28.5.1}
-核系统的终止证明为什么不能用于完全 \(F_{<:}\)？
+完全 \(F_{<:}\) 的算法规则不能保证总是终止；核系统的终止证明究竟在哪一步
+无法推广？
 \end{exercise}
 \taplauthorsolutionlink{sol:author:28.5.1}{28.5.1}
 
-完全 SA-All 会在递归子目标中改变类型变量上界，构造出不断变长的变量链。
-Ghelli 给出的例子表明算法可能无限地产生相同结构而不终止。更强的结论是：
-这不只是某个算法设计得不好，而是不存在对声明式完全 \(F_{<:}\) 同时可靠、
-完备并对所有输入终止的算法。
+Ghelli（1995）给出了一个使子类型过程发散的例子。先定义缩写
+\[
+\neg S\ \overset{\mathrm{def}}{=}\ \forall X<:S.X.
+\]
+这个“否定”操作的关键性质，是把子类型判断的左右两侧交换。
+
+\begin{fact}
+\label{fact:28.5.2}
+\[
+\Gamma\vdash\neg S<:\neg T
+\quad\Longleftrightarrow\quad
+\Gamma\vdash T<:S.
+\]
+\end{fact}
+\noindent\textit{证明练习（\(\star\star\)）。}
+
+定义
+\[
+T=\forall X<:\tapltype{Top}.
+  \neg(\forall Y<:X.\neg Y).
+\]
+若按算法规则自下而上尝试构造
+\[
+X_0<:T\algturnstile
+X_0<:\forall X_1<:X_0.\neg X_1,
+\]
+便会得到不断增大的子目标：
+\[
+\begin{array}{rcl}
+X_0<:T
+&\algturnstile&X_0<:\forall X_1<:X_0.\neg X_1\\
+X_0<:T
+&\algturnstile&
+\forall X_1<:\tapltype{Top}.
+ \neg(\forall X_2<:X_1.\neg X_2)
+<:\forall X_1<:X_0.\neg X_1\\
+X_0<:T,X_1<:X_0
+&\algturnstile&
+\neg(\forall X_2<:X_1.\neg X_2)<:\neg X_1\\
+X_0<:T,X_1<:X_0
+&\algturnstile&X_1<:\forall X_2<:X_1.\neg X_2\\
+X_0<:T,X_1<:X_0
+&\algturnstile&X_0<:\forall X_2<:X_1.\neg X_2\\
+&\vdots&
+\end{array}
+\]
+这里默默完成了加入新变量时为保持上下文良构所需的重命名，并特意选择名称来
+显示循环模式。关键步骤是第二行到第三行发生的“重新定界”：左侧 \(X_1\) 的
+上界从 \(\tapltype{Top}\) 改成 \(X_0\)。而第二行的整个左侧又恰好是
+\(X_0\) 的上界，于是产生循环；每轮都要穿过上下文中更长的变量链。这个例子
+只利用 \(\neg\) 的句法效果，不应把它理解为具有通常逻辑否定的语义。
+
+问题还不止这一种算法会在某些输入上发散。Pierce（1994）证明，不存在既对原
+完全 \(F_{<:}\) 子类型关系可靠、完备，又对所有输入终止的算法。完整证明
+篇幅过长，本书只用下面的编码概述其思路。
 
 \begin{definition}
 \label{def:28.5.3}
@@ -296,17 +660,96 @@ Ghelli 给出的例子表明算法可能无限地产生相同结构而不终止�
 \(T\) 处于正位置。
 \end{definition}
 
-\begin{keystatement}
+“正”“负”来自逻辑。按 Curry--Howard 对应（\taplsecref{9.4}{sec:9.4}），
+\(S\to T\) 对应蕴含 \(S\Rightarrow T\)；在经典逻辑中，它等价于
+\(\neg S\lor T\)。因此，整个蕴含位于偶数层否定之内时，子命题 \(S\) 恰好
+位于奇数层否定之内，即负位置。还要注意，\(T\) 中的正出现，在 \(\neg T\)
+中对应负出现。
+
+\begin{fact}
+\label{fact:28.5.4}
 若 \(X\) 在 \(S\) 中只正出现、在 \(T\) 中只负出现，则
 \[
 X<:U\vdash S<:T
 \quad\Longleftrightarrow\quad
 \vdash[X\mapsto U]S<:[X\mapsto U]T.
 \]
-\end{keystatement}
+\end{fact}
+\noindent\textit{证明练习（\(\star\star\)）。}
 
-Pierce 的证明把两计数器机的状态编码为复杂的有界全称类型：类型变量充当
-寄存器，上界链充当指令流，一次子类型推导循环模拟机器的一步执行。
+下面令
+\[
+T=\forall X_0<:\tapltype{Top}.
+  \forall X_1<:\tapltype{Top}.
+  \forall X_2<:\tapltype{Top}.
+  \neg(\forall Y_0<:X_0.\forall Y_1<:X_1.
+       \forall Y_2<:X_2.\neg X_0)
+\]
+并考察判断
+\[
+\begin{aligned}
+\vdash T<:{}&\forall X_0<:T.\forall X_1<:P.\forall X_2<:Q.\\
+&\neg(\forall Y_0<:\tapltype{Top}.
+      \forall Y_1<:\tapltype{Top}.
+      \forall Y_2<:\tapltype{Top}.\\
+&\qquad\neg(\forall Z_0<:Y_0.\forall Z_1<:Y_2.
+             \forall Z_2<:Y_1.U)).
+\end{aligned}
+\]
+可以把它看作一台简单计算机的状态。\(X_1,X_2\) 是两个“寄存器”，当前
+内容分别为类型 \(P,Q\)。第三行开始是“指令流”：第一条指令编码在
+\(Z_1,Z_2\) 的上界 \(Y_2,Y_1\) 中，次序特意交换；未指定的 \(U\) 表示
+余下指令。类型 \(T\)、嵌套否定以及变量 \(X_0,Y_0\) 的作用与前一个例子
+相同：它们使一次规则展开后重新得到与原目标同形的子目标；每展开一轮，就模拟
+机器的一步。
+
+这里指令流开头编码的是“交换寄存器 1 和 2”。用前两个事实逐步变换，可得
+\[
+\begin{aligned}
+&\vdash T
+<:\forall X_0<:T.\forall X_1<:P.\forall X_2<:Q.\neg A\\
+\Longleftrightarrow{}&
+\vdash\neg(\forall Y_0<:T.\forall Y_1<:P.
+             \forall Y_2<:Q.\neg T)<:\neg A
+&&\text{由\cref{fact:28.5.4}}\\
+\Longleftrightarrow{}&
+\vdash A<:
+\forall Y_0<:T.\forall Y_1<:P.\forall Y_2<:Q.\neg T
+&&\text{由\cref{fact:28.5.2}}\\
+\Longleftrightarrow{}&
+\vdash\neg(\forall Z_0<:T.\forall Z_1<:Q.
+             \forall Z_2<:P.U)<:\neg T
+&&\text{由\cref{fact:28.5.4}}\\
+\Longleftrightarrow{}&
+\vdash T<:\forall Z_0<:T.\forall Z_1<:Q.
+              \forall Z_2<:P.U
+&&\text{由\cref{fact:28.5.2}},
+\end{aligned}
+\]
+其中
+\[
+A=\forall Y_0<:\tapltype{Top}.
+  \forall Y_1<:\tapltype{Top}.
+  \forall Y_2<:\tapltype{Top}.
+  \neg(\forall Z_0<:Y_0.\forall Z_1<:Y_2.
+       \forall Z_2<:Y_1.U).
+\]
+最后不仅 \(P,Q\) 已交换，完成交换的指令也已被消耗，\(U\) 来到指令流最前
+端，等待下一轮“执行”。若让 \(U\) 再以同一交换指令开头，就能再次交换并
+恢复两个寄存器；也可以选择不同的 \(U\)。例如令
+\[
+U=\neg(\forall Y_0<:\tapltype{Top}.
+       \forall Y_1<:\tapltype{Top}.
+       \forall Y_2<:\tapltype{Top}.
+       \neg(\forall Z_0<:Y_0.\forall Z_1<:Y_1.
+            \forall Z_2<:Y_2.Y_1)),
+\]
+下一轮会把寄存器 1 当前的值 \(Q\) 放到 \(U\) 的位置，相当于通过寄存器 1
+间接跳转到 \(Q\) 表示的指令流。推广这项技巧还能编码条件、后继、前驱和零
+测试。
+
+综合这些构造，可把两计数器机约化到子类型判断。两计数器机由有限控制器和两
+个保存自然数的计数器组成，是普通图灵机的一种简单变体。
 
 \begin{theorem}[Pierce，1994]
 \label{thm:28.5.5}
@@ -315,12 +758,28 @@ Pierce 的证明把两计数器机的状态编码为复杂的有界全称类型�
 \end{theorem}
 
 因此，若完全 \(F_{<:}\) 子类型可判定，就能判定两计数器机停机问题，矛盾。
-算法仍是可靠和半完备的：可导出的判断最终会返回真；不可导出的判断可能返回
-假，也可能永不终止。
+两计数器机的停机问题不可判定（见 Hopcroft 与 Ullman，1979），所以完全
+\(F_{<:}\) 的子类型问题也不可判定。
+
+这里的不可判定性并不意味着\taplsecref{28.4}{sec:28.4}的子类型半算法不可靠
+或不完备。若声明式规则可以证明 \(\Gamma\vdash S<:T\)，该过程必定终止并
+返回真；若不能证明，它可能返回假，也可能发散。不可导判断有两种失败方式：
+一是生成无穷子目标链，意味着不存在以该结论收尾的有限推导；二是到达
+\(\tapltype{Top}<:S\to T\) 这类明显不可能的目标。过程能识别后一种失败，
+却不能识别前一种。因此它仍然可靠且完备，只是对否定实例不保证终止。
+
+这是否使完全 \(F_{<:}\) 在实践中毫无用处？通常认为，单就不可判定性本身
+而言，问题没有那么严重。Ghelli（1995）证明，要使检查器发散，目标必须同时
+具有三项相当特殊、程序员不容易偶然写出的性质。此外，一些常用语言的类型
+检查或类型重构在理论上也可能代价极高，例如\taplsecref{22.7}{sec:22.7}
+提到的 ML 与 Haskell；C++ 和 \(\lambda\)Prolog 的相应问题甚至不可判定。
+实际经验表明，下一节所述缺少并与交的问题（见练习28.6.3）比不可判定性更
+棘手。
 
 \begin{exercise}[\(\star\star\star\star\)]
 \label{ex:28.5.6}
-研究同时提供有界与无界量词、但没有 \(\tapltype{Top}\) 的“完全有界量化”
+研究同时提供有界与无界量词、但没有 \(\tapltype{Top}\) 的
+\termfirst{完全有界量化}{completely bounded quantification}
 系统：定义其规则，证明子类型可判定，并讨论加入记录等构造后是否仍能解决
 不可判定问题。
 \end{exercise}
@@ -329,55 +788,208 @@ Pierce 的证明把两计数器机的状态编码为复杂的有界全称类型�
 \section{并与交}
 \label{sec:28.6}
 
-核 \(F_{<:}\) 中，每对类型都有并；若一对类型存在公共子类型，则它们也有交。
-算法同时递归定义
+\taplsecref{16.3}{sec:16.3}指出，带子类型的语言最好能为每对类型
+\(S,T\) 找到并，也就是二者所有公共超类型中的最小者。本节用算法证明：核
+\(F_{<:}\) 的每对类型都有并；只要一对类型至少有一个公共子类型，它们也有
+交。完全 \(F_{<:}\) 不具备这两项性质（见练习28.6.3）。
+
+用
 \[
 \Gamma\vdash S\lor T=J
 \qquad\text{和}\qquad
 \Gamma\vdash S\land T=M.
 \]
-若一边已是另一边的子类型，直接选择较大的为并、较小的为交。变量先沿上界
-暴露。两个箭头的并在参数位置取交、结果位置取并；箭头的交反过来在参数位置
-取并、结果位置取交。上界相同的全称类型递归处理量词体。其余情况下，并取
-\(\tapltype{Top}\)，交失败。规则有重叠时总选第一条适用规则。
+分别表示“在上下文 \(\Gamma\) 中，\(J\) 是 \(S,T\) 的并”和“\(M\) 是
+\(S,T\) 的交”。\taplnamedref{fig:28-5}{图}同时递归定义这两个算法。
+同一输入有时会符合多项条件；把定义作为确定算法读取时，总是选最先适用的
+一项。
+
+\begin{figure}[!ht]
+\centering
+\small
+\begin{minipage}{0.94\linewidth}
+\[
+\Gamma\vdash S\lor T=
+\begin{cases}
+T & \Gamma\algturnstile S<:T\text{ 时}\,,\\
+S & \Gamma\algturnstile T<:S\text{ 时}\,,\\
+J & \begin{array}[t]{l}
+      S=X,\ X<:U\in\Gamma,\\[-1pt]
+      \Gamma\vdash U\lor T=J\text{ 时}\,,
+    \end{array}\\
+J & \begin{array}[t]{l}
+      T=X,\ X<:U\in\Gamma,\\[-1pt]
+      \Gamma\vdash S\lor U=J\text{ 时}\,,
+    \end{array}\\
+M_1\to J_2 & \begin{array}[t]{l}
+      S=S_1\to S_2,\ T=T_1\to T_2,\\[-1pt]
+      \Gamma\vdash S_1\land T_1=M_1,\\[-1pt]
+      \Gamma\vdash S_2\lor T_2=J_2\text{ 时}\,,
+    \end{array}\\
+\forall X<:U_1.J_2 & \begin{array}[t]{l}
+      S=\forall X<:U_1.S_2,\\[-1pt]
+      T=\forall X<:U_1.T_2,\\[-1pt]
+      \Gamma,X<:U_1\vdash S_2\lor T_2=J_2
+      \text{ 时}\,,
+    \end{array}\\
+\tapltype{Top} & \text{其他情况。}
+\end{cases}
+\]
+\end{minipage}
+\par\medskip
+\begin{minipage}{0.94\linewidth}
+\[
+\Gamma\vdash S\land T=
+\begin{cases}
+S & \Gamma\algturnstile S<:T\text{ 时}\,,\\
+T & \Gamma\algturnstile T<:S\text{ 时}\,,\\
+J_1\to M_2 & \begin{array}[t]{l}
+      S=S_1\to S_2,\ T=T_1\to T_2,\\[-1pt]
+      \Gamma\vdash S_1\lor T_1=J_1,\\[-1pt]
+      \Gamma\vdash S_2\land T_2=M_2\text{ 时}\,,
+    \end{array}\\
+\forall X<:U_1.M_2 & \begin{array}[t]{l}
+      S=\forall X<:U_1.S_2,\\[-1pt]
+      T=\forall X<:U_1.T_2,\\[-1pt]
+      \Gamma,X<:U_1\vdash S_2\land T_2=M_2
+      \text{ 时}\,,
+    \end{array}\\
+\mathit{fail} & \text{其他情况。}
+\end{cases}
+\]
+\end{minipage}
+\caption{核 \(F_{<:}\) 的并与交算法}
+\label{fig:28-5}
+\end{figure}
+
+这两个定义都是全函数：并总返回一个类型；交要么返回类型，要么明确失败。
+终止性来自\cref{def:28.3.4}的总权重：每次递归调用都会严格减小 \(S,T\)
+相对于 \(\Gamma\) 的总权重。下面再验证算法算出的确实是并与交。证明分两步：
+\cref{prop:28.6.1}说明算法结果分别是公共上界和公共下界；
+\cref{prop:28.6.2}再说明并小于每个公共上界，而交大于每个公共下界，并且只要
+公共下界存在，交算法就会成功。
 
 \begin{proposition}
 \label{prop:28.6.1}
-算法得到的并是公共上界；算法得到的交是公共下界。
+\begin{enumerate}
+  \item 若 \(\Gamma\vdash S\lor T=J\)，则
+        \(\Gamma\vdash S<:J\) 且 \(\Gamma\vdash T<:J\)。
+  \item 若 \(\Gamma\vdash S\land T=M\)，则
+        \(\Gamma\vdash M<:S\) 且 \(\Gamma\vdash M<:T\)。
+\end{enumerate}
 \end{proposition}
+\begin{proof}
+对计算 \(J\) 或 \(M\) 所需的递归调用次数作直接归纳。
+\end{proof}
 
 \begin{proposition}
 \label{prop:28.6.2}
-算法得到的并小于等于任意公共上界；若存在公共下界，算法得到的交大于等于
-任意公共下界。
+\begin{enumerate}
+  \item 若 \(\Gamma\algturnstile S<:V\) 且
+        \(\Gamma\algturnstile T<:V\)，则存在 \(J\)，使
+        \(\Gamma\vdash S\lor T=J\) 且
+        \(\Gamma\algturnstile J<:V\)。
+  \item 若 \(\Gamma\algturnstile L<:S\) 且
+        \(\Gamma\algturnstile L<:T\)，则存在 \(M\)，使
+        \(\Gamma\vdash S\land T=M\) 且
+        \(\Gamma\algturnstile L<:M\)。
+\end{enumerate}
 \end{proposition}
+\begin{proof}
+两项同时归纳。第 1 项的归纳对象是两份算法子类型推导
+\(\Gamma\algturnstile S<:V\) 与
+\(\Gamma\algturnstile T<:V\) 的大小之和；第 2 项同样对
+\(\Gamma\algturnstile L<:S\) 与
+\(\Gamma\algturnstile L<:T\) 的大小之和归纳。
+\cref{thm:28.3.3}保证声明式前提总有这样的算法推导。
 
-两项通过同时归纳算法子类型推导证明。箭头情形中，参数逆变正是并、交互换
-位置的原因。
+先证第 1 项。若任一推导以 SA-Top 结束，则 \(V=\tapltype{Top}\)，结论立即
+成立。若 \(T<:V\) 的推导以 SA-Refl-TVar 结束，则 \(T=V\)；由另一前提
+已有 \(S<:T\)，并算法第一项返回 \(T\)。\(S<:V\) 以 SA-Refl-TVar
+结束的情形对称。
+
+若 \(S<:V\) 以 SA-Trans-TVar 结束，则 \(S=X\)、\(X<:U\in\Gamma\)，
+并且有较小的子推导 \(U<:V\)。归纳假设给出
+\(\Gamma\vdash U\lor T=J\) 及 \(J<:V\)，并算法第三项于是给出
+\(\Gamma\vdash S\lor T=J\)。另一侧以 SA-Trans-TVar 结束的情形对称。
+
+其余可能是两边都以 SA-Arrow 或都以 SA-All 结束。箭头情形中，写
+\(S=S_1\to S_2\)、\(T=T_1\to T_2\)、\(V=V_1\to V_2\)。归纳
+假设第 2 项给出参数的交 \(M_1\)，且 \(V_1<:M_1\)；第 1 项给出结果的并
+\(J_2\)，且 \(J_2<:V_2\)。并算法返回 \(M_1\to J_2\)，再由
+SA-Arrow 得到 \(M_1\to J_2<:V_1\to V_2\)。全称类型情形的共同上界
+具有相同的上界 \(U_1\)；在 \(\Gamma,X<:U_1\) 中对子类型体使用第 1 项，
+再应用 SA-All。
+
+第 2 项类似。若 \(L<:T\) 以 SA-Top 结束，则 \(T=\tapltype{Top}\)，
+交算法第一项返回 \(S\)，而另一前提已经给出 \(L<:S\)；另一侧对称。若任一
+推导以 SA-Refl-TVar 结束，则 \(L\) 就等于相应一侧，另一前提使交算法直接
+返回该侧。
+
+若两份推导都以 SA-Trans-TVar 结束，则 \(L=X\)、\(X<:U\in\Gamma\)，并有
+两个较小的子推导 \(U<:S\) 与 \(U<:T\)。归纳假设第 2 项给出交 \(M\) 及
+\(U<:M\)，再由 S-TVar 和传递性得到 \(L<:M\)。箭头情形中，写
+\(L=L_1\to L_2\)：归纳假设第 1 项给出参数的并 \(J_1\) 以及
+\(J_1<:L_1\)，第 2 项给出结果的交 \(M_2\) 以及 \(L_2<:M_2\)。交算法
+返回 \(J_1\to M_2\)，SA-Arrow 给出 \(L_1\to L_2<:J_1\to M_2\)。
+两份推导都以 SA-All 结束的情形相同：在共同上界扩展的上下文中对量词体使用
+第 2 项，再应用 SA-All。
+\end{proof}
 
 \begin{exercise}[推荐，\(\star\star\star\)]
 \label{ex:28.6.3}
-在给定上下文中分析 Ghelli 的两种全称类型：列出它们在完全 \(F_{<:}\) 中的
-公共子类型，证明它们没有交，并找出一对没有并的类型。
+考虑 Ghelli（1990）给出的类型
+\[
+S=\forall X<:Y\to Z.\,Y\to Z,
+\qquad
+T=\forall X<:Y'\to Z'.\,Y'\to Z'
+\]
+以及上下文
+\[
+\Gamma=Y<:\tapltype{Top},\ Z<:\tapltype{Top},\
+Y'<:Y,\ Z'<:Z.
+\]
+\begin{enumerate}
+  \item 在完全 \(F_{<:}\) 中，\(S,T\) 在 \(\Gamma\) 下共有多少个公共子类型？
+  \item 证明它们在 \(\Gamma\) 下没有交。
+  \item 找出一对在 \(\Gamma\) 下没有并的类型。
+\end{enumerate}
 \end{exercise}
 \taplauthorsolutionlink{sol:author:28.6.3}{28.6.3}
 
 \section{有界存在类型}
 \label{sec:28.7}
 
-存在包消去式的结果类型不能含打开包时引入的隐藏变量 \(X\)。然而，包体的
-最小类型可能含 \(X\)。例如，若
+把核 \(F_{<:}\) 的类型检查算法扩展到有界存在类型时，还要处理一项细节。
+先回顾声明式的存在类型消去规则：
+\[
+\inferrule*[right=T-Unpack]
+ {\Gamma\vdash t_1:\{\exists X<:T_{11},T_{12}\}\\
+  \Gamma,X<:T_{11},x:T_{12}\vdash t_2:T_2}
+ {\Gamma\vdash
+  \textbf{let }\{X,x\}=t_1\textbf{ in }t_2:T_2}
+\]
+正如\taplsecref{24.1}{sec:24.1}所述，第二个前提在包含 \(X\) 的上下文中计算
+\(t_2\) 的类型，结论的上下文却没有 \(X\)。因此 \(T_2\) 不能自由出现
+\(X\)，否则结论中的这些 \(X\) 会越出作用域。\taplsecref{25.5}{sec:25.5}
+从无名 de Bruijn 表示的角度说明过同一现象：上下文从前提变到结论，对应把
+\(T_2\) 中的变量索引下移一位；若 \(T_2\) 自由含有 \(X\)，这次下移会失败。
+
+这对存在类型的最小赋型算法有什么影响？考虑
+\(t=\textbf{let }\{X,x\}=p\textbf{ in }x\)，其中
 \[
 p:\{\exists X,\tapltype{Nat}\to X\},
 \]
-则
-\[
-\textbf{let }\{X,x\}=p\textbf{ in }x
-\]
-的包体最小类型是 \(\tapltype{Nat}\to X\)，不能直接离开作用域；声明式系统
-却能先把它提升为 \(\tapltype{Nat}\to\tapltype{Top}\)。因此，完整的最小
-赋型算法必须寻找给定类型的最小 \(X\)-自由超类型，而不能一看到 \(X\) 就
-失败。
+包体 \(x\) 最自然的类型是 \(\tapltype{Nat}\to X\)，其中含有受约束的
+类型变量 \(X\)。不过，在带 T-Sub 的声明式系统中，\(x\) 还可具有
+\(\tapltype{Nat}\to\tapltype{Top}\) 和 \(\tapltype{Top}\)；二者都不含
+\(X\)，所以整项 \(t\) 可以合法地取得这两种类型。
+
+一般地，应用 T-Unpack 前，总可以把开包体的类型提升为任何不含受约束变量
+\(X\) 的超类型。要使最小赋型算法完备，当它发现开包体的最小类型 \(T_2\)
+自由含有 \(X\) 时，便不能直接失败，而应寻找一个不含 \(X\) 的超类型。关键
+事实是：在核 \(F_{<:}\) 中，一个类型所有不含 \(X\) 的超类型总有最小者。
+下面的练习给出相应算法；解答来自 Ghelli 与 Pierce（1998）。
 
 \begin{exercise}[\(\star\star\star\)]
 \label{ex:28.7.1}
@@ -386,8 +998,22 @@ p:\{\exists X,\tapltype{Nat}\to X\},
 \end{exercise}
 \taplauthorsolutionlink{sol:author:28.7.1}{28.7.1}
 
-完全 \(F_{<:}\) 中，这样的最小超类型未必存在，因此带有界存在类型的完全
-系统不具有最小类型性质。
+存在类型消去的算法赋型规则现在可以写成：
+\[
+\inferrule*[right=TA-Unpack]
+ {\Gamma\algturnstile t_1:T_1\\
+  \Gamma\algturnstile T_1\Uparrow
+    \{\exists X<:T_{11},T_{12}\}\\
+  \Gamma,X<:T_{11},x:T_{12}\algturnstile t_2:T_2\\
+  R_{X,(\Gamma,X<:T_{11},x:T_{12})}(T_2)=T_2'}
+ {\Gamma\algturnstile
+  \textbf{let }\{X,x\}=t_1\textbf{ in }t_2:T_2'}
+\]
+
+完全 \(F_{<:}\) 加入有界存在类型后的情形更糟。Ghelli 与 Pierce（1998）
+给出了类型 \(T\)、上下文 \(\Gamma\) 和变量 \(X\)，使 \(T\) 在
+\(\Gamma\) 下所有不含 \(X\) 的超类型没有最小者。因此，该系统的赋型关系
+不具有最小类型性质。
 
 \begin{exercise}[\(\star\star\star\)]
 \label{ex:28.7.2}
@@ -399,7 +1025,8 @@ p:\{\exists X,\tapltype{Nat}\to X\},
 \section{有界量化与底类型}
 \label{sec:28.8}
 
-加入 \(\tapltype{Bot}\) 会使元理论更复杂。在
+加入最小类型 \(\tapltype{Bot}\)（\taplsecref{15.4}{sec:15.4}）会使
+\(F_{<:}\) 的元理论更复杂。在
 \(\forall X<:\tapltype{Bot}.T\) 内，假设给出 \(X<:\tapltype{Bot}\)，
 S-Bot 又给出 \(\tapltype{Bot}<:X\)，所以 \(X\) 与
 \(\tapltype{Bot}\) 在子类型关系下等价。因此
@@ -409,5 +1036,8 @@ S-Bot 又给出 \(\tapltype{Bot}<:X\)，所以 \(X\) 与
 \forall X<:\tapltype{Bot}.
 \tapltype{Bot}\to\tapltype{Bot}
 \]
-互为子类型，却并非语法相同。即便如此，核 \(F_{<:}\) 的核心性质仍可在
-加入底类型后建立；详见 Pierce（1997）。
+互为子类型，却并非语法相同。更进一步，若周围的上下文含有
+\(X<:\tapltype{Bot}\) 与 \(Y<:\tapltype{Bot}\)，那么 \(X\to Y\) 和
+\(Y\to X\) 也互为子类型，尽管二者都没有显式写出 \(\tapltype{Bot}\)。
+即便存在这些困难，加入底类型后仍能建立核 \(F_{<:}\) 的核心性质；细节见
+Pierce（1997a）。

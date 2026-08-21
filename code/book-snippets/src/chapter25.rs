@@ -1,5 +1,6 @@
 //! Chapter 25: nameless System F with existential packages.
 
+// TAPL-SNIPPET-BEGIN: ch25-type-definition
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Type {
     Var(usize, usize),
@@ -7,7 +8,9 @@ pub enum Type {
     All(String, Box<Type>),
     Some(String, Box<Type>),
 }
+// TAPL-SNIPPET-END: ch25-type-definition
 
+// TAPL-SNIPPET-BEGIN: ch25-term-definition
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Term {
     Var(usize, usize),
@@ -18,7 +21,9 @@ pub enum Term {
     Pack(Type, Box<Term>, Type),
     Unpack(String, String, Box<Term>, Box<Term>),
 }
+// TAPL-SNIPPET-END: ch25-term-definition
 
+// TAPL-SNIPPET-BEGIN: ch25-binding-error-support
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Binding {
     Name,
@@ -43,8 +48,9 @@ fn shifted_index(index: usize, distance: isize) -> Result<usize, Error> {
         .checked_add_signed(distance)
         .ok_or(Error::InvalidShift)
 }
+// TAPL-SNIPPET-END: ch25-binding-error-support
 
-// TAPL-SNIPPET-BEGIN: ch25-type-operations
+// TAPL-SNIPPET-BEGIN: ch25-type-shift
 /// Shifts every free type variable by 'distance', leaving variables below
 /// 'cutoff' untouched. The stored context length is shifted for every leaf.
 pub fn type_shift_above(distance: isize, cutoff: usize, ty: &Type) -> Result<Type, Error> {
@@ -76,7 +82,9 @@ pub fn type_shift_above(distance: isize, cutoff: usize, ty: &Type) -> Result<Typ
 pub fn type_shift(distance: isize, ty: &Type) -> Result<Type, Error> {
     type_shift_above(distance, 0, ty)
 }
+// TAPL-SNIPPET-END: ch25-type-shift
 
+// TAPL-SNIPPET-BEGIN: ch25-type-substitution
 /// Replaces type variable 'variable' by 'replacement'. When traversal passes
 /// under a quantifier, the target and replacement are lifted together.
 pub fn type_substitute(replacement: &Type, variable: usize, ty: &Type) -> Result<Type, Error> {
@@ -109,7 +117,7 @@ pub fn type_substitute(replacement: &Type, variable: usize, ty: &Type) -> Result
 pub fn type_substitute_top(replacement: &Type, body: &Type) -> Result<Type, Error> {
     type_shift(-1, &type_substitute(&type_shift(1, replacement)?, 0, body)?)
 }
-// TAPL-SNIPPET-END: ch25-type-operations
+// TAPL-SNIPPET-END: ch25-type-substitution
 
 // TAPL-SNIPPET-BEGIN: ch25-term-operations
 /// Shifts both term variables and type variables embedded in annotations,
@@ -161,6 +169,8 @@ pub fn term_shift(distance: isize, term: &Term) -> Result<Term, Error> {
     term_shift_above(distance, 0, term)
 }
 
+/// Replaces one free term variable while lifting the replacement whenever the
+/// traversal enters a term or type binder, so no free variable is captured.
 pub fn term_substitute(replacement: &Term, variable: usize, term: &Term) -> Result<Term, Error> {
     fn walk(
         replacement: &Term,
@@ -211,6 +221,8 @@ pub fn term_substitute_top(replacement: &Term, body: &Term) -> Result<Term, Erro
     term_shift(-1, &term_substitute(&term_shift(1, replacement)?, 0, body)?)
 }
 
+/// Replaces a type variable throughout every type annotation embedded in a
+/// term. Term variables are left unchanged; type binders increase the cutoff.
 pub fn type_term_substitute(
     replacement: &Type,
     variable: usize,
@@ -265,6 +277,7 @@ pub fn type_term_substitute_top(replacement: &Type, body: &Term) -> Result<Term,
 }
 // TAPL-SNIPPET-END: ch25-term-operations
 
+// TAPL-SNIPPET-BEGIN: ch25-evaluation-support
 fn is_value(term: &Term) -> bool {
     match term {
         Term::Abs(..) | Term::TypeAbs(..) => true,
@@ -272,6 +285,7 @@ fn is_value(term: &Term) -> bool {
         _ => false,
     }
 }
+// TAPL-SNIPPET-END: ch25-evaluation-support
 
 // TAPL-SNIPPET-BEGIN: ch25-evaluation
 /// Performs one call-by-value evaluation step for the System F constructs.
@@ -332,6 +346,7 @@ pub fn evaluate_one(term: &Term) -> Result<Term, Error> {
 }
 // TAPL-SNIPPET-END: ch25-evaluation
 
+// TAPL-SNIPPET-BEGIN: ch25-typechecking-support
 fn binding_type(context: &[Binding], index: usize) -> Result<Type, Error> {
     let binding = context
         .iter()
@@ -346,6 +361,7 @@ fn binding_type(context: &[Binding], index: usize) -> Result<Type, Error> {
         _ => Err(Error::UnboundVariable(index)),
     }
 }
+// TAPL-SNIPPET-END: ch25-typechecking-support
 
 // TAPL-SNIPPET-BEGIN: ch25-typechecking
 /// Implements all typing rules for the chapter's System F constructs.
@@ -455,5 +471,110 @@ mod tests {
         let value = Term::Abs("n".into(), hidden.clone(), Box::new(Term::Var(0, 1)));
         let package = Term::Pack(hidden, Box::new(value), package_type);
         assert!(matches!(type_of(&[], &package), Ok(Type::Some(_, _))));
+    }
+
+    fn polymorphic_identity() -> Term {
+        Term::TypeAbs(
+            "X".into(),
+            Box::new(Term::Abs(
+                "x".into(),
+                Type::Var(0, 1),
+                Box::new(Term::Var(0, 2)),
+            )),
+        )
+    }
+
+    fn identity_type() -> Type {
+        Type::All(
+            "X".into(),
+            Box::new(Type::Arrow(
+                Box::new(Type::Var(0, 1)),
+                Box::new(Type::Var(0, 1)),
+            )),
+        )
+    }
+
+    #[test]
+    fn type_application_substitutes_in_term_annotations() {
+        let instantiated = Term::TypeApp(Box::new(polymorphic_identity()), identity_type());
+        let reduced = evaluate_one(&instantiated).unwrap();
+        match reduced {
+            Term::Abs(_, Type::All(_, _), body) => {
+                assert_eq!(*body, Term::Var(0, 1));
+            }
+            other => panic!("unexpected reduced term: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn unpack_substitutes_the_value_and_hidden_type() {
+        let hidden = identity_type();
+        let package_type = Type::Some("X".into(), Box::new(Type::Var(0, 1)));
+        let package = Term::Pack(hidden, Box::new(polymorphic_identity()), package_type);
+        let unpack = Term::Unpack(
+            "X".into(),
+            "x".into(),
+            Box::new(package),
+            Box::new(Term::Var(0, 2)),
+        );
+        assert_eq!(evaluate_one(&unpack).unwrap(), polymorphic_identity());
+    }
+
+    #[test]
+    fn escaping_hidden_type_and_negative_shifts_are_rejected() {
+        assert_eq!(type_shift(-1, &Type::Var(0, 1)), Err(Error::InvalidShift));
+
+        let hidden = identity_type();
+        let package = Term::Pack(
+            hidden,
+            Box::new(polymorphic_identity()),
+            Type::Some("X".into(), Box::new(Type::Var(0, 1))),
+        );
+        let escaping = Term::Unpack(
+            "X".into(),
+            "x".into(),
+            Box::new(package),
+            Box::new(Term::Var(0, 2)),
+        );
+        assert_eq!(type_of(&[], &escaping), Err(Error::InvalidShift));
+    }
+
+    #[test]
+    fn typechecker_reports_major_mismatches() {
+        let identity = identity_type();
+        let function = Term::Abs("f".into(), identity.clone(), Box::new(Term::Var(0, 1)));
+        let wrong_argument = Term::Abs(
+            "g".into(),
+            Type::Arrow(Box::new(identity.clone()), Box::new(identity.clone())),
+            Box::new(Term::Var(0, 1)),
+        );
+        assert!(matches!(
+            type_of(
+                &[],
+                &Term::App(Box::new(function), Box::new(wrong_argument))
+            ),
+            Err(Error::ParameterMismatch { .. })
+        ));
+        assert!(matches!(
+            type_of(
+                &[],
+                &Term::TypeApp(Box::new(polymorphic_identity()), identity)
+            ),
+            Ok(Type::Arrow(_, _))
+        ));
+        assert!(matches!(
+            type_of(
+                &[],
+                &Term::TypeApp(
+                    Box::new(Term::Abs(
+                        "x".into(),
+                        identity_type(),
+                        Box::new(Term::Var(0, 1))
+                    )),
+                    identity_type()
+                )
+            ),
+            Err(Error::ExpectedUniversal(_))
+        ));
     }
 }

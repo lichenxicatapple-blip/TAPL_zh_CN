@@ -7,28 +7,43 @@
 
 可以把 self 引用改为保存一个从表示记录到方法记录的函数，并让方法记录类型和
 表示类型都成为有界类型参数：
-\[
-\begin{aligned}
-\taplterm{setCounterClass}
-={}&\lambda M<:\tapltype{SetCounter}.
-\lambda R<:\tapltype{CounterRep}.\\
-&\quad\lambda self:\tapltype{Ref}(R\to M).
-\lambda r:R.\ \cdots,\\
-\taplterm{instrCounterClass}
-={}&\lambda M<:\tapltype{InstrCounter}.
-\lambda R<:\tapltype{InstrCounterRep}.\\
-&\quad\lambda self:\tapltype{Ref}(R\to M).
-\lambda r:R.\\
-&\quad\textbf{let }super=\\
-&\qquad\taplterm{setCounterClass}[M][R]\\
-&\hspace{34mm}self\textbf{ in }\cdots
-\end{aligned}
-\]
+\begin{lstlisting}
+setCounterClass =
+  lambda M<:SetCounter. lambda R<:CounterRep.
+  lambda self:Ref (R->M). lambda r:R.
+    {get = lambda _:Unit. !(r.x),
+     set = lambda i:Nat. r.x:=i,
+     inc = lambda _:Unit.
+             (!self r).set (succ((!self r).get unit))};
+? setCounterClass
+  : All M<:SetCounter. All R<:CounterRep.
+    (Ref (R->M)) -> R -> SetCounter
+
+instrCounterClass =
+  lambda M<:InstrCounter. lambda R<:InstrCounterRep.
+  lambda self:Ref (R->M). lambda r:R.
+    let super = setCounterClass [M] [R] self in
+    {get = (super r).get,
+     set = lambda i:Nat.
+             (r.a:=succ(!(r.a)); (super r).set i),
+     inc = (super r).inc,
+     accesses = lambda _:Unit. !(r.a)};
+? instrCounterClass
+  : All M<:InstrCounter. All R<:InstrCounterRep.
+    (Ref (R->M)) -> R -> InstrCounter
+
+newInstrCounter =
+  let m = ref
+    (lambda r:InstrCounterRep. error as InstrCounter) in
+  let m' = instrCounterClass
+    [InstrCounter] [InstrCounterRep] m in
+  (m := m';
+   lambda _:Unit.
+     let r = {x=ref 1, a=ref 0} in m' r);
+? newInstrCounter : Unit -> InstrCounter
+\end{lstlisting}
 在父类实例化处，\(\tapltype{Ref}(R\to M)\) 两边完全相同，无须利用
-\(\tapltype{Ref}\) 的协变性。创建对象时取
-\(M=\tapltype{InstrCounter}\)、
-\(R=\tapltype{InstrCounterRep}\)，先以占位函数建立引用，再把完整函数
-回填。
+\(\tapltype{Ref}\) 的协变性。
 
 \taplsolutionbacklink{ex:27.1}{返回练习27.1}
 \end{taplauthorsolutionentrybox}

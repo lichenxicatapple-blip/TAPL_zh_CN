@@ -9,6 +9,9 @@
 上一章考察了 ML 中受限的 let 多态。本章转向一种更一般的参数多态系统：
 \termfirst{System F}{System F}，也称\termfirst{多态 lambda 演算}{polymorphic
 lambda-calculus}或二阶 lambda 演算。
+本章主要研究纯 System F（\cref{fig:23-1}）；示例会自由使用
+此前介绍的扩展。\footnote{原书相应的 OCaml 实现为 \texttt{fullpoly}；
+涉及序对和列表的部分示例需要 \texttt{fullomega}。}
 
 \section{动机}
 \label{sec:23.1}
@@ -39,10 +42,6 @@ lambda-calculus}或二阶 lambda 演算。
 这里变化的正是类型。因此，我们需要从项中抽象出类型，并在使用该项时再提供
 具体类型。
 
-\footnotetext{本章主要研究纯 System F（\cref{fig:23-1}）；示例会自由使用
-此前介绍的扩展。原书相应的 OCaml 实现为 \texttt{fullpoly}；涉及序对和列表
-的部分示例需要 \texttt{fullomega}。}
-
 \section{多态的几种形式}
 \label{sec:23.2}
 
@@ -53,7 +52,7 @@ system}。现代语言中常见的多态形式包括以下几种。
   \item[参数多态（parametric polymorphism）]
     以类型变量代替具体类型编写通用代码，并在需要时以具体类型实例化。
     参数多态定义具有一致的行为：不同类型实例执行同一种算法。
-  \item[特设多态（ad-hoc polymorphism）]
+  \item[\termfirst{特设多态}{ad-hoc polymorphism}]
     同一个名称在不同类型下可以采用不同实现。最常见的例子是
     \termfirst{重载}{overloading}：编译器或运行时系统根据参数类型选择具体
     实现。多方法分派、受限的运行时类型分析等机制也属于这一大类。
@@ -64,7 +63,22 @@ system}。现代语言中常见的多态形式包括以下几种。
 
 本章研究参数多态中能力最强的一种形式：非直谓多态，也称一等多态。实践中
 更常见的是 ML 风格的 let 多态：它把多态限制在 let 绑定处，不允许函数接收
-多态值作为参数，换来较自然的自动类型重构（\chapref{22}）。
+多态值作为参数，换来较自然的自动类型重构（\chapref{22}）。一等参数多态也日益受到
+编程语言的重视，并构成 ML 等语言中强大模块系统的技术基础（Harper 与 Stone, 2000）。
+
+重载还可以推广为多方法分派，这是 CLOS（Bobrow 等, 1988；Kiczales 等, 1991）和
+Cecil（Chambers, 1992；Chambers 与 Leavens, 1994）等语言的基础机制。Castagna、Ghelli 与
+Longo（1995；又见 Castagna, 1997）的 lambda-\& 演算对这项机制作了形式化。
+
+能力更强的\termfirst{内涵多态}{intensional polymorphism}（Harper 与 Morrisett, 1995；
+Crary、Weirich 与 Morrisett, 1998）允许在运行时对类型作受限计算。它支撑了多态语言的
+若干高级实现技术，包括无标签垃圾回收、不装箱的函数参数、多态编组，以及更节省空间的
+扁平数据结构。
+
+还可以从 \texttt{typecase} 原语构造更强的特设多态：该原语允许在运行时对类型信息作任意模式匹配
+（Abadi、Cardelli、Pierce 与 Rémy, 1995；Abadi、Cardelli、Pierce 与 Plotkin, 1991b；
+Henglein, 1994；Leroy 与 Mauny, 1991；Thatte, 1990）。Java 的 \texttt{instanceof} 可看作
+\texttt{typecase} 的受限形式。
 
 上述类别并不互斥。一门语言可以同时具有多种多态。例如 Standard ML 兼有参数
 多态和少量内建运算重载；Java 则长期以子类型、重载和受限的运行时类型测试为
@@ -76,7 +90,8 @@ system}。现代语言中常见的多态形式包括以下几种。
 
 System F 最早由 Jean-Yves Girard（1972）在证明论研究中提出；John Reynolds
 （1974）随后独立提出了能力基本相同的多态 lambda 演算。借助 Curry--Howard
-对应，它对应于二阶直觉主义逻辑：量化对象不再限于项，也可以包括类型。
+对应，它对应于二阶直觉主义逻辑：量化对象不再限于个体（项），也可以包括谓词
+（类型）。System F 长期作为多态基础研究的核心工具，也成为众多编程语言设计的基础。
 
 System F 在简单类型 lambda 演算上增加两种项：
 \[
@@ -104,32 +119,54 @@ t[T]
 \]
 给类型抽象分类。恒等函数的类型是
 \(\forall X.\,X\to X\)：无论给它什么类型 \(T\)，实例
-\(\taplterm{id}[T]\) 都具有类型 \(T\to T\)。
+\(\taplterm{id}[T]\) 都具有类型 \(T\to T\)。关键在于，结果类型依赖于实际传入的
+类型参数：给 \(\taplterm{id}\) 传入 \(T\)，就得到 \(T\to T\) 型函数。全称类型正是用来表达
+这种依赖关系的。
 
 \begin{figure}[!ht]
 \centering
 \begin{minipage}{0.96\linewidth}
-\textbf{类型}
+\textbf{语法}
 \[
-T ::= X \mid T\to T \mid \forall X.\,T
-\]
-\textbf{项与值}
-\[
-\begin{array}{rcl}
-t&::=&x\mid\lambda x:T.\,t\mid t\,t\mid\lambda X.\,t\mid t[T],\\
-v&::=&\lambda x:T.\,t\mid\lambda X.\,t
+\begin{array}{rcll}
+t&::=&x\mid\lambda x:T.\,t\mid t\,t\mid\lambda X.\,t\mid t[T]&\tapltranslateditalic{项}\\
+v&::=&\lambda x:T.\,t\mid\lambda X.\,t&\tapltranslateditalic{值}\\
+T&::=&X\mid T\to T\mid\forall X.\,T&\tapltranslateditalic{类型}\\
+\Gamma&::=&\varnothing\mid\Gamma,x:T\mid\Gamma,X&\tapltranslateditalic{上下文}
 \end{array}
 \]
 \textbf{求值}
 \[
+\inferrule*[right=E-AppAbs]{v_2\ \text{为值}}
+  {(\lambda x:T_{11}.\,t_{12})\,v_2\longrightarrow[x\mapsto v_2]t_{12}}
+\qquad
+\inferrule*[right=E-App1]{t_1\longrightarrow t_1'}
+  {t_1\,t_2\longrightarrow t_1'\,t_2}
+\]
+\[
+\inferrule*[right=E-App2]{t_2\longrightarrow t_2'}
+  {v_1\,t_2\longrightarrow v_1\,t_2'}
+\qquad
 \inferrule*[right=E-TApp]
  {t_1\longrightarrow t_1'}
  {t_1[T_2]\longrightarrow t_1'[T_2]}
-\qquad
+\]
+\[
 \inferrule*[right=E-TAppTabs]{ }
  {(\lambda X.\,t_{11})[T_2]\longrightarrow[X\mapsto T_2]t_{11}}
 \]
 \textbf{赋型}
+\[
+\inferrule*[right=T-Var]{x:T\in\Gamma}{\Gamma\vdash x:T}
+\qquad
+\inferrule*[right=T-Abs]{\Gamma,x:T_1\vdash t_2:T_2}
+ {\Gamma\vdash\lambda x:T_1.\,t_2:T_1\to T_2}
+\]
+\[
+\inferrule*[right=T-App]
+ {\Gamma\vdash t_1:T_{11}\to T_{12}\\\Gamma\vdash t_2:T_{11}}
+ {\Gamma\vdash t_1\,t_2:T_{12}}
+\]
 \[
 \inferrule*[right=T-TAbs]
  {\Gamma,X\vdash t_2:T_2}
@@ -146,33 +183,66 @@ v&::=&\lambda x:T.\,t\mid\lambda X.\,t
 
 T-TAbs 的子推导把 \(X\) 加入上下文，用来记录其作用域。沿用
 \cref{sec:5.3}的约定，新绑定的项变量和类型变量均不与上下文中已有名称
-重复；必要时可以一致地重命名绑定变量。纯演算省略了记录、自然数、布尔值、
-let 和 fix 等扩展，后文示例仍会自由使用它们。
+重复；必要时可以一致地重命名绑定变量。另外，上下文 \(\Gamma,x:T\) 只在
+\(T\) 中的每个自由类型变量都已由 \(\Gamma\) 绑定时才是良构的。
+纯演算省略了记录、自然数、布尔值、
+let 和 fix 等扩展，后文示例仍会自由使用它们。当前上下文中的类型变量只用来记录作用域；
+到\chapref{26}和\chapref{29}，我们还会分别为它们加上上界和种类等信息。
 
 \section{示例}
 \label{sec:23.4}
 
+下面先用几个很小、但难度逐渐增加的例子展示 System F 的表达能力；随后回到
+列表、树等常见的多态程序。最后两小节为\chapref{5}中的 Church 布尔值、自然数和
+列表补上类型。这些编码的实际用途不大：如果把常用数据结构直接作为高级语言的
+基本构造，编译器更容易生成高效代码，语言也能为它们提供更方便的具体语法。不过，
+这些例子很适合用来熟悉类型抽象和类型应用，也能说明纯 System F 已经能够表达
+相当多的数据结构和控制结构。以后若以 System F 为核心设计一门完整语言，就可以
+为了效率和易用性把这些结构加入为基本构造，而不会破坏核心语言的基本性质。当然，
+并非所有重要特性都能如此处理；例如，像\chapref{13}那样加入引用，确实会改变系统
+的基本计算性质。\chapref{24}还会展示多态在模块化程序设计和抽象数据类型中的用途。
+
 \subsection*{热身}
 
-多态恒等函数和加倍函数为
+多态恒等函数为
+\[
+\taplterm{id}=\lambda X.\,\lambda x:X.\,x
+\]
+它的类型和几个实例为
 \[
 \begin{array}{rcl}
-\taplterm{id}&=&\lambda X.\,\lambda x:X.\,x,\\
-\taplterm{double}&=&
-\lambda X.\,\lambda f:X\to X.\,\lambda a:X.\,f(f\,a)
+\taplterm{id}&:&\forall X.\,X\to X,\\
+\taplterm{id}[\tapltype{Nat}]&:&\tapltype{Nat}\to\tapltype{Nat},\\
+\taplterm{id}[\tapltype{Nat}]\ 0&\longrightarrow^*&0:\tapltype{Nat}
 \end{array}
 \]
-类型分别是
+更实用一些的例子是多态加倍函数：
 \[
-\forall X.\,X\to X
-\qquad\text{和}\qquad
-\forall X.\,(X\to X)\to X\to X.
+\taplterm{double}
+=\lambda X.\,\lambda f:X\to X.\,\lambda a:X.\,f(f\,a)
 \]
-先对类型参数实例化，再对普通参数应用：
+它具有类型
+\(
+\forall X.\,(X\to X)\to X\to X
+\)。对不同的类型实参作实例化，可以得到
+\[
+\begin{array}{rcl}
+\taplterm{doubleNat}=\taplterm{double}[\tapltype{Nat}]
+&:&(\tapltype{Nat}\to\tapltype{Nat})\to\tapltype{Nat}\to\tapltype{Nat},\\
+\taplterm{doubleNatArrowNat}
+&=&\taplterm{double}[\tapltype{Nat}\to\tapltype{Nat}],\\
+&&\multicolumn{1}{l}{:
+((\tapltype{Nat}\to\tapltype{Nat})\to
+ \tapltype{Nat}\to\tapltype{Nat})\to
+ (\tapltype{Nat}\to\tapltype{Nat})\to
+ \tapltype{Nat}\to\tapltype{Nat}}
+\end{array}
+\]
+完成类型实例化后，还可以继续提供普通函数和值：
 \[
 \taplterm{double}[\tapltype{Nat}]
   (\lambda x:\tapltype{Nat}.\,\taplterm{succ}(\taplterm{succ}\,x))\ 3
-\longrightarrow^*7.
+\longrightarrow^*7
 \]
 
 System F 还允许多态自应用。令
@@ -215,6 +285,8 @@ System F 还允许多态自应用。令
 \]
 这与\cref{sec:11.12}为列表专门编写的规则表达同一约束，但列表现在可以被
 看作提供若干多态常量的库，而不必烘焙进核心语言。
+同样的处理也适用于\chapref{13}的 \tapltype{Ref} 类型和引用单元基本操作，
+以及许多其他常见的数据结构和控制结构。
 
 \[
 \begin{aligned}
@@ -233,7 +305,21 @@ System F 还允许多态自应用。令
 它具有类型
 \[
 \forall X.\,\forall Y.\,(X\to Y)\to\tapltype{List}\,X\to
-\tapltype{List}\,Y.
+\tapltype{List}\,Y
+\]
+例如，令
+\[
+\taplterm{l}=\taplterm{cons}[\tapltype{Nat}]\ 4\,
+ (\taplterm{cons}[\tapltype{Nat}]\ 3\,
+  (\taplterm{cons}[\tapltype{Nat}]\ 2\,
+   (\taplterm{nil}[\tapltype{Nat}])))
+\]
+则 \(l:\tapltype{List}\,\tapltype{Nat}\)，而
+\[
+\taplterm{head}[\tapltype{Nat}]
+ \bigl(\taplterm{map}[\tapltype{Nat}][\tapltype{Nat}]
+ (\lambda x:\tapltype{Nat}.\,\taplterm{succ}\,x)\ l\bigr)
+\longrightarrow^*5
 \]
 
 \begin{exercise}[\(\star\star\)]
@@ -300,6 +386,8 @@ Church 自然数的类型为
 \taplterm{c0}&=&\lambda X.\,\lambda s:X\to X.\,\lambda z:X.\,z,\\
 \taplterm{c1}&=&\lambda X.\,\lambda s:X\to X.\,\lambda z:X.\,s\,z,\\
 \taplterm{c2}&=&\lambda X.\,\lambda s:X\to X.\,\lambda z:X.\,s(s\,z).
+\\
+\taplterm{c3}&=&\lambda X.\,\lambda s:X\to X.\,\lambda z:X.\,s(s(s\,z))
 \end{array}
 \]
 后继和加法可以定义为
@@ -314,10 +402,29 @@ Church 自然数的类型为
        m[X]\ s\,(n[X]\ s\ z).
 \end{aligned}
 \]
+也可以直接复用后继函数来定义加法：
+\[
+\taplterm{cplus}
+=\lambda m:\tapltype{CNat}.\,\lambda n:\tapltype{CNat}.\,
+ m[\tapltype{CNat}]\ \taplterm{csucc}\ n
+\]
+若语言还包含\cref{fig:8-2}中的基本自然数，可以把 Church 数转换为普通自然数：
+\[
+\taplterm{cnat2nat}
+=\lambda m:\tapltype{CNat}.\,
+ m[\tapltype{Nat}](\lambda x:\tapltype{Nat}.\,\taplterm{succ}\,x)\ 0
+\]
+于是可以直接检验前面的运算：
+\[
+\taplterm{cnat2nat}
+ \bigl(\taplterm{cplus}(\taplterm{csucc}\ \taplterm{c0})
+ (\taplterm{csucc}(\taplterm{csucc}\ \taplterm{c0}))\bigr)
+\longrightarrow^*3
+\]
 
 \begin{exercise}[推荐，\(\star\star\)]
 \label{ex:23.4.6}
-写出函数 \(\taplterm{iszero}\)，使其应用于 \(\taplterm{c0}\) 时返回
+写出函数 \(\taplterm{iszro}\)，使其应用于 \(\taplterm{c0}\) 时返回
 \(\taplterm{tru}\)，应用于其他 Church 数时返回 \(\taplterm{fls}\)。
 \end{exercise}
 \taplauthorsolutionlink{sol:author:23.4.6}{23.4.6}
@@ -354,7 +461,7 @@ Church 自然数的类型为
 
 \begin{exercise}[推荐，\(\star\star\star\)]
 \label{ex:23.4.9}
-利用\cref{ex:23.4.8}的数对写出 Church 数的前驱函数。提示：定义
+利用\cref{ex:23.4.8}的数对写出 Church 数的前驱函数 \(\taplterm{prd}\)。提示：定义
 \(f(i,j)=(i+1,i)\)，把它从 \((0,0)\) 开始迭代 \(n\) 次，再取第二分量。
 \end{exercise}
 \taplauthorsolutionlink{sol:author:23.4.9}{23.4.9}
@@ -373,6 +480,17 @@ n(\lambda p.\lambda q.\,q(p\,s))(k\,z)i
 
 \subsection*{列表编码}
 
+这个例子进一步展示了纯 System F 的表达能力：上一小节利用列表基本操作写出的
+所有程序，实际上也能在纯系统中表达。下面为了方便仍会在一个定义中使用
+\taplterm{fix}；\cref{ex:23.4.11,ex:23.4.12}会说明，实质相同的构造也可以
+避开它。
+
+\cref{ex:5.2.8}曾把无类型列表编码成类似 Church 自然数的函数：一元记法中的
+自然数可以看作由若干虚设元素组成的列表。推广到任意元素类型后，列表
+\([x,y,z]\) 被表示成一个函数；给它函数 \(f\) 和初值 \(v\)，它会计算
+\(f\,x\,(f\,y\,(f\,z\,v))\)。用 OCaml 的术语说，列表被表示成了它自己的
+\texttt{fold\_right} 函数。
+
 含 \(X\) 元素的 Church 列表可以看作它自己的右折叠函数：
 \[
 \tapltype{List}\,X=\forall R.\,(X\to R\to R)\to R\to R.
@@ -381,17 +499,22 @@ n(\lambda p.\lambda q.\,q(p\,s))(k\,z)i
 \[
 \begin{aligned}
 \taplterm{nil}
- &={}\lambda X.\,\lambda R.\,\lambda c:X\to R\to R.\,\lambda n:R.\,n,\\
+ &={}\lambda X.\,(\lambda R.\,\lambda c:X\to R\to R.\,\lambda n:R.\,n)
+   \textbf{ as }\tapltype{List}\,X,\\
 \taplterm{cons}
  &={}\lambda X.\,\lambda hd:X.\,\lambda tl:\tapltype{List}\,X.\,
    \lambda R.\,\lambda c:X\to R\to R.\,\lambda n:R.\,
-   c\ hd\ (tl[R]\ c\ n),\\
+   c\ hd\ (tl[R]\ c\ n))\textbf{ as }\tapltype{List}\,X,\\
 \taplterm{isnil}
  &={}\lambda X.\,\lambda l:\tapltype{List}\,X.\,
    l[\tapltype{Bool}](\lambda hd:X.\lambda tl:\tapltype{Bool}.
    \taplterm{false})\ \taplterm{true}.
 \end{aligned}
 \]
+\footnote{这里的 \textbf{as} 标注使类型检查器能以易读的形式输出
+\taplterm{nil} 的类型。\cref{sec:11.4}提过，本书各类型检查器在输出类型前
+都会作一次简单的缩写折叠，但该过程还不能自动处理 \tapltype{List} 这种
+“带参数的缩写”。}
 
 为处理空列表的 \(\taplterm{head}\)，若语言带 \(\taplterm{fix}\)，可先定义
 \[
@@ -400,8 +523,15 @@ n(\lambda p.\lambda q.\,q(p\,s))(k\,z)i
  \taplterm{fix}(\lambda x:X.\,x)
 :\forall X.\,\tapltype{Unit}\to X.
 \]
-直接把 \(\taplterm{diverge}[X]\ \taplterm{unit}\) 作为折叠基值会在非空
-列表上也过早发散。应把计算推迟到最后：
+最直接的写法是把 \(\taplterm{diverge}[X]\ \taplterm{unit}\) 作为折叠基值：
+\[
+\taplterm{head}
+=\lambda X.\,\lambda l:\tapltype{List}\,X.\,
+l[X](\lambda hd:X.\,\lambda tl:X.\,hd)
+     (\taplterm{diverge}[X]\ \taplterm{unit})
+\]
+遗憾的是，按值求值会在把基值传给 \(l\) 之前先求它；所以这一定义即使作用于
+非空列表也会发散。应把 \taplterm{unit} 参数留到折叠完成后再传入：
 \[
 \begin{aligned}
 \taplterm{head}={}&
@@ -414,6 +544,36 @@ n(\lambda p.\lambda q.\,q(p\,s))(k\,z)i
 \]
 空列表产生发散函数；非空列表产生忽略 \(\taplterm{unit}\) 并返回首元素的
 函数，最后一次应用才决定结果。
+
+尾部函数还需要通用的 Church 数对编码。令
+\[
+\tapltype{Pair}\,X\,Y=\forall R.\,(X\to Y\to R)\to R
+\]
+并使用以下三个多态操作：
+\[
+\begin{array}{rcl}
+\taplterm{pair}&:&\forall X.\,\forall Y.\,X\to Y\to\tapltype{Pair}\,X\,Y,\\
+\taplterm{fst}&:&\forall X.\,\forall Y.\,\tapltype{Pair}\,X\,Y\to X,\\
+\taplterm{snd}&:&\forall X.\,\forall Y.\,\tapltype{Pair}\,X\,Y\to Y
+\end{array}
+\]
+便可以写出
+\[
+\begin{aligned}
+\taplterm{tail}={}&\lambda X.\,\lambda l:\tapltype{List}\,X.\\
+&\taplterm{fst}[\tapltype{List}\,X][\tapltype{List}\,X]\bigl(\\
+&\quad l[\tapltype{Pair}(\tapltype{List}\,X)(\tapltype{List}\,X)]\\
+&\qquad(\lambda hd:X.\,\lambda tl:\tapltype{Pair}(\tapltype{List}\,X)
+                         (\tapltype{List}\,X).\\
+&\qquad\quad\taplterm{pair}[\tapltype{List}\,X][\tapltype{List}\,X]
+   (\taplterm{snd}[\tapltype{List}\,X][\tapltype{List}\,X]\ tl)
+   (\taplterm{cons}[X]\ hd\,
+    (\taplterm{snd}[\tapltype{List}\,X][\tapltype{List}\,X]\ tl)))\\
+&\qquad(\taplterm{pair}[\tapltype{List}\,X][\tapltype{List}\,X]
+   (\taplterm{nil}[X])(\taplterm{nil}[X]))\bigr)
+\end{aligned}
+\]
+其类型为 \(\forall X.\,\tapltype{List}\,X\to\tapltype{List}\,X\)。
 
 \begin{exercise}[\(\star\star\)]
 \label{ex:23.4.11}
@@ -439,14 +599,14 @@ n(\lambda p.\lambda q.\,q(p\,s))(k\,z)i
 
 System F 的类型安全性质与简单类型 lambda 演算基本相同。
 
-\begin{theorem}[保持性]
+\begin{theorem}[保持性；证明为推荐练习，\(\star\star\star\)]
 \label{thm:23.5.1}
 若 \(\Gamma\vdash t:T\) 且 \(t\longrightarrow t'\)，则
 \(\Gamma\vdash t':T\)。
 \end{theorem}
 \taplauthorsolutionlink{sol:author:23.5.1}{23.5.1}
 
-\begin{theorem}[进展性]
+\begin{theorem}[进展性；证明为推荐练习，\(\star\star\star\)]
 \label{thm:23.5.2}
 若 \(t\) 是闭的良类型项，则 \(t\) 或为值，或存在 \(t'\) 使
 \(t\longrightarrow t'\)。
@@ -456,6 +616,10 @@ System F 的类型安全性质与简单类型 lambda 演算基本相同。
 System F 还和简单类型 lambda 演算一样具有规范化性质。这一结论并不显然：
 即使不借助 \(\taplterm{fix}\)，纯 System F 也能表达排序等相当复杂的计算。
 Girard 在其博士论文中以\chapref{12}方法的推广证明了这一性质。
+\footnote{若采用允许任意位置作完全 beta 归约的操作语义，System F 还具有
+强规范化性质：从良类型项出发的每一条
+归约路径都必定终止。这里的确定性求值关系每项至多只有一条求值路径，因而
+“规范化”和“强规范化”的区别不会显现出来。}
 
 \begin{theorem}[规范化]
 \label{thm:23.5.3}
@@ -485,39 +649,137 @@ System F 项可以通过删去类型标注、类型抽象和类型应用而映�
 满足 \(\mathsf{erase}(t)=m\)，是不可判定的。
 \end{theorem}
 
-即使保留所有普通类型标注以及类型抽象的位置，只抹掉类型应用的实参，这种
-部分重构仍不可判定。令
+完整类型重构以外，System F 的若干部分类型重构问题也已知不可判定。这里必须
+先准确说明“部分”的含义。Pfenning（1993a）把输入写成带有可选类型信息的
+\termfirst{预项}{preterm} \(P\)，并以关系 \(P\preceq M\) 表示：\(P\) 是
+System F 项 \(M\) 的一种部分擦除。变量、应用和类型抽象保留结构；普通 lambda
+抽象既可以保留参数类型，也可以省去它；类型应用既可以保留类型实参，也可以只
+留下空方括号：
 \[
-\begin{array}{rcl}
-\mathsf{erase}_p(x)&=&x,\\
-\mathsf{erase}_p(\lambda x:T_1.\,t_2)&=&\lambda x:T_1.\mathsf{erase}_p(t_2),\\
-\mathsf{erase}_p(t_1t_2)&=&\mathsf{erase}_p(t_1)\mathsf{erase}_p(t_2),\\
-\mathsf{erase}_p(\lambda X.\,t_2)&=&\lambda X.\mathsf{erase}_p(t_2),\\
-\mathsf{erase}_p(t_1[T_2])&=&\mathsf{erase}_p(t_1)[\,].
+\begin{array}{c@{\qquad}c}
+x\preceq x
+&
+\inferrule{P\preceq M}{\lambda x:T.\,P\preceq\lambda x:T.\,M}
+\quad
+\inferrule{P\preceq M}{\lambda x.\,P\preceq\lambda x:T.\,M}
+\\[3mm]
+\inferrule{P_1\preceq M_1\\P_2\preceq M_2}{P_1P_2\preceq M_1M_2}
+&
+\inferrule{P\preceq M}{\lambda X.\,P\preceq\lambda X.\,M}
+\\[3mm]
+\inferrule{P\preceq M}{P[T]\preceq M[T]}
+&
+\inferrule{P\preceq M}{P[\,]\preceq M[T]}
 \end{array}
 \]
+部分类型重构要判断：给定良构上下文 \(\Gamma\) 和预项 \(P\)，是否存在在
+\(\Gamma\) 下良类型的 System F 项 \(M\)，使 \(P\preceq M\)。
 
-\begin{theorem}[Boehm，1985，1989]
+\begin{theorem}[Pfenning，1993a]
 \label{thm:23.6.2}
-给定类型应用位置已标出但类型实参被省略的闭项 \(s\)，判断是否存在良类型
-System F 项 \(t\) 使 \(\mathsf{erase}_p(t)=s\)，是不可判定的。
+上述部分类型重构问题不可判定。
 \end{theorem}
 
-\translatornote{作者勘误修正了本节部分擦除函数的定义。这里采用修正后的
-版本：普通类型标注和类型抽象均保留，只有类型应用的实参被替换为空方括号。
-对于另一些介于完整标注与完全擦除之间的精确重构问题，已知结果更细致，不能
-由本节两条定理一概而论。}
+这一结果沿着 Boehm（1985，1989）把部分类型重构与高阶合一联系起来的工作
+发展而来。Boehm 证明的是稍有不同的变体；Pfenning 借助 Huet（1975）的高阶
+合一半算法得到了一种实用的部分类型重构技术。后来的高阶约束求解算法又消除了
+不终止或产生多个不唯一解的麻烦（Dowek、Hardin、Kirchner 与 Pfenning，1996）。
+LEAP、Elf 和 FX 等语言的实践表明，这类算法通常表现良好。
 
-实际语言通常采用受限的局部类型推断、显式标注与推断相结合，或把可推断的
-多态限制在较温和的片段。它们不恢复完整 System F 类型重构的可判定性，而是
-选择足够实用且行为可预测的子问题。
+\translatornote{原书把“保留所有普通参数类型和类型抽象、只挖去类型应用实参”
+写成一个函数 \(\mathsf{erase}_p\)，并把相应判定问题列为不可判定定理。作者勘误
+指出，该定义并不正确，Boehm 的论文证明的也是略有差别的问题；恰好按原书文字
+所陈述的那个判定问题，目前仍属开放问题。上文因此采用勘误所指向的 Pfenning
+正式定义，并只陈述这一变体已经证明的结论。}
+
+另一条路线来自 Perry（1990）的观察：一等存在类型（\chapref{24}）可以同 ML 的
+数据类型机制结合。数据构造子和析构子可看作显式类型标注，指出何处需要把值注入
+或投影出不交并类型，何处需要折叠或展开递归类型；加入存在类型后，它们也指出
+何处要进行打包和开包。Läufer 与 Odersky（1994）进一步发展了这一想法，Rémy
+（1994）又把它扩展到一等、非直谓的全称量词。Odersky 与 Läufer（1996）以及
+Garrigue 与 Rémy（1997）提出的方案保守扩展 ML：程序员可以显式标注函数参数，
+这些标注可以包含自动推断无法产生的嵌套全称量词，从而部分弥合 ML 与更强非直谓
+系统之间的差距。这一路线的优点是相对简单，并能自然地融入 ML 多态。
+
+对于同时具有子类型和非直谓多态的系统，Pierce 与 Turner（1998）提出了
+\termfirst{局部类型推断}{local type inference}，亦称局部类型重构。GJ 和
+Funnel 等语言设计采用了这一办法；Funnel 还引入了能力更强的着色局部类型推断。
+
+Cardelli（1993）提出了更简单、但较难预测的贪心算法。程序员可以省略任意类型
+标注，解析器为每处省略生成新的合一变量。子类型检查遇到
+\(X<:T\) 或 \(T<:X\) 时，立即令 \(X=T\)，以最直接的选择满足当前约束。
+这个选择未必对后续约束最有利：其他实例化本可使整个程序通过，而贪心选择却
+可能令很远处的检查失败。Cardelli 的实现和早期 Pict 的经验表明，它几乎总能
+作出正确选择；一旦选错，错误信息却往往出现在远离错误实例化的位置，令程序员
+难以理解。
 
 \begin{exercise}[\(\star\star\star\star\)]
 \label{ex:23.6.3}
-不用规范化定理，只从赋型规则出发证明
-\(\Omega=(\lambda x.x\,x)(\lambda y.y\,y)\) 在 System F 中不可赋型。
-题目要求先把任意良类型装饰整理为外层类型抽象/应用与“暴露项”的组合，
-再分析 \(x\,x\) 对类型结构造成的矛盾。
+规范化性质已经说明，无类型项
+\(\Omega=(\lambda x.x\,x)(\lambda y.y\,y)\) 不可能在 System F 中赋型：
+它永远无法归约到范式。下面只使用赋型关系的规则，给出一个更直接的组合性证明。
+\begin{enumerate}
+  \item 若 System F 项是变量、普通抽象 \(\lambda x:T.t\) 或普通应用 \(t\,s\)，
+        就称它为\emph{暴露项}；也就是说，它不是类型抽象或类型应用。证明：若
+        \(t\) 良类型且 \(\mathsf{erase}(t)=m\)，则存在某个同样擦除为 \(m\)
+        的良类型暴露项 \(s\)（上下文可以不同）。
+  \item 使用下列缩写表示嵌套的类型抽象、类型应用和全称类型：
+        \[
+        \begin{aligned}
+        \lambda\overline X.t
+          &\;=\;\lambda X_1.\cdots\lambda X_n.t,\\
+        t[\overline A]
+          &\;=\;((t[A_1])\cdots[A_{n-1}])[A_n],\\
+        \forall\overline X.T
+          &\;=\;\forall X_1.\cdots\forall X_n.T
+        \end{aligned}
+        \]
+        这些序列均可为空。证明：若 \(\mathsf{erase}(t)=m\) 且
+        \(\Gamma\vdash t:T\)，则存在
+        \(s=\lambda\overline X.\,(u[\overline A])\)，其中 \(u\) 是暴露项，
+        并且 \(\mathsf{erase}(s)=m\)、\(\Gamma\vdash s:T\)。
+  \item 证明：若暴露项 \(t\) 在 \(\Gamma\) 下具有类型 \(T\)，且
+        \(\mathsf{erase}(t)=m\,n\)，则 \(t=s\,u\)，其中
+        \(\mathsf{erase}(s)=m\)、\(\mathsf{erase}(u)=n\)，并且对某个 \(U\)
+        有 \(\Gamma\vdash s:U\to T\) 和 \(\Gamma\vdash u:U\)。
+  \item 设 \(x:T\in\Gamma\)。证明：若 \(\Gamma\vdash u:U\) 且
+        \(\mathsf{erase}(u)=x\,x\)，则以下两种情况之一成立：
+        \begin{enumerate}
+          \item \(T=\forall\overline X.X_i\)，其中
+                \(X_i\in\overline X\)；
+          \item \(T=\forall\overline{X_1}\,\overline{X_2}.T_1\to T_2\)，
+                并且对某些类型序列 \(\overline A,\overline B\)，
+                \[
+                [\overline{X_1X_2\mapsto A}]T_1
+                =[\overline{X_1\mapsto B}]
+                  (\forall Z.T_1\to T_2),
+                \]
+                其中 \(|\overline A|=|\overline{X_1X_2}|\)、
+                \(|\overline B|=|\overline{X_1}|\)。
+        \end{enumerate}
+  \item 证明：若 \(\mathsf{erase}(s)=\lambda x.m\) 且
+        \(\Gamma\vdash s:S\)，则对某些 \(\overline X,S_1,S_2\)，有
+        \(S=\forall\overline X.S_1\to S_2\)。
+  \item 定义类型的最左叶：
+        \[
+        \begin{array}{rcl}
+        \mathsf{leftmost\mbox{-}leaf}(X)&=&X,\\
+        \mathsf{leftmost\mbox{-}leaf}(S\to T)&=&
+          \mathsf{leftmost\mbox{-}leaf}(S),\\
+        \mathsf{leftmost\mbox{-}leaf}(\forall X.S)&=&
+          \mathsf{leftmost\mbox{-}leaf}(S)
+        \end{array}
+        \]
+        证明：若
+        \[
+        [\overline{X_1X_2\mapsto A}](\forall\overline Y.T_1)
+        =[\overline{X_1\mapsto B}]
+          (\forall Z.(\forall\overline Y.T_1)\to T_2),
+        \]
+        则 \(\mathsf{leftmost\mbox{-}leaf}(T_1)=X_i\)，其中某个
+        \(X_i\in\overline{X_1X_2}\)。
+  \item 证明 \(\Omega\) 在 System F 中不可赋型。
+\end{enumerate}
 \end{exercise}
 \taplauthorsolutionlink{sol:author:23.6.3}{23.6.3}
 
@@ -526,6 +788,12 @@ System F 项 \(t\) 使 \(\mathsf{erase}_p(t)=s\)，是不可判定的。
 
 \cref{fig:23-1}采用\termfirst{类型传递语义}{type-passing semantics}：
 运行时会把类型实参替换进类型抽象体。实际编译器通常希望类型检查后擦除类型。
+在真正以 System F 为基础的解释器或编译器中，运行时操作类型会带来显著开销。
+而且，类型标注通常不参与运行时选择：任意改写一个良类型程序中的类型标注，
+得到的程序仍会有相同的运行行为。因此，许多多态语言在类型检查后擦除全部类型，
+再解释无类型项或把它们编译成机器码。\footnote{有些语言包含类型转换
+（\cref{sec:15.5}）等特性，因而必须采用某种类型传递实现。高性能实现通常只在
+运行时保留最低限度的类型信息，例如只把类型传给确实会使用它的多态函数。}
 不过，在含副作用的按值调用语言中，简单擦除会改变求值次序。例如
 \[
 \texttt{let }f=(\lambda X.\,\taplterm{error})\texttt{ in }0
@@ -533,6 +801,8 @@ System F 项 \(t\) 使 \(\mathsf{erase}_p(t)=s\)，是不可判定的。
 求值为 \(0\)，因为类型抽象是值，其内部错误不会立即执行；若直接擦除类型
 抽象，就得到 \(\texttt{let }f=\taplterm{error}\texttt{ in }0\)，会立刻
 抛出错误。
+\footnote{这和\taplsecref{22.7}{sec:22.7}中引用与 ML 风格 let 多态组合后
+出现的不安全问题有关：那个例子对 let 右侧作泛化，对应于这里显式引入类型抽象。}
 
 适合按值调用的擦除应把类型抽象保留为无类型的零信息函数，把类型应用变成向它
 传递任意哑值：
@@ -547,11 +817,15 @@ System F 项 \(t\) 使 \(\mathsf{erase}_p(t)=s\)，是不可判定的。
 \]
 其中 \(\taplterm{dummyv}\) 可以取任意无类型值，如
 \(\taplterm{unit}\)。这样，类型抽象原来阻止函数体立即求值的作用仍然保留。
+\footnote{与此不同，\taplsecref{22.7}{sec:22.7}为带副作用的 ML 类型重构
+引入的值限制会擦除类型抽象；在那里，对类型变量作泛化相当于插入类型抽象，
+但只有当它紧邻普通项抽象或其他句法值构造子时才允许泛化。这些构造本身也会
+阻止按值求值进入其内部，因而仍能保证安全。}
 
 \begin{exercise}[\(\star\star\)]
 \label{ex:23.7.1}
-把原书第 335 页关于引用与不安全 let 多态的反例，写成带引用的 System F
-项。
+把\taplsecref{22.7}{sec:22.7}关于引用与不安全 let 多态的反例，写成带引用的
+System F 项。
 \end{exercise}
 \taplauthorsolutionlink{sol:author:23.7.1}{23.7.1}
 
@@ -571,7 +845,8 @@ System F 项 \(t\) 使 \(\mathsf{erase}_p(t)=s\)，是不可判定的。
 System F 优雅而强大，但完整类型重构不可判定。语言设计因此常选择能力较弱、
 重构更可控的片段。ML 的 let 多态也称\termfirst{前束多态}{prenex
 polymorphism}：类型变量只实例化为不含量词的单型，而且量化类型不出现在箭头
-左侧。
+左侧。由于 ML 的 let 在类型系统中承担特殊作用，这一对应关系的精确表述并不
+简单；详见 Jim（1995）。
 
 另一种常见限制是\termfirst{秩 2 多态}{rank-2 polymorphism}。把类型画成树；
 若从根到任一 \(\forall\) 的路径，在两个或更多箭头处进入参数一侧，该类型就
@@ -579,12 +854,20 @@ polymorphism}：类型变量只实例化为不含量词的单型，而且量化�
 \[
 (\forall X.\,X\to X)\to\tapltype{Nat}
 \]
-属于秩 2，而
+属于秩 2；\(\tapltype{Nat}\to\tapltype{Nat}\) 和
+\(\tapltype{Nat}\to(\forall X.X\to X)\to\tapltype{Nat}\to\tapltype{Nat}\)
+也属于秩 2。相反，
 \[
 ((\forall X.\,X\to X)\to\tapltype{Nat})\to\tapltype{Nat}
 \]
 不属于。秩 2 系统能给比 ML 片段更多的无类型项赋型；其重构复杂度与 ML
-相同，而秩 3 及以上的 System F 重构不可判定。
+相同，即 DEXPTIME 完备。Kfoury 与 Wells（1994）给出了第一个直接的秩 2
+类型重构算法；秩 3 及以上的 System F 重构则不可判定。
+
+秩 2 的限制也可用于量词以外的强类型构造子。例如，可以把交类型
+（\cref{sec:15.7}）限制为：从类型树根到任一交类型的路径，不得在两个或更多
+箭头处进入参数一侧。System F 的秩 2 片段与一阶交类型系统的秩 2 片段关系
+密切；Jim（1995）证明，它们恰好能为同一批无类型 lambda 项赋型。
 
 \section{参数性}
 \label{sec:23.9}
@@ -602,6 +885,11 @@ polymorphism}：类型变量只实例化为不含量词的单型，而且量化�
 类型的内部结构改变行为，其类型因而蕴含很强的行为约束。Wadler（1989）把从
 多态类型直接推导出的此类性质称为“免费定理”。
 
+参数性由 Reynolds（1974，1983）提出；此后 Reynolds 与 Plotkin、Bainbridge
+等、Ma、Mitchell、Mitchell 与 Meyer、Hasegawa、Pitts、Abadi、Cardelli、
+Curien、Plotkin、Wadler 等人从多种角度继续发展了这一理论。Wadler（1989）
+给出了一篇适合入门的综述。
+
 \section{非直谓性}
 \label{sec:23.10}
 
@@ -614,10 +902,52 @@ T=\forall X.\,X\to X
 \(T\) 处实例化。ML 多态通常称为\termfirst{直谓的}{predicative}或分层的，
 因为类型变量只遍历不含量词的单型。
 
-“直谓”与“非直谓”来自逻辑和集合论。Russell 与 Poincaré 曾用这一划分排除
-通过包含自身的量化范围定义集合所导致的恶性循环。System F 的非直谓量化并不
-因此不一致；它的证明论解释和规范化性质恰好说明，该类型系统仍然具有严密的
-逻辑基础。
+“直谓”与“非直谓”来自逻辑。Quine（1987）对其历史作了如下清晰概括：
+
+\bilingualepigraph[0.88\textwidth]
+  {在与 Henri Poincaré 的讨论中……Russell 曾把 Russell 悖论暂时归因于他所谓的
+  “恶性循环谬误”。这种“谬误”是：用一个成员资格条件规定一个类，而该条件又
+  直接或间接引用一批类，其中包括正在规定的这个类本身。例如，Russell 悖论背后
+  的成员资格条件是“不属于自身”：\(x\notin x\)。若让这个条件中的 \(x\) 也可以
+  取作正由该条件定义的类本身，就会产生悖论。Russell 与 Poincaré 后来把这样的
+  成员资格条件称为“非直谓的”，并认为它不能用来规定一个类。于是，Russell 悖论
+  及其他集合论悖论便被拆解了……}
+  {In exchanges with Henri Poincaré...Russell attributed [Russell's]
+  paradox tentatively to what he called a vicious-circle fallacy. The
+  ``fallacy'' consisted in specifying a class by a membership condition that
+  makes reference directly or indirectly to a range of classes one of which
+  is the very class that is being specified. For instance the membership
+  condition behind Russell's Paradox is non-self-membership: x not a member
+  of x. The paradox comes of letting the x of the membership condition be,
+  among other things, the very class that is being defined by the membership
+  condition. Russell and Poincaré came to call such a membership condition
+  impredicative, and disqualified it as a means of specifying a class. The
+  paradoxes of set theory, Russell's and others, were thus dismantled...}
+  {——W. V. Quine，1987}
+
+\bilingualepigraph[0.88\textwidth]
+  {再说术语：“直谓”和“非直谓”从何而来？关于类和成员资格条件，我们那条已经
+  破旧不堪的陈词是 Russell 所说的“每个谓词都决定一个类”；后来，为了应付这条
+  陈词的破损，他不再把那些不应视为决定某个类的成员资格条件称为“谓词”。因此，
+  “直谓”一词本来并不特指层级方法，也不特指逐步构造的比喻；那只不过是 Russell
+  与 Poincaré 对于哪些成员资格条件可以产生类，也就是哪些条件属于“直谓”，所提
+  的具体方案。不过，后来尾巴摇起了狗。今天，直谓集合论就是构造性集合论；而
+  “非直谓定义”则严格按上一段所述来理解，无论人们选择把哪些成员资格条件看作
+  能够决定一个类。}
+  {Speaking of terminology, whence ``predicative'' and ``impredicative''?
+  Our tattered platitude about classes and membership conditions was, in
+  Russell's phrase, that every predicate determines a class; and then he
+  accommodates the tattering of the platitude by withdrawing the title of
+  predicate from such membership conditions as were no longer to be seen as
+  determining classes. ``Predicative'' thus did not connote the hierarchical
+  approach in particular, or the metaphor of progressive construction; that
+  was just Russell and Poincaré's particular proposal of what membership
+  conditions to accept as class-productive, or ``predicative.'' But the tail
+  soon came to wag the dog. Today predicative set theory is constructive set
+  theory, and impredicative definition is strictly as explained in the
+  foregoing paragraph, regardless of what membership conditions one may
+  choose to regard as determining classes.}
+  {——W. V. Quine，1987}
 
 \section{注记}
 \label{sec:23.11}
