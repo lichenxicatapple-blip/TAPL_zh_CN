@@ -6,10 +6,12 @@
 \chapter{有界量化}
 \label{chap:26}
 
-程序语言中许多关键问题都来自特性之间的相互作用。本章把多态与子类型结合，
-得到\termfirst{有界量化}{bounded quantification}以及演算
+程序语言中许多值得深入研究的问题，都来自一些单独考察时相对直接的特性之间
+的相互作用。本章把多态与子类型结合，得到
+\termfirst{有界量化}{bounded quantification}以及演算
 \termfirst{\(F_{<:}\)}{System F-sub}。它既显著增强表达能力，也使元理论更
-复杂，并长期用于研究面向对象语言的类型基础。
+复杂。\(F_{<:}\) 形成于 20 世纪 80 年代中期，此后一直在程序语言研究中占据
+核心地位，尤其是在面向对象编程的理论基础研究中。
 
 \section{动机}
 \label{sec:26.1}
@@ -93,7 +95,7 @@ f2poly = lambda X. lambda x:X. {orig=x, asucc=succ(x.a)};
 其类型为
 \[
 \forall X<:\{a:\tapltype{Nat}\}.\,
-X\to\{\taplterm{orig}:X,\taplterm{asucc}:\tapltype{Nat}\}.
+X\to\{\taplterm{orig}:X,\taplterm{asucc}:\tapltype{Nat}\}
 \]
 量词上的上界既保证函数体可以安全使用 \(a\)，又保留实参的精确类型 \(X\)。
 这种在量词上附加子类型约束的形式，就是 System \(F_{<:}\) 的标志性特征。
@@ -114,13 +116,15 @@ X\to\{\taplterm{orig}:X,\taplterm{asucc}:\tapltype{Nat}\}.
 \[
 \forall X<:T_1.\,T_2
 \qquad\text{和}\qquad
-\lambda X<:T_1.\,t_2.
+\lambda X<:T_1.\,t_2
 \]
-无界量化是上界为 \(\tapltype{Top}\) 的缩写：
+上界为 \(\tapltype{Top}\) 时，量词变量遍历 \(\tapltype{Top}\) 的所有
+子类型，也就是所有类型。因此，无界量化可以作为以下缩写恢复：
 \[
 \forall X.\,T\ \overset{\mathrm{def}}{=}\
-\forall X<:\tapltype{Top}.\,T.
+\forall X<:\tapltype{Top}.\,T
 \]
+后文会经常使用这个缩写。
 
 \subsection*{作用域}
 
@@ -162,7 +166,7 @@ Mitchell，1989b），常见于面向对象语言的类型研究，也用于 GJ 
 \[
 \inferrule*[right=S-TVar]
  {X<:T\in\Gamma}
- {\Gamma\vdash X<:T}.
+ {\Gamma\vdash X<:T}
 \]
 子类型判断因此成为三元关系
 \(\Gamma\vdash S<:T\)。
@@ -281,8 +285,16 @@ B\to Y<:X\to B
 
 \subsection*{完全 \(F_{<:}\)}
 
-核 S-All 要求两边量词的上界完全相同。把量词看作从类型实参到项实例的函数，
-完全规则允许上界像函数参数一样逆变：
+核 S-All 要求两边量词的上界完全相同。若把量词看作一种从类型实参到项实例的
+函数，核规则就类似于把通常的箭头子类型规则限制成只允许结果类型协变、参数
+类型 \(U\) 必须保持不变：
+\[
+\inferrule
+ {\Gamma\vdash S_2<:T_2}
+ {\Gamma\vdash U\to S_2<:U\to T_2}
+\]
+无论对箭头还是对量词，这种限制都显得不太自然。由此可以把核 S-All 放宽，
+让有界量词的“左侧”像函数参数一样逆变：
 \begin{figure}[!ht]
 \centering
 \[
@@ -290,7 +302,7 @@ B\to Y<:X\to B
  {\Gamma\vdash T_1<:S_1\\
   \Gamma,X<:T_1\vdash S_2<:T_2}
  {\Gamma\vdash
-  \forall X<:S_1.S_2<:\forall X<:T_1.T_2}.
+  \forall X<:S_1.S_2<:\forall X<:T_1.T_2}
 \]
 \caption{“完全”有界量化}
 \label{fig:26-2}
@@ -348,7 +360,7 @@ snd = lambda X. lambda Y. lambda p:Pair X Y.
 \[
 S_1<:T_1,\quad S_2<:T_2
 \quad\Longrightarrow\quad
-\tapltype{Pair}\,S_1\,S_2<:\tapltype{Pair}\,T_1\,T_2.
+\tapltype{Pair}\,S_1\,S_2<:\tapltype{Pair}\,T_1\,T_2
 \]
 
 \begin{exercise}[\(\star\)]
@@ -370,7 +382,7 @@ Cardelli（1992）提出。
 \overset{\mathrm{def}}{=}
 \tapltype{Pair}\,T_1
 (\tapltype{Pair}\,T_2\cdots
-(\tapltype{Pair}\,T_n\,\tapltype{Top})\cdots).
+(\tapltype{Pair}\,T_n\,\tapltype{Top})\cdots)
 \]
 特别地，\(\{\}^{\mathrm{def}}=\tapltype{Top}\)。对项
 \(t_1,\ldots,t_n\)，相应定义
@@ -387,7 +399,7 @@ Cardelli（1992）提出。
 \[
 t.n\overset{\mathrm{def}}{=}
 \taplterm{fst}(\underbrace{\taplterm{snd}(\cdots
-(\taplterm{snd}}_{n-1\text{ 次}}\ t))\cdots).
+(\taplterm{snd}}_{n-1\text{ 次}}\ t))\cdots)
 \]
 这些缩写定义的就是\termfirst{柔性元组}{flexible tuple}；与普通元组不同，它们在子类型关系下
 可以从右端扩展。由定义直接得到
@@ -405,7 +417,7 @@ t.n\overset{\mathrm{def}}{=}
 \qquad
 \inferrule
  {\Gamma\vdash t:\{T_i\}^{i\in1..n}}
- {\Gamma\vdash t.i:T_i}.
+ {\Gamma\vdash t.i:T_i}
 \]
 \end{definition}
 
@@ -421,7 +433,7 @@ t.n\overset{\mathrm{def}}{=}
 \widehat S_i=
 \begin{cases}
 S_l,&\mathit{label\mbox{-}with\mbox{-}index}(i)=l\in L,\\
-\tapltype{Top},&\mathit{label\mbox{-}with\mbox{-}index}(i)\notin L.
+\tapltype{Top},&\mathit{label\mbox{-}with\mbox{-}index}(i)\notin L
 \end{cases}
 \]
 记录类型 \(\{l:S_l\}^{l\in L}\) 定义为柔性元组
@@ -431,7 +443,7 @@ S_l,&\mathit{label\mbox{-}with\mbox{-}index}(i)=l\in L,\\
 \widehat t_i=
 \begin{cases}
 t_l,&\mathit{label\mbox{-}with\mbox{-}index}(i)=l\in L,\\
-\taplterm{top},&\mathit{label\mbox{-}with\mbox{-}index}(i)\notin L.
+\taplterm{top},&\mathit{label\mbox{-}with\mbox{-}index}(i)\notin L
 \end{cases}
 \]
 记录值 \(\{l=t_l\}^{l\in L}\) 定义为
@@ -456,7 +468,7 @@ t_l,&\mathit{label\mbox{-}with\mbox{-}index}(i)=l\in L,\\
 \[
 \tapltype{SNat}
 =\forall X<:\tapltype{Top}.
- \forall S<:X.\forall Z<:X.(X\to S)\to Z\to X.
+ \forall S<:X.\forall Z<:X.(X\to S)\to Z\to X
 \]
 进一步令
 \[
@@ -466,7 +478,7 @@ t_l,&\mathit{label\mbox{-}with\mbox{-}index}(i)=l\in L,\\
    \forall S<:X.\forall Z<:X.(X\to S)\to Z\to Z,\\
 \tapltype{SPos}
  &=\forall X<:\tapltype{Top}.
-   \forall S<:X.\forall Z<:X.(X\to S)\to Z\to S.
+   \forall S<:X.\forall Z<:X.(X\to S)\to Z\to S
 \end{aligned}
 \]
 \(\tapltype{SNat}\) 可以读成：“给我一般结果类型 \(X\) 及其两个子类型
@@ -518,7 +530,7 @@ spluspp = lambda n:SPos. lambda m:SPos.
 \[
 \tapltype{SZero}\to\tapltype{SZero}\to\tapltype{SZero}
 \quad\text{和}\quad
-\tapltype{SPos}\to\tapltype{SNat}\to\tapltype{SPos}.
+\tapltype{SPos}\to\tapltype{SNat}\to\tapltype{SPos}
 \]
 \end{exercise}
 \taplauthorsolutionlink{sol:author:26.3.4}{26.3.4}
@@ -637,7 +649,7 @@ spluspp = lambda n:SPos. lambda m:SPos.
 \label{lem:26.4.6}
 若 \(\Gamma,x:Q,\Delta\vdash t:T\) 且 \(\Gamma\vdash q:Q\)，则
 \[
-\Gamma,\Delta\vdash[x\mapsto q]t:T.
+\Gamma,\Delta\vdash[x\mapsto q]t:T
 \]
 \end{lemma}
 
@@ -663,7 +675,7 @@ spluspp = lambda n:SPos. lambda m:SPos.
 则
 \[
 \Gamma,[X\mapsto P]\Delta
-\vdash[X\mapsto P]S<:[X\mapsto P]T.
+\vdash[X\mapsto P]S<:[X\mapsto P]T
 \]
 \end{lemma}
 
@@ -686,13 +698,13 @@ T=\forall Z<:U_1.T_2
 \]
 且
 \[
-\Gamma,X<:Q,\Delta,Z<:U_1\vdash S_2<:T_2.
+\Gamma,X<:Q,\Delta,Z<:U_1\vdash S_2<:T_2
 \]
 归纳假设给出
 \[
 \Gamma,[X\mapsto P]\Delta,
 Z<:[X\mapsto P]U_1
-\vdash[X\mapsto P]S_2<:[X\mapsto P]T_2.
+\vdash[X\mapsto P]S_2<:[X\mapsto P]T_2
 \]
 再次应用 S-All，恰好得到对原来两个全称类型整体作替换后的子类型判断。
 其余规则直接应用归纳假设即可。
@@ -709,7 +721,7 @@ Z<:[X\mapsto P]U_1
 则
 \[
 \Gamma,[X\mapsto P]\Delta
-\vdash[X\mapsto P]t:[X\mapsto P]T.
+\vdash[X\mapsto P]t:[X\mapsto P]T
 \]
 \end{lemma}
 
@@ -721,13 +733,13 @@ Z<:[X\mapsto P]U_1
 t=t_1[T_2],\qquad
 T=[Z\mapsto T_2]T_{12},\qquad
 \Gamma,X<:Q,\Delta\vdash
-t_1:\forall Z<:T_{11}.T_{12}.
+t_1:\forall Z<:T_{11}.T_{12}
 \]
 归纳假设给出替换后的 \(t_1\) 及全称类型；再次使用 T-TApp，可得
 \[
 \Gamma,[X\mapsto P]\Delta\vdash
 [X\mapsto P](t_1[T_2]):
-[Z\mapsto[X\mapsto P]T_2]([X\mapsto P]T_{12}).
+[Z\mapsto[X\mapsto P]T_2]([X\mapsto P]T_{12})
 \]
 右侧正是 \([X\mapsto P]([Z\mapsto T_2]T_{12})\)。
 
@@ -820,7 +832,7 @@ t_1:\forall Z<:T_{11}.T_{12}.
 \[
 \Gamma,x:U_{11}\vdash u_{12}:U_{12},\qquad
 \Gamma\vdash T_{11}<:U_{11},\qquad
-\Gamma\vdash U_{12}<:T_{12}.
+\Gamma\vdash U_{12}<:T_{12}
 \]
 先用 T-Sub 得到 \(\Gamma\vdash t_2:U_{11}\)，再用
 \cref{lem:26.4.6}得到
@@ -832,7 +844,7 @@ t_1:\forall Z<:T_{11}.T_{12}.
 \(T=[X\mapsto T_2]T_{12}\)，且
 \[
 \Gamma\vdash t_1:\forall X<:T_{11}.T_{12},\qquad
-\Gamma\vdash T_2<:T_{11}.
+\Gamma\vdash T_2<:T_{11}
 \]
 若 \(t_1\longrightarrow t_1'\)，由归纳假设和 T-TApp 得到结论。若
 \(t_1=\lambda X<:U_{11}.u_{12}\)，且
@@ -840,7 +852,7 @@ t_1:\forall Z<:T_{11}.T_{12}.
 \(U_{11}=T_{11}\) 及某个 \(U_{12}\)，满足
 \[
 \Gamma,X<:U_{11}\vdash u_{12}:U_{12},\qquad
-\Gamma,X<:U_{11}\vdash U_{12}<:T_{12}.
+\Gamma,X<:U_{11}\vdash U_{12}<:T_{12}
 \]
 由\cref{lem:26.4.9}把 \(T_2\) 代入第一式，得到
 \(\Gamma\vdash[X\mapsto T_2]u_{12}:[X\mapsto T_2]U_{12}\)；再由
@@ -900,12 +912,14 @@ E-AppAbs。
 \section{有界存在类型}
 \label{sec:26.5}
 
-存在量词也可以加入上界：
+存在量词也可以像全称量词一样加入上界：
 \[
-\{\exists X<:T_1,T_2\}.
+\{\exists X<:T_1,T_2\}
 \]
-它隐藏实际表示类型，却公开保证该表示是 \(T_1\) 的子类型。核版本比较两个
-存在类型时要求上界相同，量词体协变；相应的打包与开包规则也要记录这个上界。
+它隐藏实际表示类型，却公开保证该表示是 \(T_1\) 的子类型。与有界全称类型
+相同，S-Some 也有两个版本：核版本要求所比较的两个量词具有相同上界，完全
+版本则允许上界不同。图中给出的是核版本，量词体协变；相应的打包与开包规则
+也要记录这个上界。
 
 \begin{figure}[!ht]
 \centering

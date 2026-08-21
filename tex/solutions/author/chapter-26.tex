@@ -22,7 +22,7 @@ Abadi、Cardelli 与 Viswanathan（1996）的对象编码中确实需要完全
 \taplterm{spluspn}
 ={}&\lambda n:\tapltype{SPos}.\lambda m:\tapltype{SNat}.
 \lambda X.\lambda S<:X.\lambda Z<:X.\lambda s:X\to S.\lambda z:Z.\\
-&n[X][S][X]s\,(m[X][S][Z]s\,z).
+&n[X][S][X]s\,(m[X][S][Z]s\,z)
 \end{aligned}
 \]
 两者类型分别为
@@ -41,7 +41,7 @@ Abadi、Cardelli 与 Viswanathan（1996）的对象编码中确实需要完全
 \tapltype{STrue}
  &=\forall X.\forall T<:X.\forall F<:X.T\to F\to T,\\
 \tapltype{SFalse}
- &=\forall X.\forall T<:X.\forall F<:X.T\to F\to F.
+ &=\forall X.\forall T<:X.\forall F<:X.T\to F\to F
 \end{aligned}
 \]
 \begin{lstlisting}
@@ -60,7 +60,7 @@ fls = lambda X. lambda T<:X. lambda F<:X.
    \lambda t:T.\lambda f:F.\,b[X][F][T]f\,t,\\
 \taplterm{nottf}
  &=\lambda b:\tapltype{STrue}.\lambda X.\lambda T<:X.\lambda F<:X.
-   \lambda t:T.\lambda f:F.\,b[X][F][T]f\,t.
+   \lambda t:T.\lambda f:F.\,b[X][F][T]f\,t
 \end{aligned}
 \]
 \begin{lstlisting}
@@ -74,9 +74,8 @@ fls = lambda X. lambda T<:X. lambda F<:X.
 \phantomsection\label{sol:author:26.4.3}
 \textbf{26.4.3 解答}
 
-赋型推导的 T-Abs、T-TAbs 情形需要把新增绑定移到适合应用归纳假设的位置；
-子类型推导的 S-All 情形也需要这样做。类型替换相关证明中的量词情形同样依赖
-排列。
+第（1）、（2）项需要在抽象和类型抽象情形中使用排列；第（3）、（4）项则是
+在量词情形中使用排列。
 \taplsolutionbacklink{ex:26.4.3}{返回练习26.4.3}
 \end{taplauthorsolutionentrybox}
 
@@ -117,7 +116,7 @@ S-TVar 和 S-All 不可能产生箭头左侧；S-Arrow 的两个子推导正是�
  {\Gamma\vdash S_1<:T_1\\
   \Gamma,X<:S_1\vdash S_2<:T_2}
  {\Gamma\vdash
-  \{\exists X<:S_1,S_2\}<:\{\exists X<:T_1,T_2\}}.
+  \{\exists X<:S_1,S_2\}<:\{\exists X<:T_1,T_2\}}
 \]
 \taplsolutionbacklink{ex:26.5.1}{返回练习26.5.1}
 \end{taplauthorsolutionentrybox}
@@ -210,7 +209,7 @@ counter.get
 \[
 \llbracket\{\exists X<:S,T\}\rrbracket
 =\forall Y.(\forall X<:\llbracket S\rrbracket.
-\llbracket T\rrbracket\to Y)\to Y.
+\llbracket T\rrbracket\to Y)\to Y
 \]
 打包和开包翻译只需相应地把类型抽象写成
 \(\lambda X<:\llbracket S\rrbracket\)。由有界全称类型的子类型规则逐层

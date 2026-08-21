@@ -11,7 +11,7 @@ S-Arrow 要求参数逆变、结果协变。目标
 \[
 \Gamma\vdash X<:B
 \qquad\text{和}\qquad
-\Gamma\vdash Y<:B.
+\Gamma\vdash Y<:B
 \]
 第一项由上下文 \(X<:B\) 和 S-TVar 得到；第二项先由 \(Y<:X\)、
 \(X<:B\) 各用一次 S-TVar，再用 S-Trans 得到。最后应用 S-Arrow。
@@ -43,12 +43,12 @@ S-Arrow 要求参数逆变、结果协变。目标
 \[
 \forall X.(S_1\to S_2\to X)\to X
 \quad\text{与}\quad
-\forall X.(T_1\to T_2\to X)\to X.
+\forall X.(T_1\to T_2\to X)\to X
 \]
 量词上界同为 \(\tapltype{Top}\)，可用核 S-All。量词体都是箭头；最外层
 参数位置逆变，所以只需证明
 \[
-T_1\to T_2\to X<:S_1\to S_2\to X.
+T_1\to T_2\to X<:S_1\to S_2\to X
 \]
 再两次使用 S-Arrow，正好分别需要 \(S_1<:T_1\)、\(S_2<:T_2\)，结果位置
 \(X<:X\) 由 S-Refl 得到。
@@ -94,7 +94,7 @@ Church 数 \(\tapltype{SNat}\)、\(\tapltype{SZero}\)、
 \[
 \Gamma,X<:Q,\Delta\vdash T_1<:S_1
 \quad\text{和}\quad
-\Gamma,X<:Q,\Delta,Y<:T_1\vdash S_2<:T_2.
+\Gamma,X<:Q,\Delta,Y<:T_1\vdash S_2<:T_2
 \]
 分别对这两个更小的推导使用收窄的归纳假设，再应用完全 S-All 即可。类型替换
 保持子类型的 S-All 情形也完全相同：先对上界之间的前提作替换，再对扩展了
@@ -110,7 +110,7 @@ Church 数 \(\tapltype{SNat}\)、\(\tapltype{SZero}\)、
 \[
 \Gamma\vdash U_1<:S_1
 \quad\text{且}\quad
-\Gamma,X<:U_1\vdash S_2<:T_2.
+\Gamma,X<:U_1\vdash S_2<:T_2
 \]
 因此，\cref{lem:26.4.12}的第 2 项也不再得到 \(U_1=S_1\)，而只得到
 \(\Gamma\vdash U_1<:S_1\)。抽象体原来在
