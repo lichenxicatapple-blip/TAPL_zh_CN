@@ -23,3 +23,59 @@
 所以题中给出的两个全称类型可以被算法接受。由此，该系统的子类型关系可判定。
 \taplsolutionbacklink{ex:28.4.3}{返回练习28.4.3}
 \end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection\label{sol:translator:28.5.2}
+\textbf{28.5.2 解答}
+
+按定义，\(\neg S=\forall X<:S.X\)，\(\neg T=\forall X<:T.X\)。完全
+\(F_{<:}\) 的 S-All 规则给出
+\[
+\Gamma\vdash\forall X<:S.X<:\forall X<:T.X
+\]
+当且仅当
+\[
+\Gamma\vdash T<:S
+\qquad\text{且}\qquad
+\Gamma,X<:T\vdash X<:X.
+\]
+第二个判断总可由反身性得到，所以整个判断成立恰好等价于
+\(\Gamma\vdash T<:S\)。这说明外层全称量词的上界处于逆变位置：放进
+\(\neg(\cdot)\) 后，原来的子类型方向会反转。
+\taplsolutionbacklink{fact:28.5.2}{返回事实28.5.2}
+\end{taplsolutionentrybox}
+
+\begin{taplsolutionentrybox}
+\phantomsection\label{sol:translator:28.5.4}
+\textbf{28.5.4 解答}
+
+先用一项关于正负出现的单调性性质。若上下文含有 \(X<:U\)，则对类型结构
+归纳可得：
+\begin{enumerate}
+  \item 若 \(X\) 在类型 \(A\) 中只正出现，则
+        \(X<:U\vdash A<:[X\mapsto U]A\)；
+  \item 若 \(X\) 在类型 \(A\) 中只负出现，则
+        \(X<:U\vdash[X\mapsto U]A<:A\)。
+\end{enumerate}
+变量情形直接使用 \(X<:U\)；箭头的参数位置会交换正负，结果位置保持正负；
+全称类型的上界位置交换正负，量词体保持正负。因此各个归纳步骤正好对应
+S-Arrow 和 S-All 的逆变、协变方向。
+
+现在证明两个方向。若
+\(X<:U\vdash S<:T\)，在这份推导中以 \(U\) 替换 \(X\)；绑定
+\(X<:U\) 所需的前提变为 \(U<:U\)，由反身性成立。类型替换引理于是给出
+\[
+\vdash[X\mapsto U]S<:[X\mapsto U]T.
+\]
+
+反过来，假设上式成立。先用弱化把它放到上下文 \(X<:U\) 中。由于 \(X\)
+在 \(S\) 中只正出现、在 \(T\) 中只负出现，上面的单调性性质分别给出
+\[
+S<:[X\mapsto U]S
+\qquad\text{和}\qquad
+[X\mapsto U]T<:T.
+\]
+把这两个判断与假设用传递性连接起来，便得到
+\(X<:U\vdash S<:T\)。
+\taplsolutionbacklink{fact:28.5.4}{返回事实28.5.4}
+\end{taplsolutionentrybox}

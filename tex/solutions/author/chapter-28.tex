@@ -15,7 +15,11 @@ N_1=\forall X<:N_{11}.N_{12},
 \Gamma,X<:T_{11}\vdash N_{12}<:T_{12}.
 \]
 由原来的 \(\Gamma\vdash T_2<:T_{11}\) 和传递性可满足 TA-TApp 的实参上界
-检查。最后仍用类型替换保持子类型，得到
+检查，从而得到算法赋型判断
+\[
+\Gamma\algturnstile t_1[T_2]:[X\mapsto T_2]N_{12}
+\]
+最后仍用类型替换保持子类型，得到
 \[
 \Gamma\vdash[X\mapsto T_2]N_{12}<:[X\mapsto T_2]T_{12}.
 \]
@@ -27,6 +31,8 @@ N_1=\forall X<:N_{11}.N_{12},
 \textbf{28.5.1 解答}
 
 \cref{thm:28.3.5}（具体来说，其中的 S-All 情形）对完全 \(F_{<:}\) 不成立。
+\translatornote{原书此处写作 S-All；但\cref{thm:28.3.5}考察的是算法子类型
+关系，其证明中的相应分支是 SA-All。这里应当是在指完全系统的 SA-All 规则。}
 \taplsolutionbacklink{ex:28.5.1}{返回练习28.5.1}
 \end{taplauthorsolutionentrybox}
 
@@ -189,7 +195,19 @@ L(\tapltype{Top})&=&\tapltype{Top}
           \neg\llbracket T_2\rrbracket\}.
 \end{array}
 \]
-上下文和子类型判断逐项翻译。可对推导证明
+对上下文的翻译定义为
+\[
+\llbracket X_1<:T_1,\ldots,X_n<:T_n\rrbracket
+=X_1<:\llbracket T_1\rrbracket,\ldots,
+ X_n<:\llbracket T_n\rrbracket,
+\]
+对子类型判断的翻译定义为
+\[
+\llbracket\Gamma\vdash S<:T\rrbracket
+=\llbracket\Gamma\rrbracket\vdash
+ \llbracket S\rrbracket<:\llbracket T\rrbracket.
+\]
+对推导归纳即可证明
 \[
 \Gamma\vdash S<:T
 \quad\Longleftrightarrow\quad

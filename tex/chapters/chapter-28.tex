@@ -147,7 +147,7 @@ Z<:Y,\ W<:Z,
 \end{figure}
 
 下面证明该算法相对于原始赋型规则可靠且完备。这里只写核 \(F_{<:}\) 的
-证明；完全系统的相应修改见练习28.2.3。
+证明；完全系统的相应修改见\taplnamedref{ex:28.2.3}{练习}。
 
 \begin{theorem}[最小赋型]
 \label{thm:28.2.1}
@@ -555,7 +555,7 @@ SA-Refl-TVar 与 SA-Trans-TVar 情形和核系统相同。若两边都以 SA-Arr
 第 1 项，得到 \(P<:N\)，再由 SA-Trans-TVar 推出 \(X<:N\)。
 \end{proof}
 
-\begin{exercise}[\(\star\star\star\star\)]
+\begin{exercise}[\(\star\star\star\star\), \(\nrightarrow\)]
 \label{ex:28.4.3}
 考虑一种介于核规则与完全规则之间的量词子类型规则：
 \[
@@ -609,7 +609,8 @@ Ghelli（1995）给出了一个使子类型过程发散的例子。先定义缩�
 \Gamma\vdash T<:S.
 \]
 \end{fact}
-\noindent\textit{证明练习（\(\star\star\)）。}
+\noindent\textit{证明练习（\(\star\star,\nrightarrow\)）。}
+\taplsolutionlink{sol:translator:28.5.2}{28.5.2}
 
 定义
 \[
@@ -675,7 +676,8 @@ X<:U\vdash S<:T
 \vdash[X\mapsto U]S<:[X\mapsto U]T.
 \]
 \end{fact}
-\noindent\textit{证明练习（\(\star\star\)）。}
+\noindent\textit{证明练习（\(\star\star,\nrightarrow\)）。}
+\taplsolutionlink{sol:translator:28.5.4}{28.5.4}
 
 下面令
 \[
@@ -780,16 +782,22 @@ U=\neg(\forall Y_0<:\tapltype{Top}.
 而言，问题没有那么严重。Ghelli（1995）证明，要使检查器发散，目标必须同时
 具有三项相当特殊、程序员不容易偶然写出的性质。此外，一些常用语言的类型
 检查或类型重构在理论上也可能代价极高，例如\taplsecref{22.7}{sec:22.7}
-提到的 ML 与 Haskell；C++ 和 \(\lambda\)Prolog 的相应问题甚至不可判定。
-实际经验表明，下一节所述缺少并与交的问题（见练习28.6.3）比不可判定性更
+提到的 ML 与 Haskell；C++ 和 \(\lambda\)Prolog 的相应问题甚至不可判定
+（Felty、Gunter、Hannan、Miller、Nadathur 与 Scedrov，1988）。
+实际经验表明，下一节所述缺少并与交的问题（见\taplnamedref{ex:28.6.3}{练习}）比不可判定性更
 棘手。
 
 \begin{exercise}[\(\star\star\star\star\)]
 \label{ex:28.5.6}
-研究同时提供有界与无界量词、但没有 \(\tapltype{Top}\) 的
-\termfirst{完全有界量化}{completely bounded quantification}
-系统：定义其规则，证明子类型可判定，并讨论加入记录等构造后是否仍能解决
-不可判定问题。
+研究同时提供有界与无界量词、但没有 \(\tapltype{Top}\) 的系统；也就是说，
+变量既可以有 \(X<:T\) 形式的绑定，也可以有无上界的 \(X\) 绑定。这个变体称为
+\termfirst{完全有界量化}{completely bounded quantification}。
+\begin{enumerate}
+  \item 定义这个系统；
+  \item 证明其子类型关系可判定；
+  \item 这一限制是否真正解决了本节提出的根本问题？特别是，当语言还包含
+        数字、记录、变体等构造时，结论是否仍然成立？
+\end{enumerate}
 \end{exercise}
 \taplauthorsolutionlink{sol:author:28.5.6}{28.5.6}
 
@@ -799,7 +807,7 @@ U=\neg(\forall Y_0<:\tapltype{Top}.
 \taplsecref{16.3}{sec:16.3}指出，带子类型的语言最好能为每对类型
 \(S,T\) 找到并，也就是二者所有公共超类型中的最小者。本节用算法证明：核
 \(F_{<:}\) 的每对类型都有并；只要一对类型至少有一个公共子类型，它们也有
-交。完全 \(F_{<:}\) 不具备这两项性质（见练习28.6.3）。
+交。完全 \(F_{<:}\) 不具备这两项性质（见\taplnamedref{ex:28.6.3}{练习}）。
 
 用
 \[
@@ -893,14 +901,14 @@ J_1\to M_2 & \begin{array}[t]{l}
 \begin{proposition}
 \label{prop:28.6.2}
 \begin{enumerate}
-  \item 若 \(\Gamma\algturnstile S<:V\) 且
-        \(\Gamma\algturnstile T<:V\)，则存在 \(J\)，使
+  \item 若 \(\Gamma\vdash S<:V\) 且
+        \(\Gamma\vdash T<:V\)，则存在 \(J\)，使
         \(\Gamma\vdash S\lor T=J\) 且
-        \(\Gamma\algturnstile J<:V\)。
-  \item 若 \(\Gamma\algturnstile L<:S\) 且
-        \(\Gamma\algturnstile L<:T\)，则存在 \(M\)，使
+        \(\Gamma\vdash J<:V\)。
+  \item 若 \(\Gamma\vdash L<:S\) 且
+        \(\Gamma\vdash L<:T\)，则存在 \(M\)，使
         \(\Gamma\vdash S\land T=M\) 且
-        \(\Gamma\algturnstile L<:M\)。
+        \(\Gamma\vdash L<:M\)。
 \end{enumerate}
 \end{proposition}
 \begin{proof}
@@ -943,7 +951,8 @@ SA-Trans-TVar，得到 \(\Gamma\algturnstile L<:M\)。箭头情形中，写
 \(J_1<:L_1\)，第 2 项给出结果的交 \(M_2\) 以及 \(L_2<:M_2\)。交算法
 返回 \(J_1\to M_2\)，SA-Arrow 给出 \(L_1\to L_2<:J_1\to M_2\)。
 两份推导都以 SA-All 结束的情形相同：在共同上界扩展的上下文中对量词体使用
-第 2 项，再应用 SA-All。
+第 2 项，再应用 SA-All。以上各情形先得到算法子类型判断，再由
+\cref{thm:28.3.3}的可靠性得到命题所要求的声明式判断。
 \end{proof}
 
 \begin{exercise}[推荐，\(\star\star\star\)]

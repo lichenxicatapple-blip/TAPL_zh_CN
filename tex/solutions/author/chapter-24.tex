@@ -49,9 +49,11 @@
 &\taplterm{isempty}:\tapltype{Stack}\to\tapltype{Bool}\}\}
 \end{aligned}
 \]
-打开包后，
-\(\taplterm{stack.top}(\taplterm{stack.push}\ 5
-(\taplterm{stack.push}\ 3\ \taplterm{stack.new}))\) 得到 \(5\)。
+\begin{lstlisting}
+let {Stack,stack} = stackADT in
+stack.top (stack.push 5 (stack.push 3 stack.new));
+? 5 : Nat
+\end{lstlisting}
 \taplsolutionbacklink{ex:24.2.1}{返回练习24.2.1}
 \end{taplauthorsolutionentrybox}
 

@@ -300,6 +300,9 @@ System F，再回顾列表、树等常见数据结构上的多态程序。最后
 =\lambda X.\,
   \taplterm{double}[X\to X]\bigl(\taplterm{double}[X]\bigr)
 \]
+\begin{lstlisting}
+? quadruple : All X. (X->X) -> X -> X
+\end{lstlisting}
 把加倍操作应用于自身，得到四次应用。
 
 \begin{exercise}[\(\star\star\)]
@@ -383,7 +386,7 @@ System F，再回顾列表、树等常见数据结构上的多态程序。最后
 写出简单的多态排序函数
 \[
 \taplterm{sort}:\forall X.\,(X\to X\to\tapltype{Bool})\to
-\tapltype{List}\,X\to\tapltype{List}\,X.
+\tapltype{List}\,X\to\tapltype{List}\,X
 \]
 第一个参数是 \(X\) 元素的比较函数。
 \end{exercise}
@@ -422,12 +425,19 @@ System F，再回顾列表、树等常见数据结构上的多态程序。最后
 \taplterm{fls}&=&\lambda X.\,\lambda t:X.\,\lambda f:X.\,f
 \end{array}
 \]
+\begin{lstlisting}
+? tru : CBool
+? fls : CBool
+\end{lstlisting}
 例如
 \[
 \taplterm{not}
 =\lambda b:\tapltype{CBool}.\,
  \lambda X.\,\lambda t:X.\,\lambda f:X.\,b[X]\ f\ t
 \]
+\begin{lstlisting}
+? not : CBool -> CBool
+\end{lstlisting}
 
 \begin{exercise}[推荐，\(\star\)]
 \label{ex:23.4.5}
@@ -456,16 +466,23 @@ Church 自然数也可以用同样方法赋型。\cref{sec:5.2}给出的无类�
 \begin{array}{rcl}
 \taplterm{c0}&=&\lambda X.\,\lambda s:X\to X.\,\lambda z:X.\,z,\\
 \taplterm{c1}&=&\lambda X.\,\lambda s:X\to X.\,\lambda z:X.\,s\,z,\\
-\taplterm{c2}&=&\lambda X.\,\lambda s:X\to X.\,\lambda z:X.\,s(s\,z),\\
-\taplterm{c3}&=&\lambda X.\,\lambda s:X\to X.\,\lambda z:X.\,s(s(s\,z))
+\taplterm{c2}&=&\lambda X.\,\lambda s:X\to X.\,\lambda z:X.\,s(s\,z)
 \end{array}
 \]
+\begin{lstlisting}
+? c0 : CNat
+? c1 : CNat
+? c2 : CNat
+\end{lstlisting}
 带类型的后继函数定义如下：
 \[
 \taplterm{csucc}
 =\lambda n:\tapltype{CNat}.\,\lambda X.\,
   \lambda s:X\to X.\,\lambda z:X.\,s(n[X]\ s\ z)
 \]
+\begin{lstlisting}
+? csucc : CNat -> CNat
+\end{lstlisting}
 也就是说，\(n[X]\ s\ z\) 已经把 \(s\) 对 \(z\) 作用了 \(n\) 次，
 \(\taplterm{csucc}\) 再作用一次 \(s\)。加法则既可以借助后继定义，
 \[
@@ -473,6 +490,9 @@ Church 自然数也可以用同样方法赋型。\cref{sec:5.2}给出的无类�
 =\lambda m:\tapltype{CNat}.\,\lambda n:\tapltype{CNat}.\,
  m[\tapltype{CNat}]\ \taplterm{csucc}\ n
 \]
+\begin{lstlisting}
+? cplus : CNat -> CNat -> CNat
+\end{lstlisting}
 也可以直接写成
 \[
 \taplterm{cplus}
@@ -480,12 +500,18 @@ Church 自然数也可以用同样方法赋型。\cref{sec:5.2}给出的无类�
  \lambda X.\,\lambda s:X\to X.\,\lambda z:X.\,
  m[X]\ s\,(n[X]\ s\ z)
 \]
+\begin{lstlisting}
+? cplus : CNat -> CNat -> CNat
+\end{lstlisting}
 若语言还包含\cref{fig:8-2}中的基本自然数，可以把 Church 数转换为普通自然数：
 \[
 \taplterm{cnat2nat}
 =\lambda m:\tapltype{CNat}.\,
  m[\tapltype{Nat}](\lambda x:\tapltype{Nat}.\,\taplterm{succ}\,x)\ 0
 \]
+\begin{lstlisting}
+? cnat2nat : CNat -> Nat
+\end{lstlisting}
 于是可以直接检验前面的运算：
 \[
 \taplterm{cnat2nat}
@@ -493,6 +519,9 @@ Church 自然数也可以用同样方法赋型。\cref{sec:5.2}给出的无类�
  (\taplterm{csucc}(\taplterm{csucc}\ \taplterm{c0}))\bigr)
 \longrightarrow^*3
 \]
+\begin{lstlisting}
+? 3 : Nat
+\end{lstlisting}
 
 \begin{exercise}[推荐，\(\star\star\)]
 \label{ex:23.4.6}
@@ -527,7 +556,14 @@ Church 自然数也可以用同样方法赋型。\cref{sec:5.2}给出的无类�
 \tapltype{PairNat}
 =\forall X.\,(\tapltype{CNat}\to\tapltype{CNat}\to X)\to X
 \]
-可以表示自然数对，并定义构造函数以及第一、第二投影。
+可以表示自然数对，并定义和验证下列三个函数：
+\[
+\begin{array}{rcl}
+\taplterm{pairNat}&:&\tapltype{CNat}\to\tapltype{CNat}\to\tapltype{PairNat},\\
+\taplterm{fstNat}&:&\tapltype{PairNat}\to\tapltype{CNat},\\
+\taplterm{sndNat}&:&\tapltype{PairNat}\to\tapltype{CNat}
+\end{array}
+\]
 \end{exercise}
 \taplauthorsolutionlink{sol:author:23.4.8}{23.4.8}
 
@@ -540,13 +576,14 @@ Church 自然数也可以用同样方法赋型。\cref{sec:5.2}给出的无类�
 
 \begin{exercise}[\(\star\star\star\)]
 \label{ex:23.4.10}
-设 \(k=\lambda x.\lambda y.x\)、\(i=\lambda x.x\)。为 Velmans 的无类型
-前驱项
+设 \(k=\lambda x.\lambda y.x\)、\(i=\lambda x.x\)。为无类型 Church 数的
+前驱函数 \(\taplterm{vpred}\)
 \[
 \lambda n.\lambda s.\lambda z.\,
 n(\lambda p.\lambda q.\,q(p\,s))(k\,z)i
 \]
-补上类型抽象、类型应用和参数类型，使其成为 System F 项；并说明其工作原理。
+补上类型抽象、类型应用和参数类型，使其成为 System F 项。Barendregt（1992）
+将这一项归功于 J. Velmans。额外加分：说明它为何能够计算前驱。
 \end{exercise}
 \taplauthorsolutionlink{sol:author:23.4.10}{23.4.10}
 
@@ -579,7 +616,7 @@ n(\lambda p.\lambda q.\,q(p\,s))(k\,z)i
    \textbf{ as }\tapltype{List}\,X,\\
 \taplterm{cons}
  &={}\lambda X.\,\lambda hd:X.\,\lambda tl:\tapltype{List}\,X.\,
-   \lambda R.\,\lambda c:X\to R\to R.\,\lambda n:R.\,
+   (\lambda R.\,\lambda c:X\to R\to R.\,\lambda n:R.\,
    c\ hd\ (tl[R]\ c\ n))\textbf{ as }\tapltype{List}\,X,\\
 \taplterm{isnil}
  &={}\lambda X.\,\lambda l:\tapltype{List}\,X.\,
@@ -587,6 +624,11 @@ n(\lambda p.\lambda q.\,q(p\,s))(k\,z)i
    \taplterm{false})\ \taplterm{true}
 \end{aligned}
 \]
+\begin{lstlisting}
+? nil : All X. List X
+? cons : All X. X -> List X -> List X
+? isnil : All X. List X -> Bool
+\end{lstlisting}
 
 为处理空列表的 \(\taplterm{head}\)，若语言带 \(\taplterm{fix}\)，可先定义
 \[
@@ -602,6 +644,9 @@ n(\lambda p.\lambda q.\,q(p\,s))(k\,z)i
 l[X](\lambda hd:X.\,\lambda tl:X.\,hd)
      (\taplterm{diverge}[X]\ \taplterm{unit})
 \]
+\begin{lstlisting}
+? head : All X. List X -> X
+\end{lstlisting}
 遗憾的是，按值求值会在把基值传给 \(l\) 之前先求它；所以这一定义即使作用于
 非空列表也会发散。应把 \taplterm{unit} 参数留到折叠完成后再传入：
 \[
@@ -614,6 +659,9 @@ l[X](\lambda hd:X.\,\lambda tl:X.\,hd)
 (\taplterm{diverge}[X])\bigr)\ \taplterm{unit}
 \end{aligned}
 \]
+\begin{lstlisting}
+? head : All X. List X -> X
+\end{lstlisting}
 空列表产生发散函数；非空列表产生忽略 \(\taplterm{unit}\) 并返回首元素的
 函数，最后一次应用才决定结果。
 
@@ -760,10 +808,12 @@ x\preceq x
 \end{theorem}
 
 这一结果沿着 Boehm（1985，1989）把部分类型重构与高阶合一联系起来的工作
-发展而来。Boehm 证明的是稍有不同的变体；Pfenning 借助 Huet（1975）的高阶
-合一半算法得到了一种实用的部分类型重构技术。后来的高阶约束求解算法又消除了
-不终止或产生多个不唯一解的麻烦（Dowek、Hardin、Kirchner 与 Pfenning，1996）。
-LEAP、Elf 和 FX 等语言的实践表明，这类算法通常表现良好。
+发展而来。Boehm 证明的是稍有不同的变体；Pfenning（1988，1993a）借助
+Huet（1975）的高阶合一半算法得到了一种实用的部分类型重构技术。后来的高阶
+约束求解算法又消除了不终止或产生多个不唯一解的麻烦（Dowek、Hardin、
+Kirchner 与 Pfenning，1996）。LEAP（Pfenning 与 Lee，1991）、
+Elf（Pfenning，1989）和 FX（O'Toole 与 Gifford，1989）等语言的实践表明，
+这类算法通常表现良好。
 
 \translatornote{原书把“保留所有普通参数类型和类型抽象、只挖去类型应用实参”
 写成一个函数 \(\mathsf{erase}_p\)，并把相应判定问题列为不可判定定理。作者勘误
@@ -774,7 +824,7 @@ LEAP、Elf 和 FX 等语言的实践表明，这类算法通常表现良好。
 另一条路线来自 Perry（1990）的观察：一等存在类型（\chapref{24}）可以同 ML 的
 数据类型机制结合。数据构造子和析构子可看作显式类型标注，指出何处需要把值注入
 或投影出不交并类型，何处需要折叠或展开递归类型；加入存在类型后，它们也指出
-何处要进行打包和开包。Läufer 与 Odersky（1994）进一步发展了这一想法，Rémy
+何处要进行打包和开包。Läufer（1992）以及 Läufer 与 Odersky（1994）进一步发展了这一想法，Rémy
 （1994）又把它扩展到一等、非直谓的全称量词。Odersky 与 Läufer（1996）以及
 Garrigue 与 Rémy（1997）提出的方案保守扩展 ML：程序员可以显式标注函数参数，
 这些标注可以包含自动推断无法产生的嵌套全称量词，从而部分弥合 ML 与更强非直谓
@@ -802,7 +852,7 @@ NuPrl（Howe，1988）和 Lego（Pollack，1990）也使用过类似算法。程
 它永远无法归约到范式。下面只使用赋型关系的规则，给出一个更直接的组合性证明。
 \begin{enumerate}
   \item 若 System F 项是变量、普通抽象 \(\lambda x:T.t\) 或普通应用 \(t\,s\)，
-        就称它为\emph{暴露项}；也就是说，它不是类型抽象或类型应用。证明：若
+        就称它为\tapltranslateditalic{暴露项}；也就是说，它不是类型抽象或类型应用。证明：若
         \(t\) 良类型且 \(\mathsf{erase}(t)=m\)，则存在某个同样擦除为 \(m\)
         的良类型暴露项 \(s\)（上下文可以不同）。
   \item 使用下列缩写表示嵌套的类型抽象、类型应用和全称类型：
@@ -948,14 +998,14 @@ polymorphism}，此后又有许多研究；可参见 Jim（1995，1996）。把�
 ((\forall X.\,X\to X)\to\tapltype{Nat})\to\tapltype{Nat}
 \]
 不属于。秩 2 系统能给比 ML 片段更多的无类型项赋型；其重构复杂度与 ML
-相同，即 DEXPTIME 完备（Kfoury 与 Tiuryn，1990）。Kfoury 与 Wells（1999）
-给出了第一个正确的秩 2
-类型重构算法；秩 3 及以上的 System F 重构则不可判定。
+相同，即 DEXPTIME 完备（Kfoury 与 Tiuryn，1990）。Kfoury 与 Wells（1994）
+给出了第一个直接的秩 2 类型重构算法；秩 3 及以上的 System F 重构则不可判定。
 
 秩 2 的限制也可用于量词以外的强类型构造子。例如，可以把交类型
 （\cref{sec:15.7}）限制为：从类型树根到任一交类型的路径，不得在两个或更多
-箭头处进入参数一侧。System F 的秩 2 片段与一阶交类型系统的秩 2 片段关系
-密切；Jim（1995）证明，它们恰好能为同一批无类型 lambda 项赋型。
+箭头处进入参数一侧（Kfoury、Mairson、Turbak 与 Wells，1999）。System F 的
+秩 2 片段与一阶交类型系统的秩 2 片段关系密切；Jim（1995）证明，它们恰好能
+为同一批无类型 lambda 项赋型。
 
 \section{参数性}
 \label{sec:23.9}
@@ -975,8 +1025,7 @@ polymorphism}，此后又有许多研究；可参见 Jim（1995，1996）。把�
 运行行为上仍必定等同于 \(\taplterm{tru}\) 或 \(\taplterm{fls}\)。
 
 这一现象来自\termfirst{参数性}{parametricity}：参数多态程序不能根据未知
-类型的内部结构改变行为，其类型因而蕴含很强的行为约束。Wadler（1989）把从
-多态类型直接推导出的此类性质称为“免费定理”。
+类型的内部结构改变行为，其类型因而蕴含很强的行为约束。
 
 参数性由 Reynolds（1974，1983）提出；此后又有大量相关研究，包括 Reynolds
 （1984）、Reynolds 与 Plotkin（1993）、Bainbridge 等（1990）、Ma（1992）、
@@ -1048,4 +1097,4 @@ T=\forall X.\,X\to X
 \label{sec:23.11}
 
 关于 System F 的进一步入门材料，可参见 Reynolds（1990）及其
-\emph{Theories of Programming Languages}（1998）。
+\emph{Theories of Programming Languages}（1998b）。

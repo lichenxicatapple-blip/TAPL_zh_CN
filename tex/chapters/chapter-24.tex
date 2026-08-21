@@ -46,12 +46,14 @@ OCaml 实现是 \texttt{fullpoly}。}；按操作语义的理解，它是一个�
 \[
 \{*S,t\}\ \textbf{as}\ \{\exists X,T\}
 \]
-作为打包形式。星号标出类型分量，以免与普通的项元组混淆；另一种常见写法是
-\textbf{pack} \(X=S\) \textbf{with} \(t\)。\(S\) 是
+作为打包形式。\footnote{这里用星号标出类型分量，以免与
+\taplsecref{11.7}{sec:11.7}的普通项元组混淆。存在类型的引入式也常写作
+\textbf{pack} \(X=S\) \textbf{with} \(t\)。}\(S\) 是
 \termfirst{隐藏表示类型}{hidden representation type}，在逻辑语境中也称
-见证类型；\(t\) 是值分量。可以把这样的值看作一个只有一个隐藏类型分量和
-一个项分量的小包或小模块。这里各取一个分量只是为了简化记号；多个类型分量
-可以用嵌套的包表示，多个项分量则可以放进元组或记录。按此约定，多分量包
+见证类型（参见\taplsecref{9.4}{sec:9.4}）；\(t\) 是值分量。可以把这样的值
+看作一个只有一个隐藏类型分量和一个项分量的小包或小模块。\footnote{为了让
+记号便于处理，这里只采用一个类型分量和一个项分量。多个类型分量可以用单类型
+存在包嵌套表示；多个项分量可以放进元组或记录。}按此约定，多分量包
 可展开为
 \[
 \{*S_1,*S_2,t_1,t_2\}
@@ -77,8 +79,18 @@ p1 = {*Nat, {a=5, f=lambda x:Nat. succ(x)}}
      as {Some X, {a:X, f:X->Nat}};
 ? p1 : {Some X, {a:X,f:X->Nat}}
 \end{lstlisting}
+第一个包的类型分量是 \(\tapltype{Nat}\)，项分量则是包含字段 \(a\) 和
+\(f\) 的记录；检查这个包时，规则 T-Pack 取 \(X=\tapltype{Nat}\)。
 这里的 \textbf{as} 与\taplsecref{11.4}{sec:11.4}的类型归属形式相似；我们
 只是把一次类型归属直接纳入打包句法。
+
+存在类型的引入规则为
+\[
+\inferrule*[right=T-Pack]
+ {\Gamma\vdash t_2:[X\mapsto T_1]T_2}
+ {\Gamma\vdash\{*T_1,t_2\}\textbf{ as }\{\exists X,T_2\}:
+  \{\exists X,T_2\}}
+\]
 
 不同的隐藏表示类型也可以产生相同的存在类型：
 \begin{lstlisting}
@@ -128,6 +140,14 @@ p8 = {*Nat, {a=0, f=lambda x:Nat. succ(x)}}
 到模式变量 \(X\) 和 \(x\)，供 \(t_2\) 使用。另一种常见写法是
 \textbf{open} \(t_1\) \textbf{as} \(\{X,x\}\) \textbf{in} \(t_2\)。
 
+相应的消去规则为
+\[
+\inferrule*[right=T-Unpack]
+ {\Gamma\vdash t_1:\{\exists X,T_{11}\}\\
+  \Gamma,X,x:T_{11}\vdash t_2:T_2}
+ {\Gamma\vdash\textbf{let }\{X,x\}=t_1\textbf{ in }t_2:T_2}
+\]
+
 例如，打开上面的 \(p_4\)，可以使用其记录字段计算自然数：
 \begin{lstlisting}
 let {X,x}=p4 in (x.f x.a);
@@ -156,32 +176,7 @@ let {X,x}=p in x.a;
 否则隐藏类型会越过开包作用域而逃逸。\taplsecref{25.5}{sec:25.5}将进一步
 讨论这一点。
 
-\begin{figure}[!ht]
-\centering
-\begin{minipage}{0.96\linewidth}
-\textbf{新增项、值与类型}
-\[
-\begin{array}{rcl}
-t&::=&\cdots\mid\{*T,t\}\textbf{ as }T
-\mid\textbf{let }\{X,x\}=t\textbf{ in }t,\\
-v&::=&\cdots\mid\{*T,v\}\textbf{ as }T,\\
-T&::=&\cdots\mid\{\exists X,T\}
-\end{array}
-\]
-\textbf{求值}
-\[
-\inferrule*[right=E-Pack]
- {t_2\longrightarrow t_2'}
- {\{*T_1,t_2\}\textbf{ as }T\longrightarrow
-  \{*T_1,t_2'\}\textbf{ as }T}
-\]
-\[
-\inferrule*[right=E-Unpack]
- {t_1\longrightarrow t_1'}
- {\textbf{let }\{X,x\}=t_1\textbf{ in }t_2
-  \longrightarrow
-  \textbf{let }\{X,x\}=t_1'\textbf{ in }t_2}
-\]
+存在包的计算规则也很直接：
 \[
 \inferrule*[right=E-UnpackPack]{ }
  {\textbf{let }\{X,x\}=
@@ -190,26 +185,85 @@ T&::=&\cdots\mid\{\exists X,T\}
   \longrightarrow
   [X\mapsto T_{11}][x\mapsto v_{12}]t_2}
 \]
-\textbf{赋型}
+当 \textbf{let} 的第一项已经求值为具体的存在包时，规则把包的类型分量和
+值分量分别代入开包体。\taplnamedref{fig:24-1}{图}汇总了 System F 加入
+存在类型后的全部新增规则。
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.98\linewidth}
+\footnotesize
+\taplfigureheader{存在类型}{扩展 System F（\cref{fig:23-1}）}
+\taplformalsystemcolumns[0.47]{
+\tapltranslateditalic{新增句法形式}
 \[
-\inferrule*[right=T-Pack]
- {\Gamma\vdash t_2:[X\mapsto T_1]T_2}
- {\Gamma\vdash\{*T_1,t_2\}\textbf{ as }\{\exists X,T_2\}:
-  \{\exists X,T_2\}}
+\begin{array}{@{}rcll@{}}
+t&::=&\cdots&\tapltranslateditalic{项}\\
+ &\mid&\{*T,t\}\textbf{ as }T&\tapltranslateditalic{打包}\\
+ &\mid&\textbf{let }\{X,x\}=t\textbf{ in }t&\tapltranslateditalic{开包}\\[1mm]
+v&::=&\cdots&\tapltranslateditalic{值}\\
+ &\mid&\{*T,v\}\textbf{ as }T&\tapltranslateditalic{包值}\\[1mm]
+T&::=&\cdots&\tapltranslateditalic{类型}\\
+ &\mid&\{\exists X,T\}&\tapltranslateditalic{存在类型}
+\end{array}
+\]
+\tapltranslateditalic{新增求值规则}\quad \(t\longrightarrow t'\)
+\[
+\begin{gathered}
+\textsc{E-UnpackPack}\\[-1mm]
+\frac{\strut}{
+ \begin{gathered}
+ \textbf{let }\{X,x\}=\{*T_{11},v_{12}\}\textbf{ as }\\
+ \{\exists X,T_{12}\}\textbf{ in }t_2
+ \longrightarrow[X\mapsto T_{11}][x\mapsto v_{12}]t_2
+ \end{gathered}}
+\end{gathered}
+\]
+}{
+\tapltranslateditalic{同余规则}
+\[
+\inferrule*[right=E-Pack]
+ {t_2\longrightarrow t_2'}
+ {\{*T_1,t_2\}\textbf{ as }T\longrightarrow
+  \{*T_1,t_2'\}\textbf{ as }T}
 \]
 \[
-\inferrule*[right=T-Unpack]
- {\Gamma\vdash t_1:\{\exists X,T_{11}\}\\
-  \Gamma,X,x:T_{11}\vdash t_2:T_2\\
-  X\notin\fv(T_2)}
- {\Gamma\vdash\textbf{let }\{X,x\}=t_1\textbf{ in }t_2:T_2}
+\frac{t_1\longrightarrow t_1'}{
+ \begin{gathered}
+  \textbf{let }\{X,x\}=t_1\textbf{ in }t_2\\
+  \longrightarrow\textbf{let }\{X,x\}=t_1'\textbf{ in }t_2
+ \end{gathered}}
+\ \textsc{E-Unpack}
 \]
+\tapltranslateditalic{新增赋型规则}\quad \(\Gamma\vdash t:T\)
+\[
+\frac{\Gamma\vdash t_2:[X\mapsto T_1]T_2}{
+ \begin{gathered}
+  \Gamma\vdash\{*T_1,t_2\}\textbf{ as }\{\exists X,T_2\}\\
+  :\{\exists X,T_2\}
+ \end{gathered}}
+\ \textsc{T-Pack}
+\]
+\[
+\frac{\begin{gathered}
+ \Gamma\vdash t_1:\{\exists X,T_{11}\}\\
+ \Gamma,X,x:T_{11}\vdash t_2:T_2
+ \end{gathered}}{
+ \begin{gathered}
+  \Gamma\vdash\textbf{let }\{X,x\}=t_1\textbf{ in }t_2\\
+  :T_2
+ \end{gathered}}
+\ \textsc{T-Unpack}
+\]
+}
 \end{minipage}
 \caption{存在类型}
 \label{fig:24-1}
 \end{figure}
 
-T-Unpack 的旁条件 \(X\notin\fv(T_2)\) 保证隐藏类型不会从包的作用域中逃逸。
+T-Unpack 没有把 \(X\notin\fv(T_2)\) 另列为前提；这项限制来自上下文的良构性。
+结论回到上下文 \(\Gamma\) 后，结果类型 \(T_2\) 仍须在 \(\Gamma\) 中良构，
+所以其中不能自由出现只在第二个前提中有效的 \(X\)。
 按照 E-UnpackPack，包求值完成后，实际表示类型和实际值会同时代入开包体。
 用模块作类比，这相当于一次链接：用模块的实际内容替换表示其分量的符号名
 \(X\) 与 \(x\)。由于这一步会消去 \(X\)，归约后的程序可以具体访问包的内部。这再次
@@ -219,7 +273,7 @@ T-Unpack 的旁条件 \(X\notin\fv(T_2)\) 保证隐藏类型不会从包的作�
 \section{用存在类型实现数据抽象}
 \label{sec:24.2}
 
-\chapref{1}曾指出，类型系统不只用于发现 \(2+\taplterm{true}\) 一类局部错误，
+\taplsecref{1.2}{sec:1.2}曾指出，类型系统不只用于发现 \(2+\taplterm{true}\) 一类局部错误，
 也为大型程序的组织提供关键支持。类型既能维护语言内建的抽象，也能维护
 程序员自己定义的抽象；换句话说，它们既能保护机器免受程序破坏，也能把程序
 的不同部分彼此隔离。\footnote{公平地说，类型并不是保护程序员自定义抽象的
@@ -227,8 +281,9 @@ T-Unpack 的旁条件 \(X\notin\fv(T_2)\) 保证隐藏类型不会从包的作�
 也能达到相似效果（Flatt 与 Felleisen，1998）。}本节以存在类型为共同框架，
 比较两种数据抽象风格：经典的抽象数据类型和对象。
 
-本节示例全部采用纯函数式程序。这只是为了便于讲解：模块化和抽象机制在很大
-程度上独立于抽象内部是否含有状态；练习24.2.2与24.2.4会把正文示例改成有
+与\chapref{18}的对象编码不同，本节示例全部采用纯函数式程序。这只是为了便于
+讲解：模块化和抽象机制在很大程度上独立于抽象内部是否含有状态；
+\taplnamedref{ex:24.2.2}{练习}与\taplnamedref{ex:24.2.4}{练习}会把正文示例改成有
 状态的版本。纯函数式示例所需的形式框架更精简，而且有时会让类型问题更突出。
 命令式程序可以借助可变变量，让相距很远的程序片段通过一条“旁路”直接通信；
 纯函数式程序中的信息只能经由函数的参数和结果传递，因而都暴露给类型系统。
@@ -461,7 +516,7 @@ FlipFlop 对象。
 
 \begin{exercise}[推荐，\(\star\star\)]
 \label{ex:24.2.4}
-使用 \texttt{fullomega}，参照练习24.2.2实现带可变状态的计数器对象。
+使用 \texttt{fullomega}，参照\taplnamedref{ex:24.2.2}{练习}实现带可变状态的计数器对象。
 \end{exercise}
 \taplauthorsolutionlink{sol:author:24.2.4}{24.2.4}
 
@@ -499,7 +554,10 @@ ADT 风格的 \(\tapltype{Counter}\) 是开包时由 \textbf{let} 绑定的类�
 例如，用户界面库可以定义通用的 \(\tapltype{Window}\) 类，再派生
 \(\tapltype{TextWindow}\)、\(\tapltype{ContainerWindow}\)、
 \(\tapltype{ScrollableWindow}\)、\(\tapltype{TitledWindow}\) 和
-\(\tapltype{DialogBox}\) 等类。每个子类都可加入自己的实例变量，并为
+\(\tapltype{DialogBox}\) 等类。每个子类都可加入自己的实例变量：例如，
+\(\tapltype{TextWindow}\) 可以用一个 \(\tapltype{String}\) 型变量保存当前
+文本，\(\tapltype{ContainerWindow}\) 则可以保存一列 \(\tapltype{Window}\)
+对象。各子类还会为
 \(\taplterm{repaint}\) 和 \(\taplterm{handleMouseEvent}\) 等操作提供专门
 实现。若把 \(\tapltype{Window}\) 做成 ADT，则其统一表示通常要包含一个
 \hyperref[sec:11.10]{第\ref*{sec:11.10}节介绍的变体类型}，每种窗口对应一个
@@ -575,7 +633,8 @@ ADT 值的普通函数；放进 ADT 时，它虽然获得了并不需要的具�
 这里还需加一项限定：上述比较针对的是本章前面所用的简单“纯对象”模型。
 C++ 和 Java 等主流面向对象语言的类允许某些强二元方法，更适合看作纯对象与
 纯 ADT 的折中。在这些语言中，对象类型就是实例所属类的名字，即使两个类提供
-完全相同的操作，类名不同，类型也不同；因而一个对象类型只有相应类声明给出的
+完全相同的操作，类名不同，类型也不同（参见\taplsecref{19.3}{sec:19.3}）；
+因而一个对象类型只有相应类声明给出的
 一种实现。此外，子类只能在继承来的实例变量基础上增加新变量。于是，类型为
 \(C\) 的每个对象都必定包含类 \(C\) 唯一声明所规定的全部实例变量，并且可能
 还有更多变量。类 \(C\) 的方法便可以接收另一个 \(C\) 型对象，并具体访问
@@ -606,15 +665,29 @@ C++ 和 Java 等主流面向对象语言的类允许某些强二元方法，更�
 \(Y\)，再接收
 \(f:\forall X.\llbracket T\rrbracket\to Y\)：
 \[
-\lambda Y.\,\lambda f:\forall X.\,\llbracket T\rrbracket\to Y.\,
-f[\llbracket S\rrbracket]\llbracket t\rrbracket
+\llbracket\{*S,t\}\textbf{ as }\{\exists X,T\}\rrbracket
+\stackrel{\mathrm{def}}{=}
+\lambda Y.\,\lambda f:(\forall X.\,\llbracket T\rrbracket\to Y).\,\cdots
 \]
 此时需要构造 \(Y\) 型结果，手中唯一能产生 \(Y\) 的是 \(f\)。先把
-\(f\) 实例化到 \(\llbracket S\rrbracket\)，得到
+\(f\) 实例化到 \(\llbracket S\rrbracket\)：
+\[
+\llbracket\{*S,t\}\textbf{ as }\{\exists X,T\}\rrbracket
+\stackrel{\mathrm{def}}{=}
+\lambda Y.\,\lambda f:(\forall X.\,\llbracket T\rrbracket\to Y).\,
+f[\llbracket S\rrbracket]\,\cdots
+\]
+此时 \(f[\llbracket S\rrbracket]\) 的类型为
 \(([X\mapsto\llbracket S\rrbracket]
   \llbracket T\rrbracket)\to Y\) 型函数；再把类型恰好匹配的
-\(\llbracket t\rrbracket\) 交给它，就得到所需的 \(Y\)。因此上式不是任意
-猜出的，而是由目标类型逐步迫使出来的。
+\(\llbracket t\rrbracket\) 交给它，就得到所需的 \(Y\)：
+\[
+\llbracket\{*S,t\}\textbf{ as }\{\exists X,T\}\rrbracket
+\stackrel{\mathrm{def}}{=}
+\lambda Y.\,\lambda f:(\forall X.\,\llbracket T\rrbracket\to Y).\,
+f[\llbracket S\rrbracket]\llbracket t\rrbracket
+\]
+整个构造由目标类型逐步确定。
 
 开包
 \[
@@ -624,24 +697,32 @@ f[\llbracket S\rrbracket]\llbracket t\rrbracket
 \(\{\exists X,T_{11}\}\)，在加入 \(X\) 和 \(x:T_{11}\) 的上下文中，
 \(t_2\) 具有类型 \(T_2\)，而 \(T_2\) 也是整个开包表达式的预期类型。编码后
 的 \(t_1\) 会“自行完成开包”，因此只需向它提供足够的参数，使结果成为
-\(\llbracket T_2\rrbracket\)。先把所需结果类型作为第一个参数交给它，再把
-开包体抽象成一个可接收任意隐藏类型和相应值的续延，得到
+\(\llbracket T_2\rrbracket\)。编码先从 \(\llbracket t_1\rrbracket\) 开始：
 \[
+\llbracket\textbf{let }\{X,x\}=t_1\textbf{ in }t_2\rrbracket
+\stackrel{\mathrm{def}}{=}\llbracket t_1\rrbracket\,\cdots
+\]
+先把整个表达式所需的结果类型 \(\llbracket T_2\rrbracket\) 作为第一个参数：
+\[
+\llbracket\textbf{let }\{X,x\}=t_1\textbf{ in }t_2\rrbracket
+\stackrel{\mathrm{def}}{=}
+\llbracket t_1\rrbracket[\llbracket T_2\rrbracket],\cdots
+\]
+此时 \(\llbracket t_1\rrbracket[\llbracket T_2\rrbracket]\) 的类型为
+\((\forall X.\llbracket T_{11}\rrbracket\to
+\llbracket T_2\rrbracket)\to\llbracket T_2\rrbracket\)。再把开包体对
+\(X\) 和 \(x\) 抽象，便得到所需的第二个参数：
+\[
+\llbracket\textbf{let }\{X,x\}=t_1\textbf{ in }t_2\rrbracket
+\stackrel{\mathrm{def}}{=}
 \llbracket t_1\rrbracket[\llbracket T_2\rrbracket]
 (\lambda X.\,\lambda x:\llbracket T_{11}\rrbracket.\,
- \llbracket t_2\rrbracket),
+ \llbracket t_2\rrbracket)
 \]
-类型计算如下：
-\[
-\llbracket t_1\rrbracket[\llbracket T_2\rrbracket]
-:
-(\forall X.\llbracket T_{11}\rrbracket\to
-\llbracket T_2\rrbracket)\to\llbracket T_2\rrbracket
-\]
-第二个参数
-\(\lambda X.\lambda x:\llbracket T_{11}\rrbracket.\llbracket t_2\rrbracket\)
-恰好具有它所需的类型，于是整个应用得到 \(\llbracket T_2\rrbracket\)。这就
-完成了编码。\footnote{严格说来，翻译需要从赋型推导取得项句法中没有的
+第二个参数恰好具有类型
+\(\forall X.\llbracket T_{11}\rrbracket\to\llbracket T_2\rrbracket\)，
+于是整个应用得到 \(\llbracket T_2\rrbracket\)。这就完成了编码。
+\footnote{严格说来，翻译需要从赋型推导取得项句法中没有的
 \(T_{11}\) 和 \(T_2\)，所以它翻译的是赋型推导，而不只是项。我们在
 \taplsecref{15.6}{sec:15.6}定义子类型的强制转换语义时见过相似情形。}
 

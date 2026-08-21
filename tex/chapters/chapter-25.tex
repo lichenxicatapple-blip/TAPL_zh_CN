@@ -25,7 +25,7 @@ type ty =
 \end{taplocamlcode}
 \taplrustcounterpart{ch25-type-definition}
 
-\texttt{TyVar(x,n)} 的两个整数与项变量的表示相同：\(x\) 是该变量到绑定子的
+\texttt{TyVar(x,n)} 的两个整数与\taplsecref{7.1}{sec:7.1}中项变量的表示相同：\(x\) 是该变量到绑定子的
 距离，\(n\) 是变量出现处预期的上下文总长度。量词保存一个名称提示，只供
 解析器和打印器恢复可读名称。
 
@@ -166,7 +166,6 @@ let tmmap onvar ontype c t =
 \texttt{TmUnpack} 的开包表达式体同时位于类型变量 \(X\) 和项变量 \(x\) 两个
 新绑定之下，所以遍历进入其中时，截止位置增加二。给 \texttt{tmmap} 传入
 适当的参数，就能定义项移位、项替换和把类型替换进项的操作：
-\Needspace{20\baselineskip}
 \begin{taplocamlcode}
 let termShiftAbove d c t =
   tmmap
@@ -198,21 +197,13 @@ let tytermSubstTop tyS t =
 \end{taplocamlcode}
 \taplocamlgroupedcounterpart{ch25-term-operations}
 \taplrustcounterpartflowchunkfirst{ch25-term-operations}{1}{13}
-\Needspace{18\baselineskip}
 \taplrustcounterpartflowchunk{ch25-term-operations}{14}{29}
-\Needspace{22\baselineskip}
 \taplrustcounterpartflowchunk{ch25-term-operations}{30}{48}
-\Needspace{18\baselineskip}
 \taplrustcounterpartflowchunk{ch25-term-operations}{50}{64}
-\Needspace{20\baselineskip}
 \taplrustcounterpartflowchunk{ch25-term-operations}{65}{81}
-\Needspace{22\baselineskip}
 \taplrustcounterpartflowchunk{ch25-term-operations}{82}{100}
-\Needspace{22\baselineskip}
 \taplrustcounterpartflowchunk{ch25-term-operations}{102}{120}
-\Needspace{21\baselineskip}
 \taplrustcounterpartflowchunk{ch25-term-operations}{121}{138}
-\Needspace{20\baselineskip}
 \taplrustcounterpartflowchunk{ch25-term-operations}{139}{155}
 
 在 \texttt{termShiftAbove} 的项变量分支中，程序像
@@ -232,7 +223,8 @@ let tytermSubstTop tyS t =
 \texttt{tytermSubst} 仍由项映射函数定义。这一次，处理项变量的回调是恒等操作，
 只重建原来的项变量；遍历到类型标注时，才对它执行类型替换。最后，与类型部分
 一样，\texttt{termSubstTop} 和 \texttt{tytermSubstTop} 把基本替换操作封装成
-两个便捷函数，分别供 \texttt{eval} 和 \texttt{typeof} 调用。
+两个供求值器使用的便捷函数；类型检查器使用的顶层类型替换则是上一节的
+\texttt{typeSubstTop}。
 
 \section{求值}
 \label{sec:25.4}
@@ -260,15 +252,10 @@ let rec eval1 ctx t = match t with
     (* ... *)
 \end{taplocamlcode}
 \taplocamlgroupedcounterpart{ch25-evaluation}
-\Needspace{12\baselineskip}
 \taplrustsupport{ch25-evaluation-support}
-\Needspace{22\baselineskip}
 \taplrustcounterpartflowchunkfirst{ch25-evaluation}{1}{16}
-\Needspace{12\baselineskip}
 \taplrustcounterpartflowchunk{ch25-evaluation}{17}{23}
-\Needspace{30\baselineskip}
 \taplrustcounterpartflowchunk{ch25-evaluation}{24}{48}
-\Needspace{12\baselineskip}
 \taplrustcounterpartflowchunk{ch25-evaluation}{49}{56}
 
 \begin{exercise}[\(\star\)]
@@ -328,11 +315,8 @@ let rec typeof ctx t = match t with
 \taplocamlgroupedcounterpart{ch25-typechecking}
 \taplrustsupport[compact]{ch25-typechecking-support}
 \taplrustcounterpartflowchunkfirst{ch25-typechecking}{1}{24}
-\Needspace{13\baselineskip}
 \taplrustcounterpartflowchunk{ch25-typechecking}{25}{34}
-\Needspace{15\baselineskip}
 \taplrustcounterpartflowchunk{ch25-typechecking}{35}{46}
-\Needspace{14\baselineskip}
 \taplrustcounterpartflowchunk{ch25-typechecking}{47}{57}
 
 \texttt{TmUnpack} 先确认 \(t_1\) 具有存在类型，再依次把类型变量和项变量加入

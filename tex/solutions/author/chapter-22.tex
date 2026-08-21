@@ -37,8 +37,9 @@
 \end{enumerate}
 两项都对推导直接归纳。可靠性的应用情形使用以下事实：若
 \(\Gamma,t\) 中出现的类型变量不在 \(F\) 中，且
-\(\Gamma\vdash_Ft:T\mid_{F'}C\)，那么 \(T,C\) 中出现的类型变量不在
-\(F\setminus F'\) 中。完备性的应用情形使用以下事实：若
+\(\Gamma\vdash_Ft:T\mid_{F'}C\)，那么 \(T\) 或 \(C\) 中出现的每个类型变量，
+都出现在 \(\Gamma,t\) 中，或属于 \(F\setminus F'\)。完备性的应用情形
+使用以下事实：若
 \(\Gamma\vdash_Ft:T\mid_{F'}C\)，且 \(G\) 是一列全新的变量名，则
 \(\Gamma\vdash_{F,G}t:T\mid_{F',G}C\)。
 
@@ -172,7 +173,8 @@ let substinconstr tyX tyT constr =
 let occursin tyX tyT =
   let rec o tyT = match tyT with
       TyArr(tyT1,tyT2) -> o tyT1 || o tyT2
-    | TyNat | TyBool -> false
+    | TyNat -> false
+    | TyBool -> false
     | TyId(s) -> s=tyX
   in o tyT
 
@@ -221,7 +223,8 @@ let unify fi ctx msg constr =
 这条规则要求 \(t.l_i\) 的接收者恰好具有单字段记录类型
 \(\{l_i:Y\}\)，因而错误地排除含其他字段的记录。
 
-Wand（1987）提出并由 Rémy 等人进一步发展的办法，是增加一类
+Wand（1987）提出的办法后来由 Wand（1988, 1989b）、
+Rémy（1989, 1990；1992a, 1992b, 1998）等人进一步发展。其做法是增加一类
 \emph{行变量}。它的取值不是单个类型，而是整行“字段标签及相应类型”。令
 \(\oplus\) 合并字段互不相交的两行，则投影可生成约束
 \[

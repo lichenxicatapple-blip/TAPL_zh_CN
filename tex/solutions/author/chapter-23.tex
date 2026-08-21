@@ -79,6 +79,7 @@ n[\tapltype{CBool}](\lambda b:\tapltype{CBool}.\taplterm{fls})
 \taplsolutionbacklink{ex:23.4.8}{返回练习23.4.8}
 \end{taplauthorsolutionentrybox}
 
+\Needspace{5\baselineskip}
 \begin{taplauthorsolutionentrybox}
 \phantomsection\label{sol:author:23.4.9}
 \textbf{23.4.9 解答}
@@ -111,8 +112,7 @@ n[\tapltype{CBool}](\lambda b:\tapltype{CBool}.\taplterm{fls})
   (\lambda x:X\to X.\,z)\bigr)(\lambda x:X.\,x)
 \end{aligned}
 \]
-其类型为 \(\tapltype{CNat}\to\tapltype{CNat}\)。迭代过程中保留一个“尚待
-应用的后继”，最后以恒等函数收束，从而丢掉第一次迭代、留下前驱结果。
+其类型为 \(\tapltype{CNat}\to\tapltype{CNat}\)。
 
 作者感谢 Michael Levin 使他了解到这个例子。
 \taplsolutionbacklink{ex:23.4.10}{返回练习23.4.10}
@@ -255,7 +255,8 @@ Reynolds（1985）曾以一项精彩工作证明：可以在 System F 中实现�
 \phantomsection\label{sol:author:23.5.1}
 \textbf{23.5.1 解答}
 
-证明结构几乎与\cref{thm:9.3.9}相同。E-TAppTabs 情形还需要类型替换引理：
+证明结构几乎与\cref{thm:9.3.9}相同。E-TAppTabs 情形还需要
+\taplnamedref{lem:9.3.8}{引理}的类型替换结论：
 \[
 \Gamma,X,\Delta\vdash t:T
 \quad\Longrightarrow\quad
@@ -270,7 +271,8 @@ Reynolds（1985）曾以一项精彩工作证明：可以在 System F 中实现�
 \phantomsection\label{sol:author:23.5.2}
 \textbf{23.5.2 解答}
 
-证明与简单类型 lambda 演算的进展性证明相同，只需扩充典范形式引理：
+证明与\taplnamedref{thm:9.3.5}{定理}相同，只需在
+\taplnamedref{lem:9.3.4}{引理}的典范形式结论中增加：
 \[
 \text{若值 }v\text{ 具有类型 }\forall X.T_{12},
 \text{ 则 }v=\lambda X.t_{12}
@@ -326,8 +328,7 @@ Reynolds（1985）曾以一项精彩工作证明：可以在 System F 中实现�
 
   \item 直接使用赋型反演引理。
 
-  \item 依次使用第 2、3、2 步，并作等式计算即可。这里按作者勘误，原书所写
-        的第 1 步应改为第 2 步。
+  \item 依次使用第 2、3、2 步，并作等式计算即可。
 
   \item 直接使用第 2 步和赋型反演引理。
 
@@ -406,7 +407,7 @@ Reynolds（1985）曾以一项精彩工作证明：可以在 System F 中实现�
 
         另一方面，由 \(o'\) 的结构和反演引理，
         \[
-        \forall\overline V.T_y\to V
+        \forall\overline V.T_y\to P
         =T_x
         =\forall\overline{X_1}\,\overline{X_2}.T_1\to T_2,
         \]
@@ -418,6 +419,7 @@ Reynolds（1985）曾以一项精彩工作证明：可以在 System F 中实现�
 \taplsolutionbacklink{ex:23.6.3}{返回练习23.6.3}
 \end{taplauthorsolutionentrybox}
 
+\Needspace{14\baselineskip}
 \begin{taplauthorsolutionentrybox}
 \phantomsection\label{sol:author:23.7.1}
 \textbf{23.7.1 解答}

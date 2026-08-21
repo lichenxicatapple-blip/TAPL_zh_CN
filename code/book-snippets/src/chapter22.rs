@@ -543,6 +543,7 @@ pub fn infer_incremental(
 }
 // TAPL-SNIPPET-END: ch22-algorithm-w
 
+// TAPL-SNIPPET-BEGIN: ch22-algorithm-w-value-support
 fn is_syntactic_value(term: &Term) -> bool {
     match term {
         Term::True | Term::False | Term::Zero | Term::Unit | Term::Abstraction { .. } => true,
@@ -559,6 +560,7 @@ fn is_syntactic_value(term: &Term) -> bool {
         | Term::Let { .. } => false,
     }
 }
+// TAPL-SNIPPET-END: ch22-algorithm-w-value-support
 
 // TAPL-SNIPPET-BEGIN: ch22-let-principal-type
 /// Reconstructs a principal type with ML-style let-generalization.
