@@ -9,7 +9,7 @@
 对 \(\taplterm{id}\)，在 \(\Gamma,X,x:X\) 下由 T-Var 有
 \(x:X\)，连续使用 T-Abs 和 T-TAbs 得
 \[
-\vdash\lambda X.\lambda x:X.x:\forall X.X\to X.
+\vdash\lambda X.\lambda x:X.x:\forall X.X\to X
 \]
 
 对 \(\taplterm{double}\)，固定 \(X\) 并令
@@ -17,7 +17,7 @@
 \(f\,a:X\) 和 \(f(f\,a):X\)；再依次抽象 \(a,f,X\)，得到
 \[
 \vdash\taplterm{double}:
-\forall X.(X\to X)\to X\to X.
+\forall X.(X\to X)\to X\to X
 \]
 
 对 \(\taplterm{selfApp}\)，上下文中
@@ -27,7 +27,7 @@ x:\forall X.\,X\to X
 由 T-TApp，在类型 \(\forall X.\,X\to X\) 处实例化 \(x\)，得到
 \[
 x[\forall X.\,X\to X]:
-(\forall X.\,X\to X)\to(\forall X.\,X\to X).
+(\forall X.\,X\to X)\to(\forall X.\,X\to X)
 \]
 再把原来的 \(x\) 作为实参应用，即得结果类型
 \(\forall X.\,X\to X\)。外层 T-Abs 给出题中函数类型。
@@ -35,12 +35,12 @@ x[\forall X.\,X\to X]:
 最后看 \(\taplterm{quadruple}\)。在固定的 \(X\) 下，先实例化
 \(\taplterm{double}[X]\)，得到
 \[
-(X\to X)\to X\to X.
+(X\to X)\to X\to X
 \]
 再把外层 \taplterm{double} 的类型变量实例化为 \(X\to X\)：
 \[
 \taplterm{double}[X\to X]:
-((X\to X)\to X\to X)\to(X\to X)\to X\to X.
+((X\to X)\to X\to X)\to(X\to X)\to X\to X
 \]
 一次 T-App 正好允许它接收 \(\taplterm{double}[X]\)，结果为
 \((X\to X)\to X\to X\)。最后对 \(X\) 使用 T-TAbs，得到题中全称类型。
@@ -60,7 +60,7 @@ f(\taplterm{head}[X]l):Y,
 \]
 递归调用
 \[
-m(\taplterm{tail}[X]l):\tapltype{List}\,Y.
+m(\taplterm{tail}[X]l):\tapltype{List}\,Y
 \]
 因此 \(\taplterm{cons}[Y]\) 的两个实参类型正确，两个条件分支都具有
 \(\tapltype{List}\,Y\)。fix 的函数体由此具有

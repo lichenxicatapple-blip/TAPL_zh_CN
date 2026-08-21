@@ -91,7 +91,7 @@ pub fn type_substitute(replacement: &Type, variable: usize, ty: &Type) -> Result
     fn walk(replacement: &Type, variable: usize, cutoff: usize, ty: &Type) -> Result<Type, Error> {
         Ok(match ty {
             Type::Var(index, _) if *index == variable + cutoff => type_shift(
-                isize::try_from(cutoff).map_err(|_| Error::InvalidShift)?,
+                isize::try_from(variable + cutoff).map_err(|_| Error::InvalidShift)?,
                 replacement,
             )?,
             Type::Var(index, context_len) => Type::Var(*index, *context_len),
@@ -180,7 +180,7 @@ pub fn term_substitute(replacement: &Term, variable: usize, term: &Term) -> Resu
     ) -> Result<Term, Error> {
         Ok(match term {
             Term::Var(index, _) if *index == variable + cutoff => term_shift(
-                isize::try_from(cutoff).map_err(|_| Error::InvalidShift)?,
+                isize::try_from(variable + cutoff).map_err(|_| Error::InvalidShift)?,
                 replacement,
             )?,
             Term::Var(index, context_len) => Term::Var(*index, *context_len),
@@ -459,6 +459,92 @@ mod tests {
     }
 
     #[test]
+    fn type_term_substitution_lifts_through_term_binders() {
+        let replacement = Type::Arrow(Box::new(Type::Var(0, 1)), Box::new(Type::Var(0, 1)));
+        let term = Term::Abs(
+            "outer".into(),
+            Type::All("A".into(), Box::new(Type::Var(0, 1))),
+            Box::new(Term::Abs(
+                "inner".into(),
+                Type::Var(1, 2),
+                Box::new(Term::Var(0, 2)),
+            )),
+        );
+        let result = type_term_substitute(&replacement, 0, &term).unwrap();
+        assert_eq!(
+            result,
+            Term::Abs(
+                "outer".into(),
+                Type::All("A".into(), Box::new(Type::Var(0, 1))),
+                Box::new(Term::Abs(
+                    "inner".into(),
+                    Type::Arrow(Box::new(Type::Var(1, 2)), Box::new(Type::Var(1, 2)),),
+                    Box::new(Term::Var(0, 2)),
+                )),
+            )
+        );
+    }
+
+    #[test]
+    fn substitutions_avoid_capture_across_mixed_binders() {
+        let replacement_term = Term::TypeAbs("R".into(), Box::new(Term::Var(0, 1)));
+        let term_body = Term::Abs(
+            "x".into(),
+            identity_type(),
+            Box::new(Term::TypeAbs("X".into(), Box::new(Term::Var(2, 3)))),
+        );
+        let substituted = term_substitute(&replacement_term, 0, &term_body).unwrap();
+        assert_eq!(
+            substituted,
+            Term::Abs(
+                "x".into(),
+                identity_type(),
+                Box::new(Term::TypeAbs(
+                    "X".into(),
+                    Box::new(Term::TypeAbs("R".into(), Box::new(Term::Var(0, 3)),)),
+                )),
+            )
+        );
+
+        let term_body = Term::Abs("x".into(), identity_type(), Box::new(Term::Var(2, 3)));
+        let substituted = term_substitute(&Term::Var(0, 1), 1, &term_body).unwrap();
+        assert_eq!(
+            substituted,
+            Term::Abs("x".into(), identity_type(), Box::new(Term::Var(2, 3)),)
+        );
+
+        let replacement_type = Type::Arrow(Box::new(Type::Var(0, 1)), Box::new(Type::Var(0, 1)));
+        let type_body = Term::Abs(
+            "x".into(),
+            identity_type(),
+            Box::new(Term::TypeAbs(
+                "Y".into(),
+                Box::new(Term::Abs(
+                    "y".into(),
+                    Type::Var(2, 3),
+                    Box::new(Term::Var(0, 3)),
+                )),
+            )),
+        );
+        let substituted = type_term_substitute(&replacement_type, 0, &type_body).unwrap();
+        assert_eq!(
+            substituted,
+            Term::Abs(
+                "x".into(),
+                identity_type(),
+                Box::new(Term::TypeAbs(
+                    "Y".into(),
+                    Box::new(Term::Abs(
+                        "y".into(),
+                        Type::Arrow(Box::new(Type::Var(2, 3)), Box::new(Type::Var(2, 3)),),
+                        Box::new(Term::Var(0, 3)),
+                    )),
+                )),
+            )
+        );
+    }
+
+    #[test]
     fn package_has_its_declared_existential_type() {
         let package_type = Type::Some(
             "X".into(),
@@ -575,6 +661,42 @@ mod tests {
                 )
             ),
             Err(Error::ExpectedUniversal(_))
+        ));
+
+        assert!(matches!(
+            type_of(
+                &[],
+                &Term::App(
+                    Box::new(polymorphic_identity()),
+                    Box::new(polymorphic_identity())
+                )
+            ),
+            Err(Error::ExpectedArrow(_))
+        ));
+
+        assert!(matches!(
+            type_of(
+                &[],
+                &Term::Pack(
+                    identity_type(),
+                    Box::new(polymorphic_identity()),
+                    identity_type()
+                )
+            ),
+            Err(Error::ExpectedExistential(_))
+        ));
+
+        let mismatched_value = Term::Abs("f".into(), identity_type(), Box::new(Term::Var(0, 1)));
+        assert!(matches!(
+            type_of(
+                &[],
+                &Term::Pack(
+                    identity_type(),
+                    Box::new(mismatched_value),
+                    Type::Some("X".into(), Box::new(Type::Var(0, 1)))
+                )
+            ),
+            Err(Error::PackageMismatch { .. })
         ));
     }
 }

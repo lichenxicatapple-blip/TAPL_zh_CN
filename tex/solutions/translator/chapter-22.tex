@@ -58,7 +58,7 @@ C_0&=\{X=Z\to A,\ Y=Z\to B,\ A=B\to C\}.
 \label{sol:translator:22.5.2}
 \textbf{22.5.2 解答}
 
-合一\taplnamedref{sol:translator:22.3.3}{解答22.3.3}得到的约束：先由 \(A=B\to C\)，再代入
+合一\hyperref[sol:translator:22.3.3]{解答22.3.3}得到的约束：先由 \(A=B\to C\)，再代入
 \(X=Z\to A\)、\(Y=Z\to B\)。可取主合一子
 \[
 [X\mapsto Z\to B\to C,
@@ -83,10 +83,10 @@ C_0&=\{X=Z\to A,\ Y=Z\to B,\ A=B\to C\}.
 调用\cref{def:22.4.4}的合一算法；第三层把主合一子作用于暂定结果类型。关键
 不变量是：每次为应用或无标注抽象创建的类型变量都不曾出现过。
 
-书内已经依次给出实际 Rust 实现：\taplnamedref{fig:22-1}{图22-1 后的
-类型与项定义}、\taplnamedref{sol:author:22.3.10}{解答22.3.10中的约束生成器}
-和\taplnamedref{sol:author:22.4.6}{解答22.4.6中的合一器}；主类型入口紧随
-\taplnamedref{def:22.5.3}{定义22.5.3}展示。合在一起即构成题目要求的三层实现，
+书内已经依次给出实际 Rust 实现：\hyperref[fig:22-1]{图22-1后的类型与项定义}、
+\hyperref[sol:author:22.3.10]{解答22.3.10中的约束生成器}和
+\hyperref[sol:author:22.4.6]{解答22.4.6中的合一器}；主类型入口紧随
+\taplnamedref{thm:22.5.3}{定理}展示。合在一起即构成题目要求的三层实现，
 无需在本解答中重复刊载同一源码。
 
 同一份源码中的端到端测试覆盖恒等函数、把未知函数用于自然数、自应用的
@@ -111,8 +111,25 @@ C_0&=\{X=Z\to A,\ Y=Z\to B,\ A=B\to C\}.
 无需回头重新遍历已经处理的子项。这正是算法 W 的基本组织方式。
 
 下面的实现把“替换与类型一起返回”这一流程写成可执行程序。
-\taplrustsupport{ch22-algorithm-w-support}
-\taplrustsupport{ch22-algorithm-w}
+\Needspace{24\baselineskip}
+\taplrustsupportflowchunkfirstshort{ch22-algorithm-w-support}{1}{16}
+\Needspace{19\baselineskip}
+\taplrustsupportflowchunk{ch22-algorithm-w-support}{18}{33}
+\Needspace{21\baselineskip}
+\taplrustsupportflowchunk{ch22-algorithm-w-support}{35}{52}
+\Needspace{20\baselineskip}
+\taplrustsupportflowchunk{ch22-algorithm-w-support}{54}{70}
+\taplrustsupportflowchunkfirstshort{ch22-algorithm-w}{1}{19}
+\Needspace{23\baselineskip}
+\taplrustsupportflowchunk{ch22-algorithm-w}{20}{39}
+\Needspace{20\baselineskip}
+\taplrustsupportflowchunk{ch22-algorithm-w}{40}{56}
+\Needspace{16\baselineskip}
+\taplrustsupportflowchunk{ch22-algorithm-w}{57}{69}
+\Needspace{38\baselineskip}
+\taplrustsupportflowchunk{ch22-algorithm-w}{70}{104}
+\Needspace{42\baselineskip}
+\taplrustsupportflowchunk{ch22-algorithm-w}{105}{143}
 
 \taplsolutionbacklink{ex:22.5.7}{返回练习22.5.7}
 \end{taplsolutionentrybox}

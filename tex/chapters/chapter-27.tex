@@ -8,12 +8,14 @@
 
 \section*{概述}
 
-\chapref{18}用记录、引用和子类型表达命令式对象。\taplsecref{18.12}{sec:18.12}试图把
-构造方法表的工作从每次方法调用移到对象创建时。本章借助有界量化进一步改造
-这一编码。\footnote{本章示例使用带记录（\taplnamedref{fig:15-3}{图15-3}）
-和引用（\taplnamedref{fig:13-1}{图13-1}）的 \(F_{<:}\)。原书为这些示例
-列出的 OCaml 实现名为 \texttt{fullfsubref}；当前保存的作者官方源码快照中
-未包含这一工程，故本工程没有把它列入自动编译验证。}
+\chapref{18}在带记录、引用和子类型的简单类型演算中，建立了一组表达命令式
+对象的常用编码。类接收一个指向 self 方法表的引用，并在定义自己的方法时通过
+该引用调用其他方法；类返回完整的方法表后，再把 self 引用回填为指向这张表。
+\taplsecref{18.12}{sec:18.12}试图把构造方法表的工作从每次方法调用移到对象创建
+时。本章借助有界量化进一步改造这一编码。
+\footnote{本章示例使用带记录（\taplnamedref{fig:15-3}{图}）和引用
+（\taplnamedref{fig:13-1}{图}）的 \(F_{<:}\)。原书为这些示例列出的 OCaml
+实现名为 \texttt{fullfsubref}。}
 
 设可设值计数器的公开接口和内部表示为
 \[
@@ -76,9 +78,10 @@ instrCounterClass =
 
 但同一类生成的所有对象原则上可以共享方法代码。真实面向对象实现通常让对象
 只携带指向类数据结构的指针，方法保存在类中。\footnote{原书进一步把实际语言
-概括为：类只保存相对于父类新增或覆写的方法，调用时沿类层级向上查找目标方法。
-作者勘误提醒，这只是过度简化的说明；真实实现通常采用更复杂且更高效的分派
-结构。本章不研究这些运行时实现技术。}上面的参数顺序先接收实例变量
+概括为：类只保存相对于父类新增或覆写的方法，调用时沿类层级向上查找目标方法；
+这样就不会构造包含全部继承方法的完整方法表。不过，这种运行时查找会给静态类型
+分析带来棘手问题，本书不再讨论。作者勘误同时提醒，这只是过度简化的说明；真实
+实现通常采用更复杂且更高效的分派结构。}上面的参数顺序先接收实例变量
 \(r\)、再接收 \(self\)，使方法表直到每个对象创建时才形成。若先接收
 \(self\)，就可先对类作一次部分应用：
 \[
@@ -153,9 +156,14 @@ instrCounterClass =
      accesses = lambda _:Unit. !(r.a)};
 ? Error: parameter type mismatch
 \end{lstlisting}
-当前 \(self\) 是指向
-\(\tapltype{InstrCounterRep}\to\tapltype{InstrCounter}\) 的只读引用；父类却
-要求指向 \(\tapltype{CounterRep}\to\tapltype{SetCounter}\) 的只读引用。
+当前 \(self\) 是如下函数类型的只读引用：
+\[
+\tapltype{InstrCounterRep}\to\tapltype{InstrCounter}
+\]
+父类要求的则是
+\[
+\tapltype{CounterRep}\to\tapltype{SetCounter}
+\]
 虽然结果类型方向正确，函数参数位置逆变却要求
 \(\tapltype{CounterRep}<:\tapltype{InstrCounterRep}\)，而事实恰好相反。
 
@@ -240,9 +248,10 @@ instrCounterClass =
 \begin{lstlisting}
 ? newInstrCounter : Unit -> InstrCounter
 \end{lstlisting}
-唯一新增的步骤，是用实例变量记录的实际类型
-\(\tapltype{InstrCounterRep}\) 实例化 \texttt{instrCounterClass}。与前面
-一样，定义 \texttt{newInstrCounter} 时前三行只执行一次。
+唯一新增的步骤，是用实际的实例变量记录类型实例化
+\texttt{instrCounterClass}；这里使用的记录类型是 \(\tapltype{InstrCounterRep}\)。
+与前面一样，定义 \texttt{newInstrCounter} 时，创建并回填 self 引用的步骤
+只执行一次。
 
 最后用几次调用检查对象行为：
 \begin{lstlisting}

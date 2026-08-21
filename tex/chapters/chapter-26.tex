@@ -659,7 +659,7 @@ spluspp = lambda n:SPos. lambda m:SPos.
 
 若最后使用 S-All，则
 \[
-S=\forall Z<:U_1.S_2,qquad
+S=\forall Z<:U_1.S_2,\qquad
 T=\forall Z<:U_1.T_2
 \]
 且
@@ -697,7 +697,7 @@ Z<:[X\mapsto P]U_1
 若最后使用 T-TApp，则
 \[
 t=t_1[T_2],\qquad
-T=[Z\mapsto T_2]T_{12},qquad
+T=[Z\mapsto T_2]T_{12},\qquad
 \Gamma,X<:Q,\Delta\vdash
 t_1:\forall Z<:T_{11}.T_{12}.
 \]
@@ -799,7 +799,7 @@ t_1:\forall Z<:T_{11}.T_{12}.
 此时 \(t=t_1[T_2]\)、
 \(T=[X\mapsto T_2]T_{12}\)，且
 \[
-\Gamma\vdash t_1:\forall X<:T_{11}.T_{12},qquad
+\Gamma\vdash t_1:\forall X<:T_{11}.T_{12},\qquad
 \Gamma\vdash T_2<:T_{11}.
 \]
 若 \(t_1\longrightarrow t_1'\)，由归纳假设和 T-TApp 得到结论。若
@@ -1018,12 +1018,21 @@ Cardelli 与 Wegner（1985）在 Fun 语言中提出了本章采用的有界量�
 Mitchell 与 Scedrov（1994）的综述对有界量化作了最全面的讨论。
 
 程序语言理论与设计领域对 \(F_{<:}\) 及其近亲作了大量研究。Cardelli 与
-Wegner 最早给出有界量化的程序示例，Cardelli（1988a）在幂种类研究中给出
-更多示例。Curien 与 Ghelli（1992；Ghelli，1990）研究了 \(F_{<:}\) 的若干
-句法性质；Bruce 与 Longo、Martini、Breazu-Tannen 等、Cardone、Cardelli
-与 Longo、Cardelli 等、Curien 与 Ghelli、Bruce 与 Mitchell 等工作研究了
-密切相关系统的语义方面。带记录和更丰富继承形式的扩展，以及 Quest、Abel、
-GJ、Pict 与 Funnel 等语言设计，也都使用了有界量化。
+Wegner 的综述最早给出了使用有界量化的程序示例；Cardelli（1988a）对
+幂种类的研究又发展了更多示例。Curien 与 Ghelli（1992；Ghelli，1990）
+研究了 \(F_{<:}\) 的若干句法性质。与它密切相关的系统，其语义方面分别由
+Bruce 与 Longo（1990）、Martini（1988）、Breazu-Tannen、Coquand、Gunter
+与 Scedrov（1991）、Cardone（1989）、Cardelli 与 Longo（1991）、Cardelli、
+Martini、Mitchell 与 Scedrov（1994）、Curien 与 Ghelli（1992，1991），
+以及 Bruce 与 Mitchell（1992）研究。Cardelli 与 Mitchell（1991）、Bruce
+（1991）、Cardelli（1992），以及 Canning、Cook、Hill、Olthoff 与 Mitchell
+（1989b），还把 \(F_{<:}\) 扩展为包含记录类型和更丰富的继承形式。有界量化
+也是 Cardelli 的程序语言 Quest（1991；Cardelli 与 Longo，1991）、HP
+实验室开发的 Abel（Canning、Cook、Hill 与 Olthoff，1989a；Canning、Cook、
+Hill、Olthoff 与 Mitchell，1989b；Canning、Hill 与 Olthoff，1988；Cook、
+Hill 与 Canning，1990），以及较新的 GJ（Bracha、Odersky、Stoutamire 与
+Wadler，1998）、Pict（Pierce 与 Turner，2000）和 Funnel（Odersky，2000）
+等语言设计中的关键机制。
 
 Ghelli（1990）以及 Cardelli、Martini、Mitchell 与 Scedrov（1994）研究了
 有界量化对\taplsecref{26.3}{sec:26.3}中代数数据类型 Church 编码的影响。

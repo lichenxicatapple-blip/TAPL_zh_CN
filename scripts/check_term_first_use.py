@@ -15,7 +15,7 @@ INDEX_START = "<!-- term-first-use:index:start -->"
 INDEX_END = "<!-- term-first-use:index:end -->"
 TERM_PATTERN = re.compile(r"\\termfirst\{([^{}]+)\}\{([^{}]+)\}")
 HEADING_PATTERN = re.compile(
-    r"\\(?:section|subsection|subsubsection)\*?\{([^{}]+)\}"
+    r"\\(?:section|subsection|subsubsection)\*?\{((?:[^{}]|\{[^{}]*\})+)\}"
 )
 MANUAL_TABLE_HEADER = "| 英文 | 当前中文译法 | 状态 | 备注 |"
 
@@ -76,6 +76,7 @@ def base_location(path: Path) -> str:
 
 def plain_heading(value: str) -> str:
     """Remove lightweight TeX markup from a heading used in the index."""
+    value = value.replace(r"\(", "").replace(r"\)", "")
     value = re.sub(r"\\[A-Za-z@]+", "", value)
     value = value.replace("{", "").replace("}", "")
     return " ".join(value.split())

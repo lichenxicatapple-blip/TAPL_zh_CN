@@ -8,7 +8,7 @@
 
 先只看目标类型
 \[
-\forall Y.(\forall X.\llbracket T\rrbracket\to Y)\to Y.
+\forall Y.(\forall X.\llbracket T\rrbracket\to Y)\to Y
 \]
 要构造它，必须先抽象 \(Y\)，再接收
 \(f:\forall X.\llbracket T\rrbracket\to Y\)。手中只有隐藏类型 \(S\) 和值
@@ -16,14 +16,14 @@
 再应用于 \(\llbracket t\rrbracket\)：
 \[
 \lambda Y.\lambda f:\forall X.\llbracket T\rrbracket\to Y.\,
-f[\llbracket S\rrbracket]\llbracket t\rrbracket.
+f[\llbracket S\rrbracket]\llbracket t\rrbracket
 \]
 开包时反过来，把包的翻译应用于所需结果类型 \(\llbracket T_2\rrbracket\)，
 再把原来的包体翻译写成一个能对任意隐藏类型 \(X\) 和相应值
 \(x:\llbracket T_{11}\rrbracket\) 产生 \(\llbracket T_2\rrbracket\) 的函数：
 \[
 \llbracket t_1\rrbracket[\llbracket T_2\rrbracket]
-(\lambda X.\lambda x:\llbracket T_{11}\rrbracket.\llbracket t_2\rrbracket).
+(\lambda X.\lambda x:\llbracket T_{11}\rrbracket.\llbracket t_2\rrbracket)
 \]
 这正是正文中的两条翻译。
 \taplsolutionbacklink{ex:24.3.1}{返回练习24.3.1}

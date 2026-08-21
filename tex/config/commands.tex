@@ -312,11 +312,23 @@
   \endgroup
   \par\medskip
 }
+% Short-first flowing variant for a long implementation that should use the
+% remaining page without separating its heading from the first source lines.
+\newcommand{\taplrustsupportflowchunkfirstshort}[3]{%
+  \par\Needspace{8\baselineskip}\smallskip
+  \begingroup
+    \noindent
+    {\footnotesize\bfseries Rust 实现（译者增补）\par}
+    \nobreak\smallskip
+    \inputminted[firstline=#2,lastline=#3]{rust}{../build/code-snippets/#1.rs}%
+  \endgroup
+  \par\medskip
+}
 % Flowing chunks for one Rust counterpart to a preceding OCaml block.  The
 % first chunk carries the counterpart heading; later chunks continue it
 % without creating isolated headings or unbreakable page-sized boxes.
 \newcommand{\taplrustcounterpartflowchunkfirst}[3]{%
-  \par\Needspace{30\baselineskip}\smallskip
+  \par\Needspace{8\baselineskip}\smallskip
   \begingroup
     \noindent
     {\footnotesize\bfseries Rust 对照实现（译者增补）\par}

@@ -735,8 +735,16 @@ A=\forall Y_0<:\tapltype{Top}.
        \forall Z_2<:Y_1.U).
 \]
 最后不仅 \(P,Q\) 已交换，完成交换的指令也已被消耗，\(U\) 来到指令流最前
-端，等待下一轮“执行”。若让 \(U\) 再以同一交换指令开头，就能再次交换并
-恢复两个寄存器；也可以选择不同的 \(U\)。例如令
+端，等待下一轮“执行”。若让 \(U\) 再以同一交换指令开头：
+\[
+U=\neg(\forall Y_0<:\tapltype{Top}.
+       \forall Y_1<:\tapltype{Top}.
+       \forall Y_2<:\tapltype{Top}.
+       \neg(\forall Z_0<:Y_0.\forall Z_1<:Y_2.
+            \forall Z_2<:Y_1.U')),
+\]
+就能再次交换并恢复两个寄存器，随后继续执行 \(U'\)。也可以选择不同的
+\(U\)。例如令
 \[
 U=\neg(\forall Y_0<:\tapltype{Top}.
        \forall Y_1<:\tapltype{Top}.
@@ -927,8 +935,10 @@ SA-Arrow 得到 \(M_1\to J_2<:V_1\to V_2\)。全称类型情形的共同上界
 返回该侧。
 
 若两份推导都以 SA-Trans-TVar 结束，则 \(L=X\)、\(X<:U\in\Gamma\)，并有
-两个较小的子推导 \(U<:S\) 与 \(U<:T\)。归纳假设第 2 项给出交 \(M\) 及
-\(U<:M\)，再由 S-TVar 和传递性得到 \(L<:M\)。箭头情形中，写
+两个较小的子推导 \(\Gamma\algturnstile U<:S\) 与
+\(\Gamma\algturnstile U<:T\)。归纳假设第 2 项给出交 \(M\) 及
+\(\Gamma\algturnstile U<:M\)；结合上下文中的绑定 \(X<:U\)，直接应用
+SA-Trans-TVar，得到 \(\Gamma\algturnstile L<:M\)。箭头情形中，写
 \(L=L_1\to L_2\)：归纳假设第 1 项给出参数的并 \(J_1\) 以及
 \(J_1<:L_1\)，第 2 项给出结果的交 \(M_2\) 以及 \(L_2<:M_2\)。交算法
 返回 \(J_1\to M_2\)，SA-Arrow 给出 \(L_1\to L_2<:J_1\to M_2\)。

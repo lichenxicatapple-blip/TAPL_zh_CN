@@ -38,7 +38,7 @@ SUPPORT_REFERENCE = re.compile(
     r"\{([a-z0-9][a-z0-9-]*)\}"
 )
 SUPPORT_CHUNK_REFERENCE = re.compile(
-    r"\\taplrustsupport(?:flow)?chunk(?:first(?:compact)?)?"
+    r"\\taplrustsupport(?:flow)?chunk(?:first(?:compact|short)?)?"
     r"\{([a-z0-9][a-z0-9-]*)\}\{\d+\}\{\d+\}"
 )
 EXPLANATION_REFERENCE = re.compile(r"\\taplrustexplanation\{")

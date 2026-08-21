@@ -99,8 +99,8 @@ let typeShiftAbove d c tyT =
 
 let typeShift d tyT = typeShiftAbove d 0 tyT
 \end{taplocamlcode}
-\taplrustcounterpartflowchunkfirst{ch25-type-shift}{1}{16}
-\taplrustcounterpartflowchunk{ch25-type-shift}{17}{31}
+\taplrustcounterpartflowchunkfirst{ch25-type-shift}{1}{27}
+\taplrustcounterpartflowchunk{ch25-type-shift}{29}{31}
 
 \begin{taplocamlcode}
 let typeSubst tyS j tyT =
@@ -120,7 +120,8 @@ let typeSubstTop tyS tyT =
 \section{项}
 \label{sec:25.3}
 
-项数据类型加入全称类型和存在类型的引入、消去形式：
+在项这一层，要做的工作与类型部分相似。首先在第十章的项数据类型中加入全称
+类型和存在类型的引入、消去形式：
 \begin{taplocamlcode}
 type term =
     TmVar of info * int * int
@@ -133,8 +134,8 @@ type term =
 \end{taplocamlcode}
 \taplrustcounterpart{ch25-term-definition}
 
-项中既有项变量，也有嵌在类型标注里的类型变量。因此通用映射函数接收两个
-回调：\texttt{onvar} 处理项变量，\texttt{ontype} 处理类型标注。
+项的移位与替换同第十章的定义相似。不过，与上一节处理类型时一样，这里也用
+一个通用映射函数来统一表述这些操作：
 \begin{taplocamlcode}
 let tmmap onvar ontype c t =
   let rec walk c t = match t with
@@ -155,9 +156,17 @@ let tmmap onvar ontype c t =
 \end{taplocamlcode}
 \taplrustexplanation{相应的 Rust 遍历实现与移位、替换操作合并展示。}
 
-\texttt{TmUnpack} 的开包表达式体同时位于类型变量 \(X\) 和项变量 \(x\) 两个新绑定
-之下，所以截止位置增加二。由 \texttt{tmmap} 可得到项移位、项替换和把类型
-替换进项的操作：
+\texttt{tmmap} 有四个参数，比 \texttt{tymap} 多一个。这是因为项中可能出现
+两类变量：项变量，以及嵌在类型标注中的类型变量。因此，在执行移位等操作时，
+有两类“叶子”可能真正需要处理：项变量与类型。\texttt{onvar} 指定如何处理
+项变量；\texttt{ontype} 则指定遍历到带类型标注的项构造（例如
+\texttt{TmAbs}）时，如何处理其中的类型。在规模更大的语言中，带类型标注的
+项构造还会更多。
+
+\texttt{TmUnpack} 的开包表达式体同时位于类型变量 \(X\) 和项变量 \(x\) 两个
+新绑定之下，所以遍历进入其中时，截止位置增加二。给 \texttt{tmmap} 传入
+适当的参数，就能定义项移位、项替换和把类型替换进项的操作：
+\Needspace{20\baselineskip}
 \begin{taplocamlcode}
 let termShiftAbove d c t =
   tmmap
@@ -175,7 +184,7 @@ let termSubst j s t =
     (fun j tyT -> tyT)
     j t
 
-let tytermSubst tyS j t =
+let rec tytermSubst tyS j t =
   tmmap
     (fun fi c x n -> TmVar(fi,x,n))
     (fun j tyT -> typeSubst tyS j tyT)
@@ -187,10 +196,32 @@ let termSubstTop s t =
 let tytermSubstTop tyS t =
   termShift (-1) (tytermSubst (typeShift 1 tyS) 0 t)
 \end{taplocamlcode}
-\taplrustcounterpart{ch25-term-operations}
+\taplocamlgroupedcounterpart{ch25-term-operations}
+\taplrustcounterpartflowchunkfirst{ch25-term-operations}{1}{13}
+\Needspace{18\baselineskip}
+\taplrustcounterpartflowchunk{ch25-term-operations}{14}{29}
+\Needspace{22\baselineskip}
+\taplrustcounterpartflowchunk{ch25-term-operations}{30}{48}
+\Needspace{18\baselineskip}
+\taplrustcounterpartflowchunk{ch25-term-operations}{50}{64}
+\Needspace{20\baselineskip}
+\taplrustcounterpartflowchunk{ch25-term-operations}{65}{81}
+\Needspace{22\baselineskip}
+\taplrustcounterpartflowchunk{ch25-term-operations}{82}{100}
+\Needspace{22\baselineskip}
+\taplrustcounterpartflowchunk{ch25-term-operations}{102}{120}
+\Needspace{21\baselineskip}
+\taplrustcounterpartflowchunk{ch25-term-operations}{121}{138}
+\Needspace{20\baselineskip}
+\taplrustcounterpartflowchunk{ch25-term-operations}{139}{155}
 
-普通项替换不改变类型标注，因为类型中不含项变量；把类型替换进项的操作则保持项变量
-不动，只遍历并替换项里的各个类型标注。
+在 \texttt{termShiftAbove} 的项变量分支中，程序像
+\texttt{typeShiftAbove} 一样检查截止位置，再构造新的变量；在类型标注处，
+则调用上一节定义的类型移位函数。
+
+\texttt{termSubst} 用于把一个项代入另一个项。它不改变类型标注，因为类型中
+不可能含有项变量，项替换自然不会影响类型。另一方面，求值类型应用还需要把
+类型代入项：
 
 这里第二种替换正是类型应用归约所需的操作：
 \[
@@ -198,10 +229,16 @@ let tytermSubstTop tyS t =
 \qquad\textsc{E-TAppTabs}
 \]
 
+\texttt{tytermSubst} 仍由项映射函数定义。这一次，处理项变量的回调是恒等操作，
+只重建原来的项变量；遍历到类型标注时，才对它执行类型替换。最后，与类型部分
+一样，\texttt{termSubstTop} 和 \texttt{tytermSubstTop} 把基本替换操作封装成
+两个便捷函数，分别供 \texttt{eval} 和 \texttt{typeof} 调用。
+
 \section{求值}
 \label{sec:25.4}
 
-求值器的新分支直接实现\cref{fig:23-1,fig:24-1}的规则：
+对 \texttt{eval} 函数的扩展，就是把\cref{fig:23-1,fig:24-1}中的求值规则
+逐条写成代码；其中最费力的移位与替换工作，已经由上一节的函数完成：
 \begin{taplocamlcode}
 let rec eval1 ctx t = match t with
     (* ... *)
@@ -223,8 +260,16 @@ let rec eval1 ctx t = match t with
     (* ... *)
 \end{taplocamlcode}
 \taplocamlgroupedcounterpart{ch25-evaluation}
+\Needspace{12\baselineskip}
 \taplrustsupport{ch25-evaluation-support}
-\taplrustcounterpart{ch25-evaluation}
+\Needspace{22\baselineskip}
+\taplrustcounterpartflowchunkfirst{ch25-evaluation}{1}{16}
+\Needspace{12\baselineskip}
+\taplrustcounterpartflowchunk{ch25-evaluation}{17}{23}
+\Needspace{30\baselineskip}
+\taplrustcounterpartflowchunk{ch25-evaluation}{24}{48}
+\Needspace{12\baselineskip}
+\taplrustcounterpartflowchunk{ch25-evaluation}{49}{56}
 
 \begin{exercise}[\(\star\)]
 \label{ex:25.4.1}
@@ -282,7 +327,13 @@ let rec typeof ctx t = match t with
 \end{taplocamlcode}
 \taplocamlgroupedcounterpart{ch25-typechecking}
 \taplrustsupport[compact]{ch25-typechecking-support}
-\taplrustcounterpart{ch25-typechecking}
+\taplrustcounterpartflowchunkfirst{ch25-typechecking}{1}{24}
+\Needspace{13\baselineskip}
+\taplrustcounterpartflowchunk{ch25-typechecking}{25}{34}
+\Needspace{15\baselineskip}
+\taplrustcounterpartflowchunk{ch25-typechecking}{35}{46}
+\Needspace{14\baselineskip}
+\taplrustcounterpartflowchunk{ch25-typechecking}{47}{57}
 
 \texttt{TmUnpack} 先确认 \(t_1\) 具有存在类型，再依次把类型变量和项变量加入
 上下文，检查 \(t_2\)，最后把结果类型整体下移二位，使其重新相对于原上下文

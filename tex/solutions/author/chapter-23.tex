@@ -22,8 +22,16 @@
 \textbf{ then }\taplterm{nil}[X]\\
 &\quad\textbf{ else }\taplterm{append}[X]\,
   (rev(\taplterm{tail}[X]l))\,
-  (\taplterm{cons}[X](\taplterm{head}[X]l)(\taplterm{nil}[X]))\bigr).
+  (\taplterm{cons}[X](\taplterm{head}[X]l)(\taplterm{nil}[X]))\bigr)
 \end{aligned}
+\]
+类型检查器分别输出
+\[
+\taplterm{append}:
+\forall X.\,\tapltype{List}\,X\to\tapltype{List}\,X\to\tapltype{List}\,X
+\qquad
+\taplterm{reverse}:
+\forall X.\,\tapltype{List}\,X\to\tapltype{List}\,X
 \]
 \taplsolutionbacklink{ex:23.4.3}{返回练习23.4.3}
 \end{taplauthorsolutionentrybox}
@@ -65,7 +73,7 @@ n[\tapltype{CBool}](\lambda b:\tapltype{CBool}.\taplterm{fls})
 \taplterm{sndNat}
  &=\lambda p:\tapltype{PairNat}.\,
    p[\tapltype{CNat}]
-   (\lambda n_1:\tapltype{CNat}.\lambda n_2:\tapltype{CNat}.n_2).
+   (\lambda n_1:\tapltype{CNat}.\lambda n_2:\tapltype{CNat}.n_2)
 \end{aligned}
 \]
 \taplsolutionbacklink{ex:23.4.8}{返回练习23.4.8}
@@ -85,8 +93,8 @@ n[\tapltype{CBool}](\lambda b:\tapltype{CBool}.\taplterm{fls})
  \taplterm{fstNat}\bigl(m[\tapltype{PairNat}]\taplterm{f}\taplterm{zz}\bigr)
 \end{aligned}
 \]
-原书解答迭代时保存 \((i-1,i)\)，最后取第一分量；这与题目提示建议保存
-\((i,i-1)\) 再取第二分量的方向不同，但计算结果相同。
+\translatornote{原书解答迭代时保存 \((i-1,i)\)，最后取第一分量；这与题目
+提示建议保存 \((i,i-1)\) 再取第二分量的方向不同，但计算结果相同。}
 \taplsolutionbacklink{ex:23.4.9}{返回练习23.4.9}
 \end{taplauthorsolutionentrybox}
 
@@ -161,6 +169,12 @@ l[\tapltype{Pair}(\tapltype{List}\,X)(\tapltype{List}\,X)]\\
 &\textbf{ in }\taplterm{snd}[\tapltype{List}\,X][\tapltype{List}\,X]\ res
 \end{aligned}
 \]
+类型检查器输出
+\[
+\taplterm{insert}:
+\forall X.\,(X\to X\to\tapltype{Bool})\to
+\tapltype{List}\,X\to X\to\tapltype{List}\,X
+\]
 接着需要一个自然数比较函数。这里使用基本自然数，因此用 \taplterm{fix} 定义
 递归；若改用 Church 自然数，就可以完全避开 \taplterm{fix}：
 \[
@@ -173,6 +187,10 @@ l[\tapltype{Pair}(\tapltype{List}\,X)(\tapltype{List}\,X)]\\
 &\textbf{else }f\ (\taplterm{pred}\ m)\ (\taplterm{pred}\ n)\bigr)
 \end{aligned}
 \]
+类型检查器输出
+\[
+\taplterm{leqnat}:\tapltype{Nat}\to\tapltype{Nat}\to\tapltype{Bool}
+\]
 最后，把原列表中的元素逐一插入新列表：
 \[
 \begin{aligned}
@@ -183,6 +201,12 @@ l[\tapltype{List}\,X]\\
 (\lambda hd:X.\lambda rest:\tapltype{List}\,X.\,
 \taplterm{insert}[X]\ leq\ rest\ hd)(\taplterm{nil}[X])
 \end{aligned}
+\]
+类型检查器输出
+\[
+\taplterm{sort}:
+\forall X.\,(X\to X\to\tapltype{Bool})\to
+\tapltype{List}\,X\to\tapltype{List}\,X
 \]
 
 为验证排序函数，先构造乱序列表
@@ -208,6 +232,10 @@ l[\tapltype{List}\,X]\\
 &\quad\textbf{else }f\ (\taplterm{tail}[X]\ l)\ (\taplterm{pred}\ n)\bigr)
 \end{aligned}
 \]
+类型检查器输出
+\[
+\taplterm{nth}:\forall X.\,X\to\tapltype{List}\,X\to\tapltype{Nat}\to X
+\]
 于是
 \[
 \begin{array}{rcl@{\qquad}rcl}
@@ -231,7 +259,7 @@ Reynolds（1985）曾以一项精彩工作证明：可以在 System F 中实现�
 \[
 \Gamma,X,\Delta\vdash t:T
 \quad\Longrightarrow\quad
-\Gamma,[X\mapsto S]\Delta\vdash[X\mapsto S]t:[X\mapsto S]T.
+\Gamma,[X\mapsto S]\Delta\vdash[X\mapsto S]t:[X\mapsto S]T
 \]
 保留尾部上下文 \(\Delta\) 才能得到足够强的归纳假设；否则 T-Abs 情形无法
 处理在 \(X\) 之后引入的项变量绑定。
@@ -245,7 +273,7 @@ Reynolds（1985）曾以一项精彩工作证明：可以在 System F 中实现�
 证明与简单类型 lambda 演算的进展性证明相同，只需扩充典范形式引理：
 \[
 \text{若值 }v\text{ 具有类型 }\forall X.T_{12},
-\text{ 则 }v=\lambda X.t_{12}.
+\text{ 则 }v=\lambda X.t_{12}
 \]
 主证明的类型应用情形会使用这一结论。
 \taplsolutionbacklink{thm:23.5.2}{返回定理23.5.2}
@@ -357,17 +385,34 @@ Reynolds（1985）曾以一项精彩工作证明：可以在 System F 中实现�
         \(\mathsf{leftmost\mbox{-}leaf}(T_1)=X_i\)，其中
         \(X_i\in\overline{X_1X_2}\)。
 
-        对右边的判断同样使用第 4 步：无论 \(T_y\) 落入其中哪种情形，
-        它的最左叶都是某个 \(Y_i\in\overline V\)。另一方面，由 \(o'\)
-        的结构和反演引理，
+        对右边的判断同样使用第 4 步。若落入第 4(a) 步，则
+        \[
+        T_y=\forall\overline Y.\,Y_i
+        \qquad(Y_i\in\overline Y)
+        \]
+        若落入第 4(b) 步，则
+        \[
+        T_y=\forall\overline{Y_1}\,\overline{Y_2}.\,S_1\to S_2
+        \]
+        并且对某些类型序列 \(\overline C,\overline D\)，有
+        \[
+        [\overline{Y_1Y_2\mapsto C}]S_1
+        = [\overline{Y_1\mapsto D}]
+          (\forall Z'.\,S_1\to S_2)
+        \]
+        第一种情形立即给出 \(T_y\) 的最左叶为
+        \(Y_i\in\overline Y\)；第二种情形由第 6 步给出
+        \(Y_i\in\overline{Y_1Y_2}\)。
+
+        另一方面，由 \(o'\) 的结构和反演引理，
         \[
         \forall\overline V.T_y\to V
         =T_x
         =\forall\overline{X_1}\,\overline{X_2}.T_1\to T_2,
         \]
         因而特别有 \(T_y=T_1\)。同一个类型的最左叶于是既等于
-        \(X_i\in\overline{X_1X_2}\)，又等于
-        \(Y_i\in\overline V\)。两组变量由不同绑定位置引入，不可能相同，
+        \(X_i\in\overline{X_1X_2}\)，又等于上面两种情形之一给出的
+        \(Y_i\)。变量 \(X_i\) 与 \(Y_i\) 由不同位置的量词绑定，不可能相同，
         矛盾。因此 \(\Omega\) 不可赋型。
 \end{enumerate}
 \taplsolutionbacklink{ex:23.6.3}{返回练习23.6.3}

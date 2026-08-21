@@ -31,9 +31,9 @@
 \]
 也有两种对应理解。按逻辑的理解，它表示“对某个类型 \(S\)，存在一个
 \([X\mapsto S]T\) 型的值”\footnote{本章大部分内容研究的是
-\chapref{23}的 System F 加上\taplnamedref{fig:24-1}{图24-1}中的存在类型；
-示例还使用记录（\taplnamedref{fig:11-7}{图11-7}）和自然数
-（\taplnamedref{fig:8-2}{图8-2}）。原书对应的
+\chapref{23}的 System F 加上\taplnamedref{fig:24-1}{图}中的存在类型；
+示例还使用记录（\taplnamedref{fig:11-7}{图}）和自然数
+（\taplnamedref{fig:8-2}{图}）。原书对应的
 OCaml 实现是 \texttt{fullpoly}。}；按操作语义的理解，它是一个由类型
 \(S\) 和相应项 \(t\) 组成的包。后者与程序语言中的模块和抽象数据类型联系
 得更直接，因此本章主要采用这一理解。我们用花括号写存在类型，以突出它的值
@@ -51,9 +51,12 @@ OCaml 实现是 \texttt{fullpoly}。}；按操作语义的理解，它是一个�
 \termfirst{隐藏表示类型}{hidden representation type}，在逻辑语境中也称
 见证类型；\(t\) 是值分量。可以把这样的值看作一个只有一个隐藏类型分量和
 一个项分量的小包或小模块。这里各取一个分量只是为了简化记号；多个类型分量
-可以用嵌套的存在类型表示，多个项分量则可以放进元组或记录，例如
+可以用嵌套的包表示，多个项分量则可以放进元组或记录。按此约定，多分量包
+可展开为
 \[
-\{\exists X,\{\exists Y,\{a:X,b:Y,f:X\to Y\}\}\}.
+\{*S_1,*S_2,t_1,t_2\}
+\stackrel{\mathrm{def}}{=}
+\{*S_1,\{*S_2,\{t_1,t_2\}\}\}
 \]
 
 显式类型标注不可省略，因为同一个包可能属于不止一个存在类型。例如，不带
@@ -207,11 +210,11 @@ T&::=&\cdots\mid\{\exists X,T\}
 \end{figure}
 
 T-Unpack 的旁条件 \(X\notin\fv(T_2)\) 保证隐藏类型不会从包的作用域中逃逸。
-E-UnpackPack 则在包已经求值完成后，把实际表示类型和实际值同时代入开包体；
-用模块的类比说，这相当于一次链接步骤，把表示模块分量的符号名 \(X\) 和
-\(x\) 替换成模块的实际内容。由于这一步会消去 \(X\)，归约后的程序事实上
-能够具体访问包的内部。这再次说明，项在计算过程中可能获得更精确的类型信息，
-甚至一个非良类型项也可能归约成良类型项。
+按照 E-UnpackPack，包求值完成后，实际表示类型和实际值会同时代入开包体。
+用模块作类比，这相当于一次链接：用模块的实际内容替换表示其分量的符号名
+\(X\) 与 \(x\)。由于这一步会消去 \(X\)，归约后的程序可以具体访问包的内部。这再次
+说明，项在计算过程中可能获得更精确的类型信息；甚至非良类型项也可能归约成
+良类型项。
 
 \section{用存在类型实现数据抽象}
 \label{sec:24.2}
@@ -240,7 +243,8 @@ E-UnpackPack 则在包已经求值完成后，把实际表示类型和实际值�
 抽象类型名出现，可以传递或存入数据结构，却不能被直接检查或修改，只能通过
 ADT 公开的操作使用。
 
-例如，下面用一种类似 Ada 或 CLU 的伪代码声明纯函数式计数器：
+例如，下面用一种类似 Ada（U.S. Dept. of Defense，1980）或 CLU（Liskov 等，
+1981）的伪代码声明纯函数式计数器：
 \begin{lstlisting}
 ADT counter =
   type Counter
@@ -351,7 +355,7 @@ counterADT =
 
 \begin{exercise}[推荐，\(\star\star\star\)]
 \label{ex:24.2.1}
-参照上面的示例，以\taplsecref{23.4}{sec:23.4}练习23.4.3引入的
+参照上面的示例，以\taplsecref{23.4}{sec:23.4}介绍的
 \(\tapltype{List}\,\tapltype{Nat}\) 为表示，定义自然数栈 ADT，提供
 \(\taplterm{new}\)、\(\taplterm{push}\)、\(\taplterm{top}\)、
 \(\taplterm{pop}\) 和 \(\taplterm{isempty}\)。再写一个简单主程序：创建
@@ -388,7 +392,7 @@ counterADT =
 \{\taplterm{state}:X,\,
  \taplterm{methods}:
  \{\taplterm{get}:X\to\tapltype{Nat},
-   \taplterm{inc}:X\to X\}\}\}.
+   \taplterm{inc}:X\to X\}\}\}
 \]
 例如，状态为 \(5\) 的计数器对象可以写成
 \begin{lstlisting}
@@ -408,7 +412,7 @@ let {X,body} = c in body.methods.get(body.state);
 \taplterm{sendget}
 =\lambda c:\tapltype{Counter}.
 \textbf{let }\{X,body\}=c\textbf{ in }
-body.\taplterm{methods}.\taplterm{get}(body.\taplterm{state}).
+body.\taplterm{methods}.\taplterm{get}(body.\taplterm{state})
 \]
 检查器给出 \(\taplterm{sendget}:\tapltype{Counter}\to\tapltype{Nat}\)。
 
@@ -437,7 +441,7 @@ c1 = let {X,body} = c in
 \taplterm{state}=
 body.\taplterm{methods}.\taplterm{inc}(body.\taplterm{state}),\\
 &\taplterm{methods}=body.\taplterm{methods}\}\}
-\textbf{ as }\tapltype{Counter}.
+\textbf{ as }\tapltype{Counter}
 \end{aligned}
 \]
 检查器给出
@@ -482,7 +486,7 @@ ADT 风格的 \(\tapltype{Counter}\) 是开包时由 \textbf{let} 绑定的类�
 \{\exists X,
   \{\taplterm{state}:X,
     \taplterm{methods}:\{\taplterm{get}:X\to\tapltype{Nat},
-                         \taplterm{inc}:X\to X\}\}\}.
+                         \taplterm{inc}:X\to X\}\}\}
 \]
 因此，一个 ADT 产生的所有计数器值共享同一种表示和同一套操作实现；每个对象
 却各自携带表示类型及适用于该表示的方法。
@@ -497,8 +501,10 @@ ADT 风格的 \(\tapltype{Counter}\) 是开包时由 \textbf{let} 绑定的类�
 \(\tapltype{ScrollableWindow}\)、\(\tapltype{TitledWindow}\) 和
 \(\tapltype{DialogBox}\) 等类。每个子类都可加入自己的实例变量，并为
 \(\taplterm{repaint}\) 和 \(\taplterm{handleMouseEvent}\) 等操作提供专门
-实现。若把 \(\tapltype{Window}\) 做成 ADT，则其统一表示通常要包含一个变体
-类型，每种窗口对应一个分支并携带自己的数据；\(\taplterm{repaint}\) 等操作
+实现。若把 \(\tapltype{Window}\) 做成 ADT，则其统一表示通常要包含一个
+\hyperref[sec:11.10]{第\ref*{sec:11.10}节介绍的变体类型}，每种窗口对应一个
+分支并携带自己的数据；
+\(\taplterm{repaint}\) 等操作
 再对变体作分支分析。窗口种类很多时，这个单体式 ADT 会变得庞大而难以维护。
 
 另一个主要区别涉及二元操作，即接收两个或更多同一抽象类型参数的操作。这里
@@ -526,7 +532,7 @@ ADT 值的普通函数；放进 ADT 时，它虽然获得了并不需要的具�
 &\taplterm{methods}:\{\taplterm{get}:X\to\tapltype{Nat},
 \taplterm{inc}:X\to X,\\
 &\hspace{31mm}
-\taplterm{eq}:X\to\tapltype{EqCounter}\to\tapltype{Bool}\}\}\}.
+\taplterm{eq}:X\to\tapltype{EqCounter}\to\tapltype{Bool}\}\}\}
 \end{aligned}
 \]
 
@@ -584,7 +590,7 @@ C++ 和 Java 等主流面向对象语言的类允许某些强二元方法，更�
 看成“一个隐藏类型和一个值的对”，并让这个数据主动执行自己的消去操作：
 \[
 \llbracket\{\exists X,T\}\rrbracket
-=\forall Y.\,(\forall X.\,\llbracket T\rrbracket\to Y)\to Y.
+=\forall Y.\,(\forall X.\,\llbracket T\rrbracket\to Y)\to Y
 \]
 存在包在这种编码下接收一个结果类型和一个续延，再调用续延产生最终结果。
 续延接收两个参数：一个类型 \(X\)，以及一个 \(T\) 型的值；然后用它们计算
@@ -601,13 +607,12 @@ C++ 和 Java 等主流面向对象语言的类允许某些强二元方法，更�
 \(f:\forall X.\llbracket T\rrbracket\to Y\)：
 \[
 \lambda Y.\,\lambda f:\forall X.\,\llbracket T\rrbracket\to Y.\,
-f[\llbracket S\rrbracket]\llbracket t\rrbracket.
+f[\llbracket S\rrbracket]\llbracket t\rrbracket
 \]
 此时需要构造 \(Y\) 型结果，手中唯一能产生 \(Y\) 的是 \(f\)。先把
 \(f\) 实例化到 \(\llbracket S\rrbracket\)，得到
-\([
-X\mapsto\llbracket S\rrbracket]
-\llbracket T\rrbracket)\to Y\) 型函数；再把类型恰好匹配的
+\(([X\mapsto\llbracket S\rrbracket]
+  \llbracket T\rrbracket)\to Y\) 型函数；再把类型恰好匹配的
 \(\llbracket t\rrbracket\) 交给它，就得到所需的 \(Y\)。因此上式不是任意
 猜出的，而是由目标类型逐步迫使出来的。
 
@@ -631,7 +636,7 @@ X\mapsto\llbracket S\rrbracket]
 \llbracket t_1\rrbracket[\llbracket T_2\rrbracket]
 :
 (\forall X.\llbracket T_{11}\rrbracket\to
-\llbracket T_2\rrbracket)\to\llbracket T_2\rrbracket.
+\llbracket T_2\rrbracket)\to\llbracket T_2\rrbracket
 \]
 第二个参数
 \(\lambda X.\lambda x:\llbracket T_{11}\rrbracket.\llbracket t_2\rrbracket\)

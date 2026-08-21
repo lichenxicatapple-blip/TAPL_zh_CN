@@ -5,8 +5,7 @@
 \phantomsection\label{sol:author:27.1}
 \textbf{27.1 解答}
 
-可以把 self 引用改为保存一个从表示记录到方法记录的函数，并让方法记录类型和
-表示类型都成为有界类型参数：
+一种做法如下：
 \begin{lstlisting}
 setCounterClass =
   lambda M<:SetCounter. lambda R<:CounterRep.
@@ -42,8 +41,5 @@ newInstrCounter =
      let r = {x=ref 1, a=ref 0} in m' r);
 ? newInstrCounter : Unit -> InstrCounter
 \end{lstlisting}
-在父类实例化处，\(\tapltype{Ref}(R\to M)\) 两边完全相同，无须利用
-\(\tapltype{Ref}\) 的协变性。
-
 \taplsolutionbacklink{ex:27.1}{返回练习27.1}
 \end{taplauthorsolutionentrybox}

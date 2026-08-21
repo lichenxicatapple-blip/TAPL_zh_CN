@@ -406,8 +406,8 @@ Y\mapsto\tapltype{Bool}]\) 满足约束，所以
 \end{corollary}
 
 \begin{proof}
-由\taplnamedref{thm:22.3.5}{定理22.3.5}和
-\taplnamedref{thm:22.3.7}{定理22.3.7}。
+由\taplnamedref{thm:22.3.5}{定理}和
+\taplnamedref{thm:22.3.7}{定理}。
 \end{proof}
 
 \begin{exercise}[推荐，\(\star\star\star\)]
@@ -440,7 +440,15 @@ let uvargen =
   let rec f n () = NextUVar("?X_" ^ string_of_int n, f (n+1))
   in f 0
 \end{taplocamlcode}
-\taplrustcounterpart{ch22-types-generator}
+\taplrustcounterpartflowchunkfirst{ch22-types-generator}{1}{9}
+\Needspace{30\baselineskip}
+\taplrustcounterpartflowchunk{ch22-types-generator}{11}{37}
+\Needspace{33\baselineskip}
+\taplrustcounterpartflowchunk{ch22-types-generator}{39}{68}
+\Needspace{21\baselineskip}
+\taplrustcounterpartflowchunk{ch22-types-generator}{70}{87}
+\Needspace{21\baselineskip}
+\taplrustcounterpartflowchunk{ch22-types-generator}{88}{105}
 这里的 \texttt{uvargen} 是一个函数；以 \texttt{()} 调用后，它返回
 \texttt{NextUVar(x,f)}，其中 \texttt{x} 是新名称，\texttt{f} 又是同类
 生成函数。
@@ -634,15 +642,15 @@ let uvargen =
 \end{corollary}
 
 \begin{proof}
-由\taplnamedref{cor:22.3.8}{推论22.3.8}和
-\taplnamedref{thm:22.5.3}{定理22.5.3}。
+由\taplnamedref{cor:22.3.8}{推论}和
+\taplnamedref{thm:22.5.3}{定理}。
 \end{proof}
 
 \begin{exercise}[推荐，\(\star\star\star\)]
 \label{ex:22.5.5}
-结合\taplnamedref{ex:22.3.10}{练习22.3.10}的约束生成与
-\taplnamedref{ex:22.4.6}{练习22.4.6}的合一算法，以
-\texttt{reconbase} 检查器为起点，构造计算主类型的类型检查器。典型交互如下：
+把\taplnamedref{ex:22.3.10}{练习}的约束生成与
+\taplnamedref{ex:22.4.6}{练习}的合一算法结合起来。从
+\texttt{reconbase} 检查器出发，构造一个计算主类型的类型检查器。典型交互如下：
 \begin{lstlisting}
 lambda x:X. x;
 ==> <fun> : X -> X
