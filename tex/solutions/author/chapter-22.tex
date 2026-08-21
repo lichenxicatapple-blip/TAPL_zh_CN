@@ -221,14 +221,13 @@ let unify fi ctx msg constr =
 把类型重构直接扩展到记录并不容易。主要困难是投影应生成什么约束。朴素规则
 会写成
 \[
-\inferrule*[right=CT-Proj]
- {\Gamma\vdash t:T\mid_X C\\
-  Y\notin X\cup\fv(T)\cup\fv(C)}
- {\Gamma\vdash t.l_i:Y\mid_{X\cup\{Y\}}
-  C\cup\{T=\{l_i:Y\}\}}
+\inferrule*
+ {\Gamma\vdash t:T\mid_{\mathcal X} C}
+ {\Gamma\vdash t.l_i:X\mid_{\mathcal X\cup\{X\}}
+  C\cup\{T=\{l_i:X\}\}}
 \]
 这条规则要求 \(t.l_i\) 的接收者恰好具有单字段记录类型
-\(\{l_i:Y\}\)，因而错误地排除含其他字段的记录。
+\(\{l_i:X\}\)，因而错误地排除含其他字段的记录。
 
 Wand（1987）提出的办法后来由 Wand（1988, 1989b）、
 Rémy（1989, 1990）等人进一步发展。其做法是增加一类
@@ -236,12 +235,11 @@ Rémy（1989, 1990）等人进一步发展。其做法是增加一类
 \(\oplus\) 合并字段互不相交的两行，则投影可生成约束
 \[
 \inferrule*[right=CT-Proj]
- {\Gamma\vdash t:T\mid_XC\qquad
-  \rho,\sigma,X\text{ 为新变量}}
- {\Gamma\vdash t.l_i:X\mid_{X\cup\{\rho,\sigma,X\}}
+ {\Gamma\vdash t_0:T\mid_{\mathcal X}C}
+ {\Gamma\vdash t_0.l_i:X\mid_{\mathcal X\cup\{X,\sigma,\rho\}}
   C\cup\{T=\{\rho\},\rho=(l_i:X)\oplus\sigma\}}
 \]
-含义是：只要 \(t\) 的记录行 \(\rho\) 包含 \(l_i:X\)，其余字段由 \(\sigma\)
+含义是：只要 \(t_0\) 的记录行 \(\rho\) 包含 \(l_i:X\)，其余字段由 \(\sigma\)
 表示，投影结果就具有类型 \(X\)。新的约束含有满足结合律和交换律的
 \(\oplus\)，已经不再是普通类型等式；求解时需要一种等式合一算法。
 
