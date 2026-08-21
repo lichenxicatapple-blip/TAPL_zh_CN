@@ -89,6 +89,7 @@ let tymap onvar c tyT =
 \taplrustexplanation{Rust 对照直接以递归辅助函数表达同一遍历；两种写法共享同一
 不变量：经过量词时截止位置加一，只在变量分支决定移位或替换。}
 
+\Needspace{8\baselineskip}
 移位、替换和顶层替换由这个映射器实例化：
 \begin{taplocamlcode}
 let typeShiftAbove d c tyT =
