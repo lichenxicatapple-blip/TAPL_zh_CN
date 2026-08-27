@@ -229,26 +229,62 @@
 
 以下两个算法相互递归。并算法总会返回一个类型；交算法在不存在交时失败。
 \[
-\begin{array}{rcl}
-\tapltype{Bool}\sqcup\tapltype{Bool}&=&\tapltype{Bool}\\
-(S_1\to S_2)\sqcup(T_1\to T_2)&=&
- (S_1\sqcap T_1)\to(S_2\sqcup T_2)
- \quad\text{（若参数类型的交存在）}\\
-\{l_i:S_i\}_{i\in I}\sqcup\{l_j:T_j\}_{j\in J}&=&
- \{l_k:S_k\sqcup T_k\}_{k\in I\cap J}\\
-S\sqcup T&=&\tapltype{Top}\quad\text{（其他情形）}
+S\sqcup T=
+\left\{
+\begin{array}{@{}ll@{}}
+\tapltype{Bool}
+  & \text{若 }S=T=\tapltype{Bool}\\[2pt]
+M_1\to J_2
+  & \begin{aligned}
+      &\text{若 }S=S_1\to S_2,\quad T=T_1\to T_2,\\
+      &S_1\sqcap T_1=M_1,\quad S_2\sqcup T_2=J_2
+    \end{aligned}\\[5pt]
+\{j_i:J_i\}^{i\in1..q}
+  & \begin{aligned}
+      &\text{若 }S=\{k_j:S_j\}^{j\in1..m},\quad
+        T=\{l_i:T_i\}^{i\in1..n},\\
+      &\{j_i\}^{i\in1..q}
+        =\{k_j\}^{j\in1..m}\cap\{l_i\}^{i\in1..n},\\
+      &S_j\sqcup T_i=J_i
+        \quad\text{对每个 }j_i=k_j=l_i
+    \end{aligned}\\[7pt]
+\tapltype{Top}
+  & \text{其他情形}
 \end{array}
+\right.
 \]
 \[
-\begin{array}{rcl}
-\tapltype{Top}\sqcap T&=&T\\
-S\sqcap\tapltype{Top}&=&S\\
-\tapltype{Bool}\sqcap\tapltype{Bool}&=&\tapltype{Bool}\\
-(S_1\to S_2)\sqcap(T_1\to T_2)&=&
- (S_1\sqcup T_1)\to(S_2\sqcap T_2)\\
-\{l_i:S_i\}_{i\in I}\sqcap\{l_j:T_j\}_{j\in J}&=&
- \{l_k:U_k\}_{k\in I\cup J}
+S\sqcap T=
+\left\{
+\begin{array}{@{}ll@{}}
+S
+  & \text{若 }T=\tapltype{Top}\\[2pt]
+T
+  & \text{若 }S=\tapltype{Top}\\[2pt]
+\tapltype{Bool}
+  & \text{若 }S=T=\tapltype{Bool}\\[2pt]
+J_1\to M_2
+  & \begin{aligned}
+      &\text{若 }S=S_1\to S_2,\quad T=T_1\to T_2,\\
+      &S_1\sqcup T_1=J_1,\quad S_2\sqcap T_2=M_2
+    \end{aligned}\\[5pt]
+\{m_i:M_i\}^{i\in1..q}
+  & \begin{aligned}
+      &\text{若 }S=\{k_j:S_j\}^{j\in1..m},\quad
+        T=\{l_i:T_i\}^{i\in1..n},\\
+      &\{m_i\}^{i\in1..q}
+        =\{k_j\}^{j\in1..m}\cup\{l_i\}^{i\in1..n},\\
+      &S_j\sqcap T_i=M_i
+        \quad\text{对每个 }m_i=k_j=l_i,\\
+      &M_i=S_j
+        \quad\text{若 }m_i=k_j\text{ 只出现在 }S\text{ 中},\\
+      &M_i=T_i
+        \quad\text{若 }m_i=l_i\text{ 只出现在 }T\text{ 中}
+    \end{aligned}\\[9pt]
+\mathsf{fail}
+  & \text{其他情形}
 \end{array}
+\right.
 \]
 
 \translatornote{箭头类型的并在参数位置使用交，正是参数逆变的结果。设
@@ -324,8 +360,10 @@ S\sqcap\tapltype{Top}&=&S\\
 并是它们的上界；\taplnamedref{prop:appendix-a12}{命题}说明求得的交大于每个
 共同下界，求得的并小于每个共同上界。
 
+\taplstatementliststart
 \begin{taplappendixproposition}
 \label{prop:appendix-a11}
+\taplstatementlistbreak
 \begin{enumerate}
 \item 若 \(S\sqcup T=J\)，则 \(S\subtype J\) 且 \(T\subtype J\)。
 \item 若 \(S\sqcap T=M\)，则 \(M\subtype S\) 且 \(M\subtype T\)。
@@ -337,8 +375,10 @@ S\sqcap\tapltype{Top}&=&S\\
 大小就是为了算出 \(J\) 或 \(M\) 而对两个定义进行的递归调用次数。
 \end{proof}
 
+\taplstatementliststart
 \begin{taplappendixproposition}
 \label{prop:appendix-a12}
+\taplstatementlistbreak
 \begin{enumerate}
 \item 设 \(S\sqcup T=J\)，且对某个 \(U\) 有
   \(S\subtype U\) 与 \(T\subtype U\)。则 \(J\subtype U\)。

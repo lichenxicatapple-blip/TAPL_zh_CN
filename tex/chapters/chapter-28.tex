@@ -149,8 +149,10 @@ Z<:Y,\ W<:Z,
 下面证明该算法相对于原始赋型规则可靠且完备。这里只写核 \(F_{<:}\) 的
 证明；完全系统的相应修改见\taplnamedref{ex:28.2.3}{练习}。
 
+\taplstatementliststart
 \begin{theorem}[最小赋型]
 \label{thm:28.2.1}
+\taplstatementlistbreak
 \begin{enumerate}
   \item 若 \(\Gamma\algturnstile t:T\)，则 \(\Gamma\vdash t:T\)。
   \item 若 \(\Gamma\vdash t:T\)，则存在 \(M\) 使
@@ -499,8 +501,10 @@ SA-Trans-TVar 沿变量的上界移动，而良构上下文中的上界只引用
 传递步骤，而当前目的正是证明没有 S-Trans 的算法关系仍具有传递性。因此，
 必须把算法关系的传递性和收窄性放在同一个归纳中证明。
 
+\taplstatementliststart
 \begin{lemma}[排列与弱化]
 \label{lem:28.4.1}
+\taplstatementlistbreak
 \begin{enumerate}
   \item 设 \(\Gamma'\) 是 \(\Gamma\) 的良构排列。若
         \(\Gamma\algturnstile S<:T\)，则
@@ -516,8 +520,10 @@ SA-Trans-TVar 沿变量的上界移动，而良构上下文中的上界只引用
 均为常规归纳；第 2 项的 SA-All 情形使用第 1 项调整新绑定的次序。
 \end{proof}
 
+\taplstatementliststart
 \begin{lemma}[完全 \(F_{<:}\) 的传递性与收窄]
 \label{lem:28.4.2}
+\taplstatementlistbreak
 \begin{enumerate}
   \item 若 \(\Gamma\algturnstile S<:Q\) 且
         \(\Gamma\algturnstile Q<:T\)，则
@@ -885,8 +891,10 @@ J_1\to M_2 & \begin{array}[t]{l}
 \cref{prop:28.6.2}再说明并小于每个公共上界，而交大于每个公共下界，并且只要
 公共下界存在，交算法就会成功。
 
+\taplstatementliststart
 \begin{proposition}
 \label{prop:28.6.1}
+\taplstatementlistbreak
 \begin{enumerate}
   \item 若 \(\Gamma\vdash S\lor T=J\)，则
         \(\Gamma\vdash S<:J\) 且 \(\Gamma\vdash T<:J\)。
@@ -898,8 +906,10 @@ J_1\to M_2 & \begin{array}[t]{l}
 对计算 \(J\) 或 \(M\) 所需的递归调用次数作直接归纳。
 \end{proof}
 
+\taplstatementliststart
 \begin{proposition}
 \label{prop:28.6.2}
+\taplstatementlistbreak
 \begin{enumerate}
   \item 若 \(\Gamma\vdash S<:V\) 且
         \(\Gamma\vdash T<:V\)，则存在 \(J\)，使

@@ -153,8 +153,8 @@ T&::=&\cdots\mid\tapltype{Top}&\text{最大类型}
 \(\{x=3,a=\tapltrue,b=\tapltrue\}\) 都属于该类型。相比之下，
 \(\{x:\tapltype{Nat},y:\tapltype{Nat}\}\) 还要求字段 \(y\)，所描述的
 值更少。例如，\(\{x=3,y=100\}\) 和
-\(\{x=3,y=100,z=200\}\) 属于这个类型，\(\{x=3\}\) 和
-\(\{x=3,z=100\}\) 则不属于。字段更多的记录类型提出了更严格、信息量
+\(\{x=3,y=100,z=\tapltrue\}\) 属于这个类型，\(\{x=3\}\) 和
+\(\{x=3,a=\tapltrue,b=\tapltrue\}\) 则不属于。字段更多的记录类型提出了更严格、信息量
 更大的要求，因而描述更小的值集合。
 
 宽度规则要求两边共有字段的类型完全相同。还可以进一步放宽这一要求：只要两个
@@ -209,7 +209,7 @@ T&::=&\cdots\mid\tapltype{Top}&\text{最大类型}
 
 宽度、深度和排列规则分别表达记录使用中的三种灵活性。为了说明概念，把它们
 分成三条规则很有帮助；有些语言确实只允许其中一部分。例如，Abadi 与
-Cardelli（1996）提出的对象演算有多个变体，其中大多数不采用宽度子类型化。
+Cardelli（1996）提出的对象演算有多个变体，其中大多数不采用深度子类型化。
 实际实现时，把三者合并成一条同时处理宽度、深度和排列的宏规则更为方便；
 \chapref{16}将采用这种做法。
 
@@ -408,8 +408,10 @@ lambda 演算的保持性和进展性在加入子类型化后仍然成立。
 \(\{l_i:T_i\}^{i\in1..n}\) 列出的所有字段；字段可以采用不同次序，共有
 字段的类型满足子类型关系。
 
+\taplstatementliststart
 \begin{lemma}[子类型关系的反演]
 \label{lem:15.3.2}
+\taplstatementlistbreak
 \begin{enumerate}
 \item 若 \(S\subtype T_1\to T_2\)，则
   \(S=S_1\to S_2\)，且 \(T_1\subtype S_1\)、\(S_2\subtype T_2\)。
@@ -429,8 +431,10 @@ lambda 演算的保持性和进展性在加入子类型化后仍然成立。
 的两个情形；更一般的形式可以从下一章的算法类型关系
 （\cref{def:16.2.2}）读出。
 
+\taplstatementliststart
 \begin{lemma}
 \label{lem:15.3.3}
+\taplstatementlistbreak
 \begin{enumerate}
 \item 若 \(\Gamma\vdash\lambda x:S_1.\,s_2:T_1\to T_2\)，则
   \(T_1\subtype S_1\)，且 \(\Gamma,x:S_1\vdash s_2:T_2\)。
@@ -507,8 +511,10 @@ lambda 演算的保持性和进展性在加入子类型化后仍然成立。
 证明进展性之前，仍先给出典范形式引理，说明箭头类型和记录类型的闭值只能
 采用哪些形式。
 
+\taplstatementliststart
 \begin{lemma}[典范形式]
 \label{lem:15.3.6}
+\taplstatementlistbreak
 \begin{enumerate}
 \item 若闭值 \(v\) 具有类型 \(T_1\to T_2\)，则
   \(v=\lambda x:S_1.\,t_2\)。
@@ -1022,8 +1028,6 @@ Sangiorgi（1993）。
 数字 \(1\) 和 \(0\) 表示布尔值，可以公开实现细节并加入公理
 \(\tapltype{Bool}\subtype\tapltype{Nat}\)。此后可写紧凑的 \(5*b\)，
 而不必写 \(\mathsf{if}\ b\ \mathsf{then}\ 5\ \mathsf{else}\ 0\)。
-
-本节讨论的大多数扩展没有在 \texttt{fullsub} 检查器中实现。
 
 \section{子类型化的强制转换语义}
 \label{sec:15.6}

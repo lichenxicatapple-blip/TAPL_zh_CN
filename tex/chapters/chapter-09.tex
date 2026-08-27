@@ -315,8 +315,10 @@ lambda 抽象可以层层嵌套。检查内层抽象体时，往往需要同时�
 首先，反演引理记录类型推导怎样构成：针对每一种句法形式，它说明“若这种
 形式的项是良类型的，那么它的子项必定具有如下形式的类型……”
 
+\taplstatementliststart
 \begin{lemma}[类型关系的反演]
 \label{lem:9.3.1}
+\taplstatementlistbreak
 \begin{enumerate}
   \item 若 \(\Gamma\vdash x:R\)，则 \(x:R\in\Gamma\)。
   \item 若 \(\Gamma\vdash\lambda x:T_1.\,t_2:R\)，则存在某个 \(R_2\)，
@@ -374,8 +376,10 @@ lambda 抽象可以层层嵌套。检查内层抽象体时，往往需要同时�
 下面的典范形式引理根据一个值的类型，限定它可能是哪一种值：布尔类型的值
 只能是布尔常量，函数类型的值只能是 lambda 抽象。
 
+\taplstatementliststart
 \begin{lemma}[典范形式]
 \label{lem:9.3.4}
+\taplstatementlistbreak
 \begin{enumerate}
   \item 若 \(v\) 是类型为 \(\tapltype{Bool}\) 的值，则 \(v\) 是
     \(\tapltrue\) 或 \(\taplfalse\)。
@@ -852,8 +856,10 @@ Wickline、Lee、Pfenning 与 Davies，1998，以及其中引用的其他资料�
 这项预期。其口号是“求值与擦除可交换”：无论先求值再擦除，还是先擦除再
 求值，都会到达同一个项。
 
+\taplstatementliststart
 \begin{theorem}
 \label{thm:9.5.2}
+\taplstatementlistbreak
 \begin{enumerate}
   \item 若在有类型求值关系下 \(t\trans t'\)，则
     \(\operatorname{erase}(t)\trans\operatorname{erase}(t')\)。

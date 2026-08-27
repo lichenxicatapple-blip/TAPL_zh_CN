@@ -175,8 +175,10 @@ T&::=&\cdots&\text{类型}\\
 \(\tapltype{Nat}\) 类型。”下面的\termfirst{反演引理}{inversion lemma}
 汇集了这一类基本事实；其中每一项都可以直接从相应类型规则的形式看出。
 
+\taplstatementliststart
 \begin{lemma}[类型关系的反演]
 \label{lem:8.2.2}
+\taplstatementlistbreak
 \begin{enumerate}
   \item 若 \(\tapltrue:R\)，则 \(R=\tapltype{Bool}\)。
   \item 若 \(\taplfalse:R\)，则 \(R=\tapltype{Bool}\)。
@@ -284,8 +286,10 @@ Felleisen（1994）提出了一个变体。}
 \(\tapltype{Nat}\) 类型的良类型值分别只能采用哪些形式；这样的良类型值
 称为相应类型的\termfirst{典范形式}{canonical forms}。
 
+\taplstatementliststart
 \begin{lemma}[典范形式]
 \label{lem:8.3.1}
+\taplstatementlistbreak
 \begin{enumerate}
   \item 若 \(v\) 是类型为 \(\tapltype{Bool}\) 的值，则 \(v\) 是
     \(\tapltrue\) 或 \(\taplfalse\)。

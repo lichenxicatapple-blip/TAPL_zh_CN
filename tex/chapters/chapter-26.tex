@@ -629,8 +629,10 @@ spluspp = lambda n:SPos. lambda m:SPos.
 还会把类型代入类型变量，除通常的项替换引理外，还要证明类型替换分别保持子
 类型和赋型。
 
+\taplstatementliststart
 \begin{lemma}[收窄]
 \label{lem:26.4.5}
+\taplstatementlistbreak
 \begin{enumerate}
   \item 若 \(\Gamma,X<:Q,\Delta\vdash S<:T\) 且
         \(\Gamma\vdash P<:Q\)，则
@@ -749,8 +751,10 @@ t_1:\forall Z<:T_{11}.T_{12}
 第二个由\cref{lem:26.4.8}在替换后仍成立；最后再应用 T-Sub。
 \end{proof}
 
+\taplstatementliststart
 \begin{lemma}[从右向左反演子类型关系]
 \label{lem:26.4.10}
+\taplstatementlistbreak
 \begin{enumerate}
   \item 若 \(\Gamma\vdash S<:X\)，则 \(S\) 是类型变量。
   \item 若 \(\Gamma\vdash S<:T_1\to T_2\)，则 \(S\) 是类型变量，或
@@ -788,8 +792,10 @@ t_1:\forall Z<:T_{11}.T_{12}
 \end{exercise}
 \taplauthorsolutionlink{sol:author:26.4.11}{26.4.11}
 
+\taplstatementliststart
 \begin{lemma}
 \label{lem:26.4.12}
+\taplstatementlistbreak
 \begin{enumerate}
   \item 若 \(\Gamma\vdash\lambda x:S_1.s_2:T\) 且
         \(\Gamma\vdash T<:U_1\to U_2\)，则
@@ -865,8 +871,10 @@ t_1:\forall Z<:T_{11}.T_{12}
 \(\Gamma\vdash S<:T\) 应用 T-Sub。
 \end{proof}
 
+\taplstatementliststart
 \begin{lemma}[典范形式]
 \label{lem:26.4.14}
+\taplstatementlistbreak
 \begin{enumerate}
   \item 闭的箭头类型值必为项抽象；
   \item 闭的全称类型值必为类型抽象。

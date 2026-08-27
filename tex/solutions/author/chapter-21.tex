@@ -14,6 +14,11 @@ E_2(\{b\})&\{a\}&E_2(\{b,c\})&\{a,b\}\\
 E_2(\{c\})&\{a,b\}&E_2(\{a,b,c\})&\{a,b,c\}
 \end{array}
 \]
+\translatornote{等式 \(E_2(\{a\})=\{a\}\) 表示：把集合 \(\{a\}\) 作为输入，
+依次检查定义 \(E_2\) 的三条规则。第一条规则没有前提，能够生成 \(a\)；第二条
+规则要求输入中有 \(c\)，第三条规则要求输入中同时有 \(a\) 和 \(b\)，因而都
+不能使用。最终输出中只有 \(a\)，所以 \(E_2(\{a\})=\{a\}\)。}
+
 \(E_2\)-闭集合为 \(\{a\}\) 和 \(\{a,b,c\}\)；\(E_2\)-一致集合为
 \(\varnothing\)、\(\{a\}\) 和 \(\{a,b,c\}\)。所以
 \[
@@ -32,24 +37,53 @@ E_2(\{c\})&\{a,b\}&E_2(\{a,b,c\})&\{a,b,c\}
 \[
 F(X)=\{0\}\cup\{i+1\mid i\in X\}.
 \]
-设谓词（也就是自然数集合）\(P\) 满足 \(P(0)\)，并且
-\(P(i)\Rightarrow P(i+1)\)。由 \(F\) 的定义和这两个前提，直接有
-\(F(P)\subseteq P\)，所以 \(P\) 是 \(F\)-闭的。归纳原理给出
-\(\mu F\subseteq P\)。而 \(\mu F\) 是全体自然数，故 \(P(n)\) 对所有
-\(n\in\mathbb N\) 成立。
+把谓词 \(P\) 看成所有满足 \(P\) 的自然数组成的集合。设 \(P(0)\) 成立，
+并且 \(P(i)\Rightarrow P(i+1)\)。若 \(X\subseteq P\)，那么 \(F(X)\)
+中的 \(0\) 属于 \(P\)；其中每个 \(i+1\) 也因 \(i\in X\subseteq P\) 和
+归纳步骤而属于 \(P\)，所以 \(F(X)\subseteq P\)。特别地，取 \(X=P\)，
+便有 \(F(P)\subseteq P\)，即 \(P\) 是 \(F\)-闭的。归纳原理给出
+\(\mu F\subseteq P\)。另一方面，任何 \(F\)-闭集合都必须包含 \(0\)，并且
+只要包含 \(i\) 就必须包含 \(i+1\)，所以 \(\mu F=\mathbb N\)。因此
+\(P(n)\) 对所有 \(n\in\mathbb N\) 成立。
 
 对字典序归纳，定义
 \[
 F(X)=\{(m,n)\mid
   \forall(m',n')<(m,n).\ (m',n')\in X\}.
 \]
-设数对上的谓词 \(P\) 满足：若所有 \((m',n')<(m,n)\) 都满足 \(P\)，则
-\((m,n)\) 也满足 \(P\)。同样，由这个前提直接得到
-\(F(P)\subseteq P\)，所以 \(P\) 是 \(F\)-闭的，归纳原理给出
-\(\mu F\subseteq P\)。最后只需确认 \(\mu F=\mathbb N\times\mathbb N\)。
-全体自然数对显然 \(F\)-闭；若存在更小的 \(F\)-闭集合 \(Y\)，取字典序下不
-属于 \(Y\) 的最小数对 \((m,n)\)。所有更小数对都属于 \(Y\)，故
-\((m,n)\in F(Y)\setminus Y\)，与闭合性矛盾。
+把谓词 \(P\) 看成所有满足 \(P\) 的自然数对组成的集合。题设是：若某个数对
+的所有字典序前驱都属于 \(P\)，那么该数对也属于 \(P\)。因此，若
+\(X\subseteq P\)，任取 \((m,n)\in F(X)\)，它的所有字典序前驱都属于
+\(X\)，从而也属于 \(P\)；题设于是给出 \((m,n)\in P\)，所以
+\(F(X)\subseteq P\)。特别地，\(F(P)\subseteq P\)，即 \(P\) 是
+\(F\)-闭的，归纳原理给出 \(\mu F\subseteq P\)。
+
+最后证明 \(\mu F=\mathbb N\times\mathbb N\)。首先，
+\(\mathbb N\times\mathbb N\) 是 \(F\)-闭的。再反设它的某个真子集
+\(Y\) 也是 \(F\)-闭的。由于字典序是良基的，不属于 \(Y\) 的数对中存在
+字典序最小者，记为 \((m,n)\)。它的所有字典序前驱都属于 \(Y\)，所以
+\((m,n)\in F(Y)\)；但按选取方式，\((m,n)\notin Y\)，这与
+\(F(Y)\subseteq Y\) 矛盾。因此，\(\mathbb N\times\mathbb N\) 的任何
+真子集都不可能是 \(F\)-闭的，故最小的 \(F\)-闭集合就是
+\(\mathbb N\times\mathbb N\)。
+
+\translatornote{这里定义生成函数 \(F\)，是为了把具体的归纳规则接到
+\cref{cor:21.1.8}的抽象归纳原理上。普通归纳中的 \(\{0\}\) 表示起点
+“\(0\) 是自然数”，\(\{i+1\mid i\in X\}\) 表示后继规则“已有 \(i\)
+便可生成 \(i+1\)”。从空集反复应用 \(F\)，会依次得到 \(\{0\}\)、
+\(\{0,1\}\)、\(\{0,1,2\}\) 等集合，最小不动点正是 \(\mathbb N\)。
+
+字典序归纳的生成函数采用同样的思路。条件 \((m,n)\in F(X)\) 表示：所有
+字典序小于 \((m,n)\) 的数对都已经属于 \(X\)，因而现在可以处理
+\((m,n)\)。例如，若 \(X=\{(0,0)\}\)，则 \((0,1)\) 的唯一字典序前驱是
+\((0,0)\)，所以 \((0,1)\in F(X)\)；\((0,0)\) 没有前驱，也属于
+\(F(X)\)。但 \((0,2)\) 还有前驱 \((0,1)\notin X\)，因此尚不属于
+\(F(X)\)。
+
+证明末尾的“真子集”按集合包含关系比较，“最小数对”则按字典序比较。若
+一个真子集 \(Y\) 漏掉的字典序最小数对是 \((m,n)\)，那么它的所有字典序
+前驱都已属于 \(Y\)，故 \((m,n)\in F(Y)\)；但 \((m,n)\notin Y\)，所以
+\(F(Y)\nsubseteq Y\)，\(Y\) 不可能是 \(F\)-闭的。}
 
 \taplsolutionbacklink{ex:21.1.9}{返回练习21.1.9}
 \end{taplauthorsolutionentrybox}
@@ -59,24 +93,65 @@ F(X)=\{(m,n)\mid
 \label{sol:author:21.2.2}
 \textbf{21.2.2 解答}
 
-把树定义为偏函数
-\(T:\{1,2\}^{*}\rightharpoonup\{\to,\times,\tapltype{Top}\}\)，只要求：
-\(T(\epsilon)\) 有定义；若 \(T(\pi,\sigma)\) 有定义，则 \(T(\pi)\) 有定义。
-节点标记不再受其他限制，例如标为 \(\tapltype{Top}\) 的节点也可以有非平凡
-子节点。把所有这种树组成的集合取作全集 \(U\)，并定义
+先定义一个足够宽的候选全集。这里的树是偏函数
+\(T:\{1,2\}^{*}\rightharpoonup\{\to,\times,\tapltype{Top}\}\)，只要求根节点
+\(T(\epsilon)\) 有定义，并且只要 \(T(\pi,\sigma)\) 有定义，其父节点
+\(T(\pi)\) 就有定义。除此之外暂不限制节点标记；例如，标为
+\(\tapltype{Top}\) 的节点也可以有非平凡子节点。把所有这样的树组成的集合
+取作全集 \(U\)。与\taplsecref{21.2}{sec:21.2}相同，符号
+\(\tapltype{Top}\)、\(\times\) 和 \(\to\) 也表示相应的树构造操作。定义
 \[
 F(X)=\{\tapltype{Top}\}
 \cup\{T_1\times T_2\mid T_1,T_2\in X\}
-\cup\{T_1\to T_2\mid T_1,T_2\in X\}.
+\cup\{T_1\to T_2\mid T_1,T_2\in X\}
 \]
 
-由定义可见 \(\mathcal T\subseteq U\)。要证
-\(\mathcal T=\nu F\) 与 \(\mathcal T_f=\mu F\)。因为 \(\mathcal T\) 是
-\(F\)-一致的，余归纳给出 \(\mathcal T\subseteq\nu F\)。反向包含关系只需
-对路径长度归纳，验证\cref{def:21.2.1}最后两项。因为
-\(\mathcal T_f\) 是 \(F\)-闭的，归纳给出
-\(\mu F\subseteq\mathcal T_f\)。反向包含关系对有限树的大小作归纳；这里可把
-树的大小定义为满足 \(T(\pi)\) 有定义的最长路径 \(\pi\) 的长度。
+由定义可见 \(\mathcal T\subseteq U\)，所以可以在同一全集中比较
+\(\mathcal T\) 与 \(\nu F\)，以及 \(\mathcal T_f\) 与 \(\mu F\)。下面分别
+验证这两个等式。
+
+先证 \(\mathcal T=\nu F\)。
+
+\textbf{包含关系 \(\mathcal T\subseteq\nu F\)。}
+任取 \(T\in\mathcal T\)。把 \(X=\mathcal T\) 代入 \(F\) 的定义，得到
+\[
+F(\mathcal T)=\{\tapltype{Top}\}
+\cup\{T_1\times T_2\mid T_1,T_2\in\mathcal T\}
+\cup\{T_1\to T_2\mid T_1,T_2\in\mathcal T\}
+\]
+若 \(T=\tapltype{Top}\)，它属于右侧第一部分。若
+\(T=T_1\times T_2\) 或 \(T=T_1\to T_2\)，则两棵直接子树仍是合法树，
+因而 \(T_1,T_2\in\mathcal T\)，所以 \(T\) 分别属于右侧第二或第三部分。
+三种情况下都有 \(T\in F(\mathcal T)\)，故
+\(\mathcal T\subseteq F(\mathcal T)\)。这说明 \(\mathcal T\) 是
+\(F\)-一致的；再由余归纳原理得到
+\(\mathcal T\subseteq\nu F\)。
+
+\textbf{包含关系 \(\nu F\subseteq\mathcal T\)。}
+任取 \(T\in\nu F\)。因为 \(\nu F\) 是不动点，所以
+\(\nu F=F(\nu F)\)，从而 \(T\in F(\nu F)\)。逐项查看 \(F\) 的定义可知，
+树的根节点必由三种构造之一生成：它或者是没有子节点的
+\(\tapltype{Top}\)，或者标为 \(\times\) 或 \(\to\)，并有两棵仍属于
+\(\nu F\) 的直接子树。对直接子树可以重复同一论证。形式上，沿任意路径
+\(\pi\) 对其长度作归纳，便可逐层验证\cref{def:21.2.1}第三、第四项条件。
+因此 \(T\) 是合法树类型，即 \(T\in\mathcal T\)。
+
+再证 \(\mathcal T_f=\mu F\)。
+
+\textbf{包含关系 \(\mu F\subseteq\mathcal T_f\)。}
+把 \(X=\mathcal T_f\) 代入 \(F\) 的定义：第一部分生成单节点有限树
+\(\tapltype{Top}\)，第二、第三部分分别用两棵有限树构造积类型树和箭头
+类型树，结果仍是有限树。所以
+\(F(\mathcal T_f)\subseteq\mathcal T_f\)，即 \(\mathcal T_f\) 是
+\(F\)-闭的。归纳原理于是给出
+\(\mu F\subseteq\mathcal T_f\)。
+
+\textbf{包含关系 \(\mathcal T_f\subseteq\mu F\)。}
+对有限树的大小作归纳；这里用满足 \(T(\pi)\) 有定义的最长路径 \(\pi\) 的
+长度衡量树的大小。单节点树 \(\tapltype{Top}\) 属于 \(F(\mu F)=\mu F\)。
+对于更大的有限树，其根标为 \(\times\) 或 \(\to\)，两棵直接子树都更小。
+由归纳假设，两棵子树属于 \(\mu F\)；再按 \(F\) 的定义，整棵树也属于
+\(F(\mu F)=\mu F\)。因此 \(\mathcal T_f\subseteq\mu F\)。
 
 \taplsolutionbacklink{ex:21.2.2}{返回练习21.2.2}
 \end{taplauthorsolutionentrybox}
@@ -99,23 +174,59 @@ F(X)=\{\tapltype{Top}\}
 \label{sol:author:21.3.4}
 \textbf{21.3.4 解答}
 
-对任意无限树类型 \(T\)，\((T,T)\) 都属于 \(\nu\mathcal S\)，却不属于
-\(\mu\mathcal S\)。令
+\textbf{无限类型的反例。}
+任取无限树类型 \(T\)。下面证明 \((T,T)\in\nu\mathcal S\)，但
+\((T,T)\notin\mu\mathcal S\)。令
 \[
 R=\{(Q,Q)\mid Q\text{ 是 }T\text{ 的子树}\}.
 \]
-直接检查 \(\mathcal S\) 的定义可得 \(R\subseteq\mathcal S(R)\)，余归纳给出
-\(R\subseteq\nu\mathcal S\)，故 \((T,T)\in\nu\mathcal S\)。另一方面，
-\((T,T)\) 不可能有一份有限的归纳推导：无限树 \(T\) 至少有一条无限路径；沿
-这条路径，每遇到 \(\to\) 或 \(\times\) 节点，推导就必须继续进入相应子树，
-因而永远无法在有限深度内到达公理分支。于是 \((T,T)\notin\mu\mathcal S\)。
+先验证 \(R\subseteq\mathcal S(R)\)。任取 \((Q,Q)\in R\)，按 \(Q\) 的
+根节点分类。若 \(Q=\tapltype{Top}\)，则 \((Q,Q)\) 由 \(\mathcal S\) 的
+第一部分直接生成。若 \(Q=Q_1\times Q_2\)，则两棵直接子树仍是 \(T\) 的
+子树，故 \((Q_1,Q_1),(Q_2,Q_2)\in R\)，积类型分支生成 \((Q,Q)\)。若
+\(Q=Q_1\to Q_2\)，箭头类型分支同样由这两个类型对生成 \((Q,Q)\)。因此
+\(R\) 是 \(\mathcal S\)-一致的。余归纳给出
+\(R\subseteq\nu\mathcal S\)；又因为 \(T\) 是自身的子树，
+\((T,T)\in R\)，所以 \((T,T)\in\nu\mathcal S\)。
 
-不存在属于 \(\nu\mathcal S_f\) 却不属于 \(\mu\mathcal S_f\) 的有限类型对，
-因为两个不动点相等。对任意 \(S,T\in\mathcal T_f\)，命题
-\((S,T)\in\nu\mathcal S_f\Rightarrow(S,T)\in\mu\mathcal S_f\) 可对
-\(S,T\) 的大小之和归纳证明，分别讨论 \(\tapltype{Top}\)、积和箭头，并使用
-\(\mathcal S_f(\nu\mathcal S_f)=\nu\mathcal S_f\) 与
-\(\mathcal S_f(\mu\mathcal S_f)=\mu\mathcal S_f\)。
+回到 \((T,T)\)。无限树 \(T\) 至少有一条无限路径。沿这条路径，每遇到
+\(\to\) 或 \(\times\) 节点，证明当前子树是自身子类型的推导都必须继续
+进入同一棵直接子树，因而形成一条无限推导分支，无法得到有限推导。例如，若
+\(T=\tapltype{Top}\times T\)，积类型规则会把 \(T\subtype T\) 化为
+\(\tapltype{Top}\subtype\tapltype{Top}\) 和同一个目标
+\(T\subtype T\)。所以 \((T,T)\notin\mu\mathcal S\)。
+
+\translatornote{令 \(D\) 为所有具有有限子类型推导的类型对组成的关系。下面
+说明 \(D=\mu\mathcal S\)。
+
+先证 \(\mu\mathcal S\subseteq D\)。以 \(D\) 中的判断为前提应用一条规则，
+只需把该规则接在若干份有限推导之下，所得推导仍然有限。因此
+\(\mathcal S(D)\subseteq D\)，即 \(D\) 是 \(\mathcal S\)-闭的。根据
+Knaster--Tarski 定理，\(\mu\mathcal S\) 是所有 \(\mathcal S\)-闭关系的
+交，因而包含于每一个闭关系；特别地，\(\mu\mathcal S\subseteq D\)。
+
+再证 \(D\subseteq\mu\mathcal S\)。任取 \(D\) 中的类型对，对其有限推导的
+高度作归纳。若最后使用的是无前提规则，其结论直接属于
+\(\mathcal S(\mu\mathcal S)=\mu\mathcal S\)。否则，最后一条规则的各个
+前提都有更矮的推导，由归纳假设均属于 \(\mu\mathcal S\)；应用最后一条规则，
+结论便属于 \(\mathcal S(\mu\mathcal S)=\mu\mathcal S\)。因此
+\(D\subseteq\mu\mathcal S\)，最终得到 \(D=\mu\mathcal S\)。所以，只能
+依靠无限循环相互支持、无法形成有限推导的判断，不会进入
+\(\mu\mathcal S\)。}
+
+\textbf{有限类型的情形。}
+不存在属于 \(\nu\mathcal S_f\) 却不属于 \(\mu\mathcal S_f\) 的有限类型对；
+事实上，两个不动点相等。按最小不动点的定义，它包含于
+\(\mathcal S_f\) 的任意不动点；特别地，
+\(\mu\mathcal S_f\subseteq\nu\mathcal S_f\)。故只需证明反向包含关系
+\(\nu\mathcal S_f\subseteq\mu\mathcal S_f\)。任取
+\((S,T)\in\nu\mathcal S_f\)，对 \(S,T\) 的大小之和归纳。由于
+\(\nu\mathcal S_f=\mathcal S_f(\nu\mathcal S_f)\)，可以检查
+\(\mathcal S_f\) 中生成该类型对的分支：若 \(T=\tapltype{Top}\)，结论由
+无前提规则直接属于 \(\mu\mathcal S_f\)；若 \(S,T\) 都是积类型，两个分量
+对应的类型对规模更小，由归纳假设属于 \(\mu\mathcal S_f\)，再应用积类型
+分支即可；箭头类型的情形相同，只需注意参数位置的类型对方向相反。于是
+\((S,T)\in\mu\mathcal S_f\)，两个不动点相等。
 
 \taplsolutionbacklink{ex:21.3.4}{返回练习21.3.4}
 \end{taplauthorsolutionentrybox}
@@ -160,12 +271,35 @@ I=\{(T,T)\mid T\in\mathcal T\}.
 \textbf{21.5.2 解答}
 
 检查可逆性，只需查看 \(\mathcal S_f\) 与 \(\mathcal S\) 的定义，并确认每个
-\(\mathcal G_{(S,T)}\) 至多含一个最小成员。两个定义的每一项都明确规定了
+\(\mathcal G_{(S,T)}\) 至多含一个极小成员。两个定义的每一项都明确规定了
 可支持元素的形式和支持集内容，所以可直接写出
 \(\operatorname{support}_{\mathcal S_f}\) 与
 \(\operatorname{support}_{\mathcal S}\)；其形式与
 \cref{def:21.8.4}之后的 \(\operatorname{support}_{\mathcal S_\mu}\) 相同，
 只去掉两个 \(\mu\) 分支。
+
+\translatornote{把作者省略的分类写开如下。对
+\(\mathcal F\in\{\mathcal S_f,\mathcal S\}\)，其支持函数为
+\[
+\operatorname{support}_{\mathcal F}(S,T)=
+\begin{cases}
+\varnothing,
+  &T=\tapltype{Top},\\
+\{(S_1,T_1),(S_2,T_2)\},
+  &S=S_1\times S_2,\ T=T_1\times T_2,\\
+\{(T_1,S_1),(S_2,T_2)\},
+  &S=S_1\to S_2,\ T=T_1\to T_2,\\
+\uparrow,
+  &\text{其他情形}.
+\end{cases}
+\]
+两者的公式相同；\(\mathcal S_f\) 的参数只取有限树类型，
+\(\mathcal S\) 的参数则可以取无限树类型。右侧为
+\(\tapltype{Top}\) 时无需任何前提，所以最小支持集为空集。积类型必须同时
+支持两个对应分量；箭头类型必须支持逆向的参数类型对
+\((T_1,S_1)\) 和正向的结果类型对 \((S_2,T_2)\)。其余外层形状无法由任何
+分支生成，故支持函数无定义。这几种形状互不重叠，而且每种形状所需的前提集合
+都唯一，因此 \(\mathcal S_f\) 与 \(\mathcal S\) 都可逆。}
 
 \taplsolutionbacklink{ex:21.5.2}{返回练习21.5.2}
 \end{taplauthorsolutionentrybox}
@@ -252,8 +386,8 @@ F(X)=\{0\}\cup\{n\mid n+1\in X\}.
 \(y\in\operatorname{support}(x)\) 且二者高度都有定义，则
 \(\operatorname{height}(y)<\operatorname{height}(x)\)。
 
-若 \(F\) 同时有限状态且具有有限高度，\(\operatorname{lfp}(X)\) 对每个有限
-输入都终止。递归调用中的集合始终有限，而
+若 \(F\) 是有限状态的，并且具有有限高度，则 \(\operatorname{lfp}(X)\) 对
+每个有限输入都终止。递归调用中的集合始终有限，而
 \[
 h(Y)=\max\{\operatorname{height}(y)\mid y\in Y\}
 \]
@@ -275,6 +409,8 @@ h(Y)=\max\{\operatorname{height}(y)\mid y\in Y\}
 \{(\tapltype{Top},\mu Y.\tapltype{Top})\},\qquad
 \{(\mu X.\tapltype{Top},\tapltype{Top})\}.
 \]
+可将这里的两个极小生成集，与同一类型对在 \(\mathcal S_\mu\) 下的生成集
+作比较。
 
 \(\mathcal S_\mu\) 的最后一项是 \(\mathcal S_d\) 最后一项的限制，其他各项
 相同，因此
@@ -291,11 +427,20 @@ h(Y)=\max\{\operatorname{height}(y)\mid y\in Y\}
 \end{taplappendixlemma}
 
 \begin{proof}[证明概要]
-对 \(k=\mu\text{-}\operatorname{height}(S)\) 归纳。归纳把
+令 \(k=\mu\text{-}\operatorname{height}(S)\)，对 \(k\) 作归纳。
+归纳把
 \((S,T)\in\nu\mathcal S_d\) 的任意推导变换为同一判断在
-\(\mathcal S_\mu\) 中的推导。左 \(\mu\)-折叠规则的限制保证，变换后的每段
+\(\nu\mathcal S_\mu\) 中的推导。左 \(\mu\)-折叠规则的限制保证，变换后的每段
 折叠序列都先连续应用若干次左折叠，再连续应用若干次右折叠。
 \end{proof}
+
+\translatornote{这项重排是要把 \(\mathcal S_d\) 中允许任意穿插的折叠步骤，
+改造成符合 \(\mathcal S_\mu\) 限制的推导。按推导树从前提向结论读，一旦右
+折叠在右侧加入最外层 \(\mu\)，\(\mathcal S_\mu\) 左折叠分支要求“右侧不以
+\(\mu\) 开头”的旁条件便不再满足；因此每段折叠只能先做左折叠，再做右折叠。
+重排的难点只来自这项左折叠限制；右折叠没有相应的旁条件。沿推导树从结论
+追溯前提时，每处理一次左折叠，左侧类型开头连续出现的 \(\mu\) 绑定便少一个，
+所以只需对这个数量 \(k\) 归纳。}
 
 \taplsolutionbacklink{ex:21.8.5}{返回练习21.8.5}
 \end{taplauthorsolutionentrybox}
@@ -320,7 +465,8 @@ h(Y)=\max\{\operatorname{height}(y)\mid y\in Y\}
 \frac{S\sqsubseteq[X\mapsto\mu X.T]T}{S\sqsubseteq\mu X.T}.
 \]
 
-值得注意的是，\(\operatorname{TD}\) 不可逆。例如判断
+有一点值得注意：\(\operatorname{TD}\) 与本章此前考察的生成函数不同，
+它不可逆。例如判断
 \(B\sqsubseteq(A\times B)\to(B\times C)\) 有两个生成集
 \(\{B\sqsubseteq A\times B\}\) 与
 \(\{B\sqsubseteq B\times C\}\)，二者互不包含。

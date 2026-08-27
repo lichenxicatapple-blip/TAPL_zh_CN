@@ -449,6 +449,11 @@
   \hyperref[#1]{\tapltightreftext{#2\ref*{#1}}}%
 }
 
+% Start a list on a new line when it is the first content of a numbered
+% statement. This avoids leaving the first item attached to the run-in title.
+\newcommand{\taplstatementliststart}{\Needspace{5\baselineskip}}
+\newcommand{\taplstatementlistbreak}{\leavevmode\par}
+
 \theoremstyle{definition}
 \newtheorem{definition}{定义}[section]
 \newtheorem{exercise}[definition]{练习}
