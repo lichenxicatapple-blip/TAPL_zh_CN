@@ -320,10 +320,19 @@ let rec typeof ctx t = match t with
 \taplrustcounterpartflowchunk{ch25-typechecking}{35}{46}
 \taplrustcounterpartflowchunk{ch25-typechecking}{47}{57}
 
-\texttt{TmUnpack} 先确认 \(t_1\) 具有存在类型，再依次把类型变量和项变量加入
-上下文，检查 \(t_2\)，最后把结果类型整体下移二位，使其重新相对于原上下文
-解释。如果结果类型仍含隐藏变量 \(X\)，下移会试图产生负索引；实现应在此处
-报告作用域错误，而不能构造无意义的类型。
+最值得注意的新分支是 \texttt{TmUnpack}。它依次完成以下步骤：
+\begin{enumerate}
+  \item 检查子表达式 \(t_1\)，确认它具有存在类型
+        \(\{\exists X,T_{11}\}\)；
+  \item 用类型变量绑定 \(X\) 和项变量绑定 \(x:T_{11}\) 扩展上下文
+        \(\Gamma\)，并检查 \(t_2\) 具有某个类型 \(T_2\)；
+  \item 把 \(T_2\) 中自由变量的索引下移二位，使它重新相对于原上下文
+        \(\Gamma\) 有意义；
+  \item 返回所得类型，作为整个 \textbf{let}\ldots\textbf{in}\ldots
+        表达式的类型。
+\end{enumerate}
+显然，如果 \(T_2\) 中仍自由出现隐藏变量 \(X\)，第 3 步的下移就会产生含有
+负索引的无意义类型；实现应在此处报告作用域错误，而不能返回这样的类型。
 
 \begin{taplocamlcode}
 let typeShiftAbove d c tyT =

@@ -1,7 +1,7 @@
 % 第 22 章：类型重构
 % Source: source/split/chapters/ch22-type-reconstruction_p302-p320.pdf
 % Original print pages: 317--338
-% Status: 待独立初审
+% Status: 人工总审中
 
 \chapter{类型重构}
 \label{chap:22}
@@ -14,10 +14,7 @@
 
 类型重构与其他语言特性的组合往往需要格外谨慎；记录和子类型化都会带来显著
 困难。为突出基本思想，本章只研究简单类型；\taplsecref{22.8}{sec:22.8}
-列出了进一步阅读其他组合的起点。\footnote{本章研究的系统是带布尔值
-（\cref{fig:8-1}）、自然数（\cref{fig:8-2}）和无限多个基本类型
-（\cref{fig:11-1}）的简单类型 lambda 演算（\cref{fig:9-1}）。原书相应的
-OCaml 实现为 \texttt{recon} 和 \texttt{fullrecon}。}
+列出了进一步阅读其他组合的起点。
 
 \section{类型变量与替换}
 \label{sec:22.1}
@@ -31,24 +28,29 @@ OCaml 实现为 \texttt{recon} 和 \texttt{fullrecon}。}
 
 在技术上，把类型替换分成两步比较方便：先用\termfirst{类型替换}{type
 substitution} \(\sigma\) 描述从类型变量到类型的有限映射，再把它作用于类型
-\(T\)，得到实例 \(\sigma T\)。例如，若
+\(T\)，得到实例 \(\sigma T\)。\footnote{本章研究的系统是带布尔值
+（\cref{fig:8-1}）、自然数（\cref{fig:8-2}）和无限多个基本类型
+（\cref{fig:11-1}）的简单类型 lambda 演算（\cref{fig:9-1}）。原书相应的
+OCaml 实现为 \texttt{recon} 和 \texttt{fullrecon}。}例如，若
 \(\sigma=[X\mapsto\tapltype{Bool}]\)，则
 \(\sigma(X\to X)=\tapltype{Bool}\to\tapltype{Bool}\)。
 
 \begin{definition}
 \label{def:22.1.1}
-类型替换是从类型变量到类型的有限映射。记
+类型替换（上下文明确时也简称替换）是从类型变量到类型的有限映射。记
 \([X\mapsto T,Y\mapsto U]\) 为把 \(X\) 映射到 \(T\)、把 \(Y\) 映射到
 \(U\) 的替换；
 \(\dom(\sigma)\) 是等式左侧出现的变量集合，
 \(\range(\sigma)\) 是右侧出现的类型集合。
 
-同一个变量可以同时出现在定义域和值域中。替换的各项同时生效。例如，替换
+同一个变量可以同时出现在替换的定义域和值域中；与项替换一样，此时各项映射
+同时生效。例如，替换
 \[
 [X\mapsto\tapltype{Bool},Y\mapsto X\to X]
 \]
 把 \(Y\) 映射到 \(X\to X\)，而非
-\(\tapltype{Bool}\to\tapltype{Bool}\)。替换作用于类型的定义为
+\(\tapltype{Bool}\to\tapltype{Bool}\)。替换作用于类型的方式很直接，
+具体定义如下：
 \[
 \begin{array}{rcl}
 \sigma X&=&\begin{cases}
@@ -60,7 +62,8 @@ substitution} \(\sigma\) 描述从类型变量到类型的有限映射，再把�
 \sigma(T_1\to T_2)&=&\sigma T_1\to\sigma T_2.
 \end{array}
 \]
-类型表达式在本章尚无绑定类型变量的构造，因此这里无须处理变量捕获。
+这里不必考虑变量捕获，因为本章类型表达式中的变量都是自由的；还没有任何
+类型构造会在内部声明并约束一个类型变量。\chapref{23}才会引入这类构造。
 
 替换逐点作用于上下文：
 \[
@@ -75,11 +78,18 @@ substitution} \(\sigma\) 描述从类型变量到类型的有限映射，再把�
 (\sigma\circ\gamma)(X)=
 \begin{cases}
 \sigma(\gamma X)&X\in\dom(\gamma),\\
-\sigma X&X\notin\dom(\gamma).
+\sigma X&X\notin\dom(\gamma)
 \end{cases}
 \]
-于是 \((\sigma\circ\gamma)S=\sigma(\gamma S)\)。
+由此可得，对任意类型 \(S\)，复合替换的作用等同于先应用 \(\gamma\)，
+再应用 \(\sigma\)：
+\[
+(\sigma\circ\gamma)S=\sigma(\gamma S)
+\]
 \end{definition}
+
+类型替换有一项关键性质：它保持赋型判断的有效性。也就是说，若一个含有
+类型变量的项能够赋型，那么它的每个替换实例也都能够赋型。
 
 \begin{theorem}[类型替换保持赋型]
 \label{thm:22.1.2}
@@ -97,10 +107,10 @@ substitution} \(\sigma\) 描述从类型变量到类型的有限映射，再把�
 设项 \(t\) 和上下文 \(\Gamma\) 可能含有类型变量。我们可以提出两个很不
 相同的问题：
 \begin{enumerate}
-  \item \(t\) 的\emph{所有}替换实例是否都能赋型？也就是，对每个
+  \item \(t\) 的所有替换实例是否都能赋型？也就是，对每个
         \(\sigma\)，是否都存在某个 \(T\)，使
         \(\sigma\Gamma\vdash\sigma t:T\)？
-  \item \(t\) 的\emph{某个}替换实例能否赋型？也就是，能否找到
+  \item \(t\) 的某个替换实例能否赋型？也就是，能否找到
         \(\sigma\) 和 \(T\)，使
         \(\sigma\Gamma\vdash\sigma t:T\)？
 \end{enumerate}
@@ -110,8 +120,11 @@ substitution} \(\sigma\) 描述从类型变量到类型的有限映射，再把�
 \[
 \lambda f:X\to X.\,\lambda a:X.\,f(f\,a)
 \]
-具有类型 \((X\to X)\to X\to X\)；把 \(X\) 换成任意具体类型 \(T\)，所得
-实例仍然良类型。这引出了\termfirst{参数多态}{parametric polymorphism}：
+具有类型 \((X\to X)\to X\to X\)；把 \(X\) 换成任意具体类型 \(T\)，得到
+\[
+\lambda f:T\to T.\,\lambda a:T.\,f(f\,a)
+\]
+这个实例仍然良类型。这引出了\termfirst{参数多态}{parametric polymorphism}：
 类型变量表明同一个项可以用于多种具体类型的上下文。本章
 \taplsecref{22.7}{sec:22.7}会先讨论一种受限形式，\chapref{23}再作完整
 研究。
@@ -121,11 +134,23 @@ substitution} \(\sigma\) 描述从类型变量到类型的有限映射，再把�
 \[
 \lambda f:Y.\,\lambda a:X.\,f(f\,a)
 \]
-目前不能赋型，但令 \(Y=\tapltype{Nat}\to\tapltype{Nat}\)、
-\(X=\tapltype{Nat}\)，即可得到类型为
+按普通赋型规则，它目前不能赋型：\(f\) 的标注 \(Y\) 还不是箭头类型，
+而应用 \(f\,a\) 要求 \(f\) 具有函数类型。但令
+\(Y=\tapltype{Nat}\to\tapltype{Nat}\)、
+\(X=\tapltype{Nat}\)，即可得到
+\[
+\lambda f:\tapltype{Nat}\to\tapltype{Nat}.\,
+  \lambda a:\tapltype{Nat}.\,f(f\,a)
+\]
+它具有类型
 \((\tapltype{Nat}\to\tapltype{Nat})\to\tapltype{Nat}\to
-\tapltype{Nat}\) 的项。只令 \(Y=X\to X\) 也可以，而且承诺得更少；所得
-实例仍含变量，却已经可以赋型。
+\tapltype{Nat}\)。也可以只令 \(Y=X\to X\)，得到
+\[
+\lambda f:X\to X.\,\lambda a:X.\,f(f\,a)
+\]
+这个实例虽仍含类型变量，却已经可以赋型。事实上，它是原项的
+最一般实例：在所有能使原项赋型的选择中，它对类型变量的取值施加的
+限制最少。
 
 寻找使项可赋型的实例，就是类型重构（也常称\termfirst{类型推断}{type
 inference}）的出发点。像 ML 那样，语言甚至可以允许省略所有 lambda 参数的
@@ -136,10 +161,12 @@ inference}）的出发点。像 ML 那样，语言甚至可以允许省略所有
 为了形式化类型重构，还需要一种简洁记法，用来描述：应当怎样在项及其上下文中
 用类型替换类型变量，才能得到有效的赋型判断。\footnote{还有其他建立基础定义的
 方式。Kirchner 与 Jouannaud（1990）提出的\termfirst{存在合一项}{existential
-unificand}，可以取代\cref{fig:22-1}约束生成规则中一条条的新鲜性条件。
-Rémy（1992a, 1992b, 1998）的另一种改进是把赋型判断本身当作合一项：
+unificand}，可以取代\cref{fig:22-1}约束生成规则中一条条新鲜性条件。
+Rémy（1992a、1992b 的长版；1998，第 5 章）的另一种改进是把赋型判断
+本身当作合一项：
 从三元组 \((\Gamma,t,T)\) 出发，允许三个分量都含类型变量，再寻找使
-\(\sigma\Gamma\vdash\sigma t:\sigma T\) 成立的替换 \(\sigma\)。}
+\(\sigma\Gamma\vdash\sigma t:\sigma T\) 成立的替换 \(\sigma\)；换言之，
+寻找能够合一这个示意性赋型判断 \(\Gamma\vdash t:T\) 的替换。}
 
 \begin{definition}
 \label{def:22.2.1}
@@ -181,7 +208,7 @@ Rémy（1992a, 1992b, 1998）的另一种改进是把赋型判断本身当作合
 等式；任何解都必须满足这些\emph{约束}。它与普通类型检查器的思路相同，区别
 在于先记录约束，稍后再集中求解。若应用 \(t_1\,t_2\) 的两个子项分别得到
 类型 \(T_1,T_2\)，算法不立即检查 \(T_1\) 是否为 \(T_2\to T_{12}\)，而是
-选择新的类型变量 \(X\)，记录 \(T_1=T_2\to X\)，并把 \(X\) 作为应用的
+选择新鲜类型变量 \(X\)，记录 \(T_1=T_2\to X\)，并把 \(X\) 作为应用的
 结果类型。
 
 \begin{definition}
@@ -235,7 +262,7 @@ Rémy（1992a, 1992b, 1998）的另一种改进是把赋型判断本身当作合
   {\Gamma\vdash t_1:T_1\mid_{X_1}C_1\\
    \Gamma\vdash t_2:T_2\mid_{X_2}C_2\\
    \Gamma\vdash t_3:T_3\mid_{X_3}C_3\\
-   X_1,X_2,X_3\text{ 两两不交，且不与其他子推导的类型变量重叠}}
+   X_1,X_2,X_3\text{ 两两不交}}
   {\Gamma\vdash\taplterm{if}\ t_1\ \taplterm{then}\ t_2\ \taplterm{else}\ t_3:T_2
    \mid_{X_1\cup X_2\cup X_3}
    C_1\cup C_2\cup C_3\cup\{T_1=\tapltype{Bool},T_2=T_3\}}
@@ -266,14 +293,15 @@ Rémy（1992a, 1992b, 1998）的另一种改进是把赋型判断本身当作合
 \label{fig:22-1}
 \end{figure}
 
-下标和新鲜性前提只负责避免不同子推导重复选用同一个“新”变量。第一次阅读
+这些下标和新鲜性条件只用于避免不同子推导把同一个变量名同时当作新鲜变量
+使用。第一次阅读
 规则时可以暂时忽略它们；第二次再检查两项保证：某条规则新选的变量不会与
 子推导已选变量冲突；一条规则有多个子推导时，各子推导所选变量彼此不交。由于
 变量名取之不尽，这些条件不会阻止我们为某个项构造推导。
 
 从结论向前提读取这些规则，可以得到由 \(\Gamma,t\) 计算 \(T,C,X\) 的过程。
 它不会像普通简单类型检查器那样中途失败：每个 \(\Gamma,t\) 都能生成一组
-\(T,C\)；无法赋型的问题会表现为 \(C\) 无解。除去新变量名称的选择，结果是
+\(T,C\)；无法赋型的问题会表现为 \(C\) 无解。若不计新鲜变量名称的具体选择，结果是
 唯一的。下文有时省略下标 \(X\)，只写
 \(\Gamma\vdash t:T\mid C\)。
 
@@ -304,7 +332,10 @@ Y\mapsto\tapltype{Bool}]\) 满足约束，所以
 \((\Gamma,t,S,C)\) 的一个解。
 \end{definition}
 
-普通赋型与约束赋型从两个角度刻画同一批实例：前者直接取
+寻找合一给定约束集 \(C\) 的替换，是下一节要解决的算法问题。在此之前，
+先检验约束赋型算法是否与原来的声明式赋型关系一致。
+
+声明式赋型与约束赋型从两个角度刻画同一批实例：前者直接取
 \cref{def:22.2.1}意义下 \((\Gamma,t)\) 的全部解；后者先生成 \(S,C\)，
 再取 \((\Gamma,t,S,C)\) 的全部解。下面分别证明后者不会产生错误解，并且
 不会漏掉前者的解。
@@ -314,6 +345,8 @@ Y\mapsto\tapltype{Bool}]\) 满足约束，所以
 若 \(\Gamma\vdash t:S\mid C\)，且 \((\sigma,T)\) 是
 \((\Gamma,t,S,C)\) 的解，则它也是 \((\Gamma,t)\) 的解。
 \end{theorem}
+
+在这一方向的证明中，新鲜变量集合 \(X\) 不起关键作用，可以省略。
 
 \begin{proof}
 对约束赋型推导作归纳，并按最后使用的规则分类。
@@ -325,15 +358,33 @@ Y\mapsto\tapltype{Bool}]\) 满足约束，所以
 \emph{CT-Abs：}此时 \(t=\lambda x:T_1.\,t_2\)、
 \(S=T_1\to S_2\)，且
 \(\Gamma,x:T_1\vdash t_2:S_2\mid C\)。已知 \(\sigma\) 满足 \(C\)，
-且 \(T=\sigma T_1\to\sigma S_2\)。归纳假设给出
-\(\sigma\Gamma,x:\sigma T_1\vdash\sigma t_2:\sigma S_2\)，再用 T-Abs
-即可。
+且 \(T=\sigma S=\sigma T_1\to\sigma S_2\)。因此
+\((\sigma,\sigma S_2)\) 是
+\(((\Gamma,x:T_1),t_2,S_2,C)\) 的解。归纳假设表明它也是
+\(((\Gamma,x:T_1),t_2)\) 的解，即
+\(\sigma\Gamma,x:\sigma T_1\vdash\sigma t_2:\sigma S_2\)。再用 T-Abs 得到
+\[
+\sigma\Gamma\vdash
+\lambda x:\sigma T_1.\,\sigma t_2:
+\sigma T_1\to\sigma S_2=T
+\]
 
 \emph{CT-App：}设两个子项生成 \(S_1,C_1\) 与 \(S_2,C_2\)，结果变量为
 \(X\)。因为 \(\sigma\) 满足合并后的约束，它分别满足 \(C_1,C_2\)，并有
-\(\sigma S_1=\sigma S_2\to\sigma X\)。归纳假设得到两个子项的普通赋型；
-由 T-App 可推出应用的类型为 \(\sigma X=T\)。其余情形相同。
+\(\sigma S_1=\sigma S_2\to\sigma X\)。所以
+\((\sigma,\sigma S_1)\) 与 \((\sigma,\sigma S_2)\) 分别是两个子问题的解。
+归纳假设给出
+\[
+\sigma\Gamma\vdash\sigma t_1:\sigma S_1
+\qquad
+\sigma\Gamma\vdash\sigma t_2:\sigma S_2
+\]
+把第一个类型改写为 \(\sigma S_2\to\sigma X\)，再应用 T-App，得到
+\(\sigma\Gamma\vdash\sigma(t_1\,t_2):\sigma X=T\)。其余情形类似。
 \end{proof}
+
+反方向的完备性论证更为细致，因为必须谨慎处理约束赋型规则引入的新鲜
+类型变量名。
 
 \begin{definition}
 \label{def:22.3.6}
@@ -358,7 +409,7 @@ Y\mapsto\tapltype{Bool}]\) 满足约束，所以
 \emph{CT-Abs：}普通赋型的反演引理给出某个 \(T_2\)，使
 \(\sigma\Gamma,x:\sigma T_1\vdash\sigma t_2:T_2\)，且
 \(T=\sigma T_1\to T_2\)。对子项使用归纳假设，得到延伸替换
-\(\sigma'\)。新变量集合不含 \(T_1\) 中的变量，所以
+\(\sigma'\)。新鲜变量集合不含 \(T_1\) 中的变量，所以
 \(\sigma'T_1=\sigma T_1\)，于是
 \(\sigma'(T_1\to S_2)=T\)。
 
@@ -385,8 +436,8 @@ Y\mapsto\tapltype{Bool}]\) 满足约束，所以
 \end{cases}
 \]
 由 \(X_1\cap X_2=\varnothing\) 及 \(X\notin X_1\cup X_2\)，这一定义无歧义。第 1、2 项
-直接成立；第 3 项由归纳假设和两个新变量集合不相交得到。对第 4 项，
-新鲜性条件给出
+直接成立；第 3 项由归纳假设和两个新鲜变量集合不相交得到。对第 4 项，
+由新鲜性条件可知，
 \(\fv(S_1)\cap(X_2\cup\{X\})=\varnothing\)，以及
 \(\fv(S_2)\cap(X_1\cup\{X\})=\varnothing\)。因此
 \[
@@ -412,18 +463,22 @@ Y\mapsto\tapltype{Bool}]\) 满足约束，所以
 
 \begin{exercise}[推荐，\(\star\star\star\)]
 \label{ex:22.3.9}
-实际编译器通常用一个每次生成全新名称的函数代替 CT-App 对类型变量的
-非确定选择。全局名称生成器依赖隐藏的可变状态，不便于形式推理。可将尚未使用
-的变量名序列 \(F\) 显式传过规则，把判断改写为
+CT-App 只要求任意选取一个新鲜类型变量名，并未规定具体选取哪一个。实际编译器
+通常调用名称生成函数完成这一步：它每次返回的名称既不同于此前生成的所有名称，
+也不同于当前上下文或待检查项中明确出现的类型变量。全局名称生成器依赖隐藏的
+可变状态，不便于形式推理。可将一列
+互不相同、尚未使用的变量名 \(F\) 显式传过规则，把判断改写为
 \(\Gamma\vdash_F t:T\mid_{F'}C\)：
-\(\Gamma,F,t\) 是输入，\(T,F',C\) 是输出；需要新变量时取 \(F\) 的首项，
+\(\Gamma,F,t\) 是输入，\(T,F',C\) 是输出；需要新鲜类型变量时取 \(F\) 的首项，
 把余下序列作为 \(F'\)。写出规则，并证明它与原约束生成规则在适当意义下等价。
 \end{exercise}
 \taplauthorsolutionlink{sol:author:22.3.9}{22.3.9}
 
 \begin{exercise}[推荐，\(\star\star\)]
 \label{ex:22.3.10}
-用 ML 实现\cref{ex:22.3.9}的算法。类型与约束集可以表示为：
+用 ML 实现\cref{ex:22.3.9}的算法。类型与约束集可以使用下面的数据类型；
+还需要表示一列无限的新鲜变量名，实现方式很多，代码中给出一种直接的递归
+表示：
 \begin{taplocamlcode}
 type ty =
     TyBool
@@ -440,18 +495,17 @@ let uvargen =
   let rec f n () = NextUVar("?X_" ^ string_of_int n, f (n+1))
   in f 0
 \end{taplocamlcode}
-\taplrustcounterpartflowchunkfirst{ch22-types-generator}{1}{9}
-\Needspace{30\baselineskip}
-\taplrustcounterpartflowchunk{ch22-types-generator}{11}{37}
-\Needspace{33\baselineskip}
-\taplrustcounterpartflowchunk{ch22-types-generator}{39}{68}
-\Needspace{21\baselineskip}
-\taplrustcounterpartflowchunk{ch22-types-generator}{70}{87}
-\Needspace{21\baselineskip}
-\taplrustcounterpartflowchunk{ch22-types-generator}{88}{105}
+\taplocamlgroupedcounterpart{ch22-types-generator}
 这里的 \texttt{uvargen} 是一个函数；以 \texttt{()} 调用后，它返回
-\texttt{NextUVar(x,f)}，其中 \texttt{x} 是新名称，\texttt{f} 又是同类
+\texttt{NextUVar(x,f)}，其中 \texttt{x} 是新鲜类型变量名，\texttt{f} 又是同类
 生成函数。
+
+\taplrustcounterpartflowchunkfirst{ch22-types-generator}{1}{10}
+\taplrustcounterpartflowchunk{ch22-inference-support}{2}{2}
+\taplrustcounterpartflowchunk{ch22-types-generator}{41}{55}
+Rust 实现中的 \texttt{reserved} 保存已经使用的类型变量名，\texttt{fresh}
+会跳过这些名称。扫描上下文和类型标注、填充该集合的通用辅助代码仍保留在
+完整工程中，此处不再刊载。
 \end{exercise}
 \taplauthorsolutionlink{sol:author:22.3.10}{22.3.10}
 
@@ -506,31 +560,61 @@ let uvargen =
 
 \begin{definition}
 \label{def:22.4.4}
-类型合一算法定义如下；第二行的“令
-\({S=T}\cup C'=C\)”表示从 \(C\) 中任选一个约束 \(S=T\)，其余约束组成
-\(C'\)。若 \(\sigma\) 是替换，则
-\(\sigma C=\{\sigma S=\sigma T\mid S=T\in C\}\)，即对约束集逐元素作用
-替换。满足约束集 \(C\) 的替换称为 \(C\) 的\termfirst{合一子}{unifier}：
+类型合一算法见\cref{fig:22-2}。\footnote{这个算法并不依赖待合一的表达式
+恰好是类型；同一算法可以求解任意一阶表达式之间的等式约束。}
+第二行的“令 \(\{S=T\}\cup C'=C\)”表示从 \(C\) 中任选一个约束
+\(S=T\)，其余约束组成 \(C'\)。若 \(\sigma\) 是替换，则
+\(\sigma C=\{\sigma S=\sigma T\mid S=T\in C\}\)，即把替换 \(\sigma\)
+分别应用于每个约束两侧的类型。满足约束集
+\(C\) 的替换称为 \(C\) 的\termfirst{合一子}{unifier}。
+\end{definition}
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.96\linewidth}
 \[
 \operatorname{unify}(C)=
 \begin{cases}
 [\,] & C=\varnothing,\\
 \operatorname{unify}(C')
   & C=\{S=T\}\cup C',\ S=T,\\
-\operatorname{unify}(C'\cup\{S_1=T_1,S_2=T_2\})
-  & S=S_1\to S_2,\ T=T_1\to T_2,\\
 \operatorname{unify}([X\mapsto T]C')\circ[X\mapsto T]
   & S=X,\ X\notin\fv(T),\\
 \operatorname{unify}([X\mapsto S]C')\circ[X\mapsto S]
   & T=X,\ X\notin\fv(S),\\
-\text{失败}&\text{其他情形}.
+\operatorname{unify}(C'\cup\{S_1=T_1,S_2=T_2\})
+  & S=S_1\to S_2,\ T=T_1\to T_2,\\
+\text{失败}&\text{其他情形}
 \end{cases}
 \]
+\end{minipage}
+\caption{合一算法}
+\label{fig:22-2}
+\end{figure}
+
+\translatornote{可以把约束集 \(C\) 看作一张尚待处理的类型等式清单。算法每次
+取出一个等式 \(S=T\)，再按其形式化简：两侧相同便直接删除；两侧都是箭头
+类型，便把它拆成参数类型和结果类型的两个等式；一侧是类型变量 \(X\) 时，
+便暂定 \(X\) 等于另一侧的类型，把这一替换应用于其余约束，再继续求解；无法
+归入这些情形时，合一失败。递归调用返回后，沿途得到的替换通过复合合并起来。
+
+例如，从
+\[
+C=\{X=\tapltype{Nat},\;Y=X\to X\}
+\]
+开始，先由第一个等式得到 \([X\mapsto\tapltype{Nat}]\)，并把它应用于剩余
+约束，得到 \(Y=\tapltype{Nat}\to\tapltype{Nat}\)。继续求解便得到
+\([Y\mapsto\tapltype{Nat}\to\tapltype{Nat}]\)。两项替换复合后，结果为
+\[
+[X\mapsto\tapltype{Nat},\;
+ Y\mapsto\tapltype{Nat}\to\tapltype{Nat}]
+\]
+这就是该约束集的主合一子。}
+
 变量分支中的旁条件称为\termfirst{出现检查}{occurs check}。它禁止产生
 \([X\mapsto X\to X]\) 之类的循环替换，因为有限类型表达式无法表示这种解。
-若语言允许递归类型，出现检查便可以去掉。\footnote{这个算法并不依赖
-待合一的表达式恰好是类型；同一算法可以求解任意一阶表达式之间的等式约束。}
-\end{definition}
+若语言允许递归类型，出现检查便可以去掉；\chapref{20}和\chapref{21}讨论的
+正是这类类型。
 
 \begin{theorem}
 \label{thm:22.4.5}
@@ -546,8 +630,8 @@ let uvargen =
 
 \begin{proof}
 对第 1 项，把 \(C\) 的度量定义为数对 \((m,n)\)：\(m\) 是 \(C\) 中不同类型
-变量的数量，\(n\) 是其中全部类型的大小之和。每个分支要么立即结束，要么以
-字典序下更小的度量递归调用算法，故算法终止。
+变量的数量，\(n\) 是 \(C\) 中所有等式左右两侧的类型表达式大小之和。每个
+分支要么立即结束，要么以字典序下更小的度量递归调用算法，故算法终止。
 
 第 2 项对递归调用次数归纳。除变量分支外都直接成立；变量分支使用如下事实：
 若 \(\sigma\) 合一 \([X\mapsto T]D\)，则
@@ -628,7 +712,7 @@ let uvargen =
 
 \begin{theorem}[主类型]
 \label{thm:22.5.3}
-若 \((\Gamma,t,S,C)\) 有解，则它有主解。\cref{def:22.4.4}的合一算法可以
+若 \((\Gamma,t,S,C)\) 有解，则它有主解。\cref{fig:22-2}的合一算法可以
 判断它是否有解；若有，还能计算一个主解。
 \end{theorem}
 
@@ -661,6 +745,7 @@ lambda z:ZZ. lambda y:YY. z (y true);
 lambda w:W. if true then false else w false;
 ==> <fun> : (Bool -> Bool) -> Bool
 \end{lstlisting}
+\texttt{?X0} 这类类型变量名由检查器自动生成。
 \end{exercise}
 \taplsolutionlink{sol:translator:22.5.5}{22.5.5}
 
@@ -681,14 +766,14 @@ lambda w:W. if true then false else w false;
 \end{exercise}
 \taplsolutionlink{sol:translator:22.5.7}{22.5.7}
 
-本项目采用先生成约束、再统一求解的版本；下面的函数把两步组合起来。
+下面的 Rust 对照实现采用先生成约束、再统一求解的版本，并把两步组合起来。
 \taplrustsupport{ch22-principal-type}
 
 \section{隐式类型标注}
 \label{sec:22.6}
 
 支持类型重构的语言通常允许程序员完全省略 lambda 抽象的类型标注。解析器可以
-在省略处自动填入新类型变量；更直接的做法是把无标注抽象加入项的语法，并增加
+在省略处自动填入新鲜类型变量；更直接的做法是把无标注抽象加入项的语法，并增加
 规则：
 \[
 \inferrule*[right=CT-AbsInf]
@@ -705,9 +790,12 @@ CT-AbsInf 可以为每份副本选择不同的参数类型变量。若把它当�
 \label{sec:22.7}
 
 \termfirst{多态}{polymorphism}泛指让同一段程序在不同上下文中以不同类型使用
-的语言机制。上面的类型重构可以推广为\termfirst{let 多态}{let-polymorphism}，
-也称 ML 风格多态或 Damas--Milner 多态。它最早出现在 ML 中，并成为列表、数组、
-树、哈希表、流和界面组件等通用程序库的基础。
+的一系列语言机制。\taplsecref{23.2}{sec:23.2}会更详细地区分其中几种。
+
+上面的类型重构可以推广为\termfirst{let 多态}{let-polymorphism}，也称
+ML 风格多态或 Damas--Milner 多态。它最早出现在原始 ML 方言中
+（Milner, 1978），后来被多种成功的语言设计采用，并成为列表、数组、树、
+哈希表、流和界面组件等通用程序库的基础。
 
 考虑把第一个参数连续应用两次于第二个参数的函数
 \texttt{double}。若要将它用于类型为 \(\tapltype{Nat}\to\tapltype{Nat}\)
@@ -813,11 +901,11 @@ CT-LetPoly 也需增加生成 \(t_1\) 的类型和约束的相应前提。
         \(X_1,\ldots,X_n\)，则
         \(\forall X_1\ldots X_n.\,T_1\) 是 \(t_1\) 的主类型方案；
   \item 在上下文中把 \(x\) 绑定到这个类型方案，继续检查 \(t_2\)；
-  \item 每遇到一次 \(x\)，都生成新变量 \(Y_1,\ldots,Y_n\)，以
+  \item 每遇到一次 \(x\)，都生成新鲜变量 \(Y_1,\ldots,Y_n\)，以
         \([X_1\mapsto Y_1,\ldots,X_n\mapsto Y_n]T_1\) 实例化该方案。
 \end{enumerate}\footnote{引入泛化和实例化后，“显式标注了类型变量的 lambda 抽象”
 与“由约束生成算法为之创建类型变量的无标注抽象”之间的区别不再重要：两种情形下，
-let 右侧都会先得到含变量的类型，该变量在加入上下文前被泛化，以后每次实例化时又换成新变量。}
+let 右侧都会先得到含变量的类型，该变量在加入上下文前被泛化，以后每次实例化时又换成新鲜变量。}
 不能泛化上下文中也出现的变量，因为它们表达 \(t_1\) 与周围环境之间的真实
 约束。例如在
 \(\lambda f:X\to X.\,\lambda x:X.\,
@@ -892,9 +980,12 @@ let r = ref (lambda x. x) in
 
 更好的做法是让类型规则服从求值规则，施加\termfirst{值限制}{value
 restriction}：仅当 let 右侧在句法上已经是值时，才泛化其自由类型变量。危险
-示例中的右侧是分配操作，不是值，所以 \(X\) 不会泛化；赋值迫使它成为
-\tapltype{Nat} 后，下一次以 \tapltype{Bool} 使用便会被拒绝。值限制牺牲少量
-表达便利，却几乎不影响实际程序。Wright（1995）分析了大量以 1990 年版
+示例中的右侧是分配操作，不是值，所以把 \(r\) 加入上下文时，它获得的是
+\(\tapltype{Ref}(X\to X)\)，而非类型方案
+\(\forall X.\,\tapltype{Ref}(X\to X)\)。赋值迫使 \(X\) 成为
+\tapltype{Nat} 后，下一次以 \tapltype{Bool} 使用便会被拒绝。值限制会损失
+一部分表达能力：let 右侧若要执行实际计算，就不能同时获得多态类型方案。
+令人意外的是，这项限制几乎不影响实际程序。Wright（1995）分析了大量以 1990 年版
 Standard ML（Milner、Tofte 与 Harper, 1990）写成的程序。那一版语言使用基于弱类型变量的
 更宽松 let 赋型规则，但除了极少数例外，实际程序的 let 右侧本来就是句法值。
 这项观察基本结束了当时的争论；现代采用 ML 风格 let 多态的主要语言都使用值限制。

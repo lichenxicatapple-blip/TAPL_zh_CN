@@ -16,6 +16,13 @@ SOURCE_ROOT = ROOT / "code" / "book-snippets" / "src"
 OUTPUT_ROOT = ROOT / "build" / "code-snippets"
 TEX_ROOT = ROOT / "tex"
 
+# Some book passages need several adjacent, independently reusable source
+# regions to appear as one continuous listing.  Compose those display files
+# from the already extracted and tested regions instead of duplicating source.
+COMPOSITES: dict[str, tuple[str, ...]] = {
+    "ch22-unifier-implementation": ("ch22-inference-support", "ch22-unify"),
+}
+
 BEGIN = re.compile(r"^\s*// TAPL-SNIPPET-BEGIN: ([a-z0-9][a-z0-9-]*)\s*$")
 END = re.compile(
     r"^(?P<prefix>.*?)// TAPL-SNIPPET-END: "
@@ -148,9 +155,30 @@ def references() -> set[str]:
                 "before the next OCaml block, an immediate OCaml-syntax-only marker, "
                 "or a named grouped counterpart"
             )
-        if Counter(counterparts_in_file + counterpart_chunk_first_in_file) != Counter(
-            paired + grouped
-        ):
+        displayed_counterparts = Counter(
+            counterparts_in_file + counterpart_chunk_first_in_file
+        )
+        paired_counterparts = Counter(paired)
+        grouped_counterparts = Counter(grouped)
+        counterpart_names = (
+            set(displayed_counterparts)
+            | set(paired_counterparts)
+            | set(grouped_counterparts)
+        )
+        # Several related OCaml blocks may deliberately point to the same grouped
+        # Rust implementation.  Every block keeps an immediate marker, but one
+        # displayed group may serve several of those markers.
+        counterpart_counts_match = all(
+            (
+                displayed_counterparts[name] == paired_counterparts[name]
+                if grouped_counterparts[name] == 0
+                else paired_counterparts[name] + 1
+                <= displayed_counterparts[name]
+                <= paired_counterparts[name] + grouped_counterparts[name]
+            )
+            for name in counterpart_names
+        )
+        if not counterpart_counts_match:
             errors.append(
                 f"{source.relative_to(ROOT)}: Rust counterparts do not match the "
                 "immediate and grouped OCaml counterpart declarations"
@@ -202,10 +230,22 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    snippets = extract()
+    source_snippets = extract()
+    snippets = dict(source_snippets)
+    for name, members in COMPOSITES.items():
+        missing_members = [member for member in members if member not in source_snippets]
+        if missing_members:
+            print(
+                f"composite {name} has missing members: {', '.join(missing_members)}",
+                file=sys.stderr,
+            )
+            return 1
+        body = "\n".join(source_snippets[member][1].rstrip() for member in members) + "\n"
+        snippets[name] = (Path("composite") / name, body)
     referenced = references()
     missing = referenced - snippets.keys()
-    unused = snippets.keys() - referenced
+    composite_members = {member for members in COMPOSITES.values() for member in members}
+    unused = source_snippets.keys() - (referenced | composite_members)
     if missing or unused:
         if missing:
             print(f"missing Rust snippets: {', '.join(sorted(missing))}", file=sys.stderr)

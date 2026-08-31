@@ -25,9 +25,9 @@ Abadi、Cardelli 与 Viswanathan（1996）的对象编码中确实需要完全
 &n[X][S][X]s\,(m[X][S][Z]s\,z)
 \end{aligned}
 \]
-两者类型分别为
-\(\tapltype{SZero}\to\tapltype{SZero}\to\tapltype{SZero}\) 和
-\(\tapltype{SPos}\to\tapltype{SNat}\to\tapltype{SPos}\)。
+\begin{lstlisting}
+? spluspn : SPos -> SNat -> SPos
+\end{lstlisting}
 \taplsolutionbacklink{ex:26.3.4}{返回练习26.3.4}
 \end{taplauthorsolutionentrybox}
 
@@ -186,9 +186,11 @@ counterADT =
           inc:ResetCounter->ResetCounter,
           reset:ResetCounter->ResetCounter}}}}
 \end{lstlisting}
-依次打开这两个包后，余下程序的上下文会含有
+依次打开这两个包后，余下程序的上下文会含有类型变量绑定
 \(\tapltype{Counter}<:\tapltype{Top}\) 与
-\(\tapltype{ResetCounter}<:\tapltype{Counter}\)，以及两套操作记录：
+\(\tapltype{ResetCounter}<:\tapltype{Counter}\)，以及项变量绑定
+\(\taplterm{counter}:\{\ldots\}\) 与
+\(\taplterm{resetCounter}:\{\ldots\}\)：
 \begin{lstlisting}
 let {Counter,counter} = counterADT in
 let {ResetCounter,resetCounter} = counter.rcADT in
@@ -205,14 +207,12 @@ counter.get
 \phantomsection\label{sol:author:26.5.4}
 \textbf{26.5.4 解答}
 
-在\cref{sec:24.3}的编码中给隐藏类型的量词加上同一上界：
+只需在\cref{sec:24.3}的编码中显然的位置加入上界。在类型层面得到：
 \[
-\llbracket\{\exists X<:S,T\}\rrbracket
-=\forall Y.(\forall X<:\llbracket S\rrbracket.
-\llbracket T\rrbracket\to Y)\to Y
+\{\exists X<:S,T\}
+\overset{\mathrm{def}}{=}
+\forall Y.(\forall X<:S.T\to Y)\to Y
 \]
-打包和开包翻译只需相应地把类型抽象写成
-\(\lambda X<:\llbracket S\rrbracket\)。由有界全称类型的子类型规则逐层
-推导，可得到 S-Some。
+项层面的改动直接由此得到。
 \taplsolutionbacklink{ex:26.5.4}{返回练习26.5.4}
 \end{taplauthorsolutionentrybox}

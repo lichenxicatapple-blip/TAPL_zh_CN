@@ -9,6 +9,10 @@ __pycache__/
 # Temporary work
 /tmp/
 /code/target/
+/notes/
+
+# Local collaboration instructions
+/AGENTS.md
 
 # Original and reproducibly generated source PDFs
 /Benjamin_C._Pierce-Types_and_Programming_Languages-The_MIT_Press(2002).pdf
@@ -16,7 +20,6 @@ __pycache__/
 
 # LaTeX build directory and auxiliary files
 /build/
-/output/pdf/*.pdf
 *.aux
 *.bbl
 *.bcf

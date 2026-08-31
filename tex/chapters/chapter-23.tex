@@ -6,7 +6,7 @@
 \chapter{全称类型}
 \label{chap:23}
 
-上一章考察了 ML 中受限的 let 多态。本章转向一种更一般的参数多态系统：
+上一章考察了 ML 中简单形式的 let 多态。本章转向一种更一般的参数多态系统：
 \termfirst{System F}{System F}，也称\termfirst{多态 lambda 演算}{polymorphic
 lambda-calculus}或二阶 lambda 演算。
 本章主要研究纯 System F（\cref{fig:23-1}）；示例会自由使用
@@ -16,7 +16,8 @@ lambda-calculus}或二阶 lambda 演算。
 \section{动机}
 \label{sec:23.1}
 
-在简单类型 lambda 演算中，可以写出无穷多个“加倍”函数：
+正如\taplsecref{22.7}{sec:22.7}所述，在简单类型 lambda 演算中，可以写出
+无穷多个“加倍”函数：
 \[
 \begin{array}{l}
 \taplterm{doubleNat}
@@ -83,7 +84,7 @@ Henglein, 1994；Leroy 与 Mauny, 1991；Thatte, 1990）。Java 的 \texttt{inst
 \texttt{typecase} 的受限形式。
 
 上述类别并不互斥，一门语言可以同时具有多种多态。例如，Standard ML 兼有参数
-多态和少量内建算术运算重载，但没有子类型；本书写作时的 Java 具有子类型、重载
+多态和简单的内建算术运算重载，但没有子类型；本书写作时的 Java 具有子类型、重载
 和受限的特设多态（\texttt{instanceof}），却还没有参数多态。当时已有若干为 Java
 加入参数多态的方案，其中最著名的是 GJ（Bracha、Odersky、Stoutamire 与
 Wadler，1998）。
@@ -215,8 +216,8 @@ T&::=&\taplnewmaterial{X}\mid T\to T
 T-TAbs 的前提在上下文中加入 \(X\)，以记录它在子推导中的作用域。沿用
 \cref{sec:5.3}的约定，新绑定的项变量或类型变量不得与 \(\Gamma\) 中已经绑定的
 名称重复；必要时可以一致地重命名 lambda 所绑定的类型变量。有些 System F 的
-表述会把这项“名称必须未在上下文中使用”的要求写成 T-TAbs 的旁条件；本书则把
-它纳入构造上下文的规则。另外，只有当 \(T\) 中的每个自由类型变量都已在
+表述会把“名称必须未在上下文中使用”这项新鲜性条件作为 T-TAbs 的显式旁条件；
+本书则把它纳入构造上下文的规则。另外，只有当 \(T\) 中的每个自由类型变量都已在
 \(\Gamma\) 中绑定时，\(\Gamma,x:T\) 才是良构上下文。
 
 目前，写在上下文中的类型变量只负责记录作用域，并保证同一个类型变量不会重复
@@ -572,8 +573,9 @@ Church 自然数也可以用同样方法赋型。\cref{sec:5.2}给出的无类�
 
 \begin{exercise}[推荐，\(\star\star\star\)]
 \label{ex:23.4.9}
-利用\cref{ex:23.4.8}的数对写出 Church 数的前驱函数 \(\taplterm{prd}\)。提示：定义
-\(f(i,j)=(i+1,i)\)，把它从 \((0,0)\) 开始迭代 \(n\) 次，再取第二分量。
+利用\cref{ex:23.4.8}的数对写出 Church 数的前驱函数 \(\taplterm{prd}\)；输入为
+\(0\) 时也应返回 \(0\)。提示：定义 \(f(i,j)=(i+1,i)\)，把它从 \((0,0)\) 开始
+迭代 \(n\) 次，再取第二分量。
 \end{exercise}
 \taplauthorsolutionlink{sol:author:23.4.9}{23.4.9}
 
@@ -850,7 +852,7 @@ Wadler（1998），Funnel 见 Odersky 与 Zenger（2001）；Funnel 还引入了
 
 Cardelli（1993）提出了更简单、但较难预测的贪心算法；依赖类型证明检查器
 NuPrl（Howe，1988）和 Lego（Pollack，1990）也使用过类似算法。程序员可以省略任意类型
-标注，解析器为每处省略生成新的合一变量。子类型检查遇到
+标注，解析器为每处省略生成新鲜的合一变量。子类型检查遇到
 \(X<:T\) 或 \(T<:X\) 时，立即令 \(X=T\)，以最直接的选择满足当前约束。
 这个选择未必对后续约束最有利：其他实例化本可使整个程序通过，而贪心选择却
 可能令很远处的检查失败。Cardelli 的实现和早期 Pict 的经验（Pierce 与 Turner，
@@ -974,7 +976,7 @@ NuPrl（Howe，1988）和 Lego（Pollack，1990）也使用过类似算法。程
 \begin{exercise}[\(\star\star\)]
 \label{ex:23.7.1}
 把\taplsecref{22.7}{sec:22.7}关于引用与不安全 let 多态的反例，写成带引用的
-System F 项。
+System F 项（引用的定义见\taplnamedref{fig:13-1}{图}）。
 \end{exercise}
 \taplauthorsolutionlink{sol:author:23.7.1}{23.7.1}
 
@@ -1002,7 +1004,7 @@ polymorphism}：类型变量只实例化为不含量词的单型，而且量化�
 另一种常见限制是 Leivant（1983）提出的\termfirst{秩 2 多态}{rank-2
 polymorphism}，此后又有许多研究；可参见 Jim（1995，1996）。把类型画成树；
 若从根到任一 \(\forall\) 的路径，在两个或更多箭头处进入参数一侧，该类型就
-超过秩 2。例如
+超过秩 2。秩 2 系统把所有类型都限制为秩 2。例如
 \[
 (\forall X.\,X\to X)\to\tapltype{Nat}
 \]

@@ -1,8 +1,8 @@
 //! Type reconstruction for the simply typed lambda calculus (Chapter 22).
 
+// TAPL-SNIPPET-BEGIN: ch22-types-generator
 use std::collections::{BTreeMap, BTreeSet};
 
-// TAPL-SNIPPET-BEGIN: ch22-types-generator
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Type {
     Bool,
@@ -122,6 +122,7 @@ pub enum TypeError {
     OccursCheck { variable: String, within: Type },
 }
 
+/// 收集类型中出现的所有类型变量。
 fn free_variables(ty: &Type, variables: &mut BTreeSet<String>) {
     match ty {
         Type::Variable(name) => {
@@ -136,6 +137,7 @@ fn free_variables(ty: &Type, variables: &mut BTreeSet<String>) {
     }
 }
 
+/// 递归应用替换，并沿 `X -> Y -> Nat` 这样的替换链一直展开。
 fn apply(substitution: &Substitution, ty: &Type) -> Type {
     match ty {
         Type::Variable(name) => substitution.get(name).map_or_else(
@@ -151,6 +153,7 @@ fn apply(substitution: &Substitution, ty: &Type) -> Type {
     }
 }
 
+/// 复合两个替换：先应用 `older`，再应用 `newer`。
 fn compose(newer: &Substitution, older: &Substitution) -> Substitution {
     let mut composed = older
         .iter()
@@ -160,6 +163,7 @@ fn compose(newer: &Substitution, older: &Substitution) -> Substitution {
     composed
 }
 
+/// 把一个已经求解的变量等式应用于其余所有约束。
 fn substitute_constraint(
     variable: &str,
     replacement: &Type,
@@ -174,15 +178,14 @@ fn substitute_constraint(
 // TAPL-SNIPPET-END: ch22-inference-support
 
 // TAPL-SNIPPET-BEGIN: ch22-unify
-/// Computes a most general unifier for a finite set of type equations.
+/// 计算有限类型等式集的最一般合一子。
 ///
-/// The occurs check rejects cyclic equations such as `X = X -> Nat`, because
-/// this chapter is reconstructing finite simple types.
+/// 本章重构的是有限简单类型，因此出现检查会拒绝
+/// `X = X -> Nat` 这样的循环等式。
 pub fn unify(mut constraints: Constraints) -> Result<Substitution, TypeError> {
     let mut solution = Substitution::new();
+    // 每个待处理约束都已经应用了此前求得的替换。
     while let Some((left, right)) = constraints.pop() {
-        let left = apply(&solution, &left);
-        let right = apply(&solution, &right);
         if left == right {
             continue;
         }
@@ -213,7 +216,7 @@ pub fn unify(mut constraints: Constraints) -> Result<Substitution, TypeError> {
 // TAPL-SNIPPET-END: ch22-unify
 
 // TAPL-SNIPPET-BEGIN: ch22-constraints
-/// Generates a result type and the equations that make a term typable.
+/// 为项生成候选结果类型，以及使该项可赋型所需满足的类型等式。
 pub fn generate_constraints(
     context: &Context,
     term: &Term,
@@ -222,7 +225,6 @@ pub fn generate_constraints(
     match term {
         Term::True | Term::False => Ok((Type::Bool, vec![])),
         Term::Zero => Ok((Type::Nat, vec![])),
-        Term::Unit => Ok((Type::Unit, vec![])),
         Term::Successor(argument) | Term::Predecessor(argument) => {
             let (ty, mut constraints) = generate_constraints(context, argument, fresh)?;
             constraints.push((ty, Type::Nat));
@@ -250,10 +252,10 @@ pub fn generate_constraints(
             .ok_or_else(|| TypeError::UnknownVariable(name.clone())),
         Term::Abstraction {
             parameter,
-            annotation,
+            annotation: Some(parameter_type),
             body,
         } => {
-            let parameter_type = annotation.clone().unwrap_or_else(|| fresh.fresh());
+            let parameter_type = parameter_type.clone();
             let mut body_context = context.clone();
             body_context.insert(parameter.clone(), parameter_type.clone());
             let (body_type, constraints) = generate_constraints(&body_context, body, fresh)?;
@@ -273,6 +275,33 @@ pub fn generate_constraints(
                 Type::Arrow(Box::new(argument_type), Box::new(result_type.clone())),
             ));
             Ok((result_type, constraints))
+        }
+        // Unit、引用、赋值和 let 等后续扩展由完整工程继续处理。
+        extension => generate_extension_constraints(context, extension, fresh),
+    }
+}
+// TAPL-SNIPPET-END: ch22-constraints
+
+fn generate_extension_constraints(
+    context: &Context,
+    term: &Term,
+    fresh: &mut FreshVariables,
+) -> Result<(Type, Constraints), TypeError> {
+    match term {
+        Term::Unit => Ok((Type::Unit, vec![])),
+        Term::Abstraction {
+            parameter,
+            annotation: None,
+            body,
+        } => {
+            let parameter_type = fresh.fresh();
+            let mut body_context = context.clone();
+            body_context.insert(parameter.clone(), parameter_type.clone());
+            let (body_type, constraints) = generate_constraints(&body_context, body, fresh)?;
+            Ok((
+                Type::Arrow(Box::new(parameter_type), Box::new(body_type)),
+                constraints,
+            ))
         }
         Term::Reference(argument) => {
             let (ty, constraints) = generate_constraints(context, argument, fresh)?;
@@ -306,12 +335,24 @@ pub fn generate_constraints(
             constraints.extend(body_constraints);
             Ok((body_type, constraints))
         }
+        Term::True
+        | Term::False
+        | Term::Zero
+        | Term::Successor(_)
+        | Term::Predecessor(_)
+        | Term::IsZero(_)
+        | Term::If(_, _, _)
+        | Term::Variable(_)
+        | Term::Abstraction {
+            annotation: Some(_),
+            ..
+        }
+        | Term::Application(_, _) => unreachable!("core term handled by generate_constraints"),
     }
 }
-// TAPL-SNIPPET-END: ch22-constraints
 
 // TAPL-SNIPPET-BEGIN: ch22-principal-type
-/// Reconstructs the principal type by generating and then unifying constraints.
+/// 先生成约束再进行合一，从而重构项的主类型。
 pub fn principal_type(context: &Context, term: &Term) -> Result<Type, TypeError> {
     let mut fresh = FreshVariables::default();
     for ty in context.values() {
@@ -398,11 +439,10 @@ fn generalize(context: &SchemeContext, ty: Type) -> TypeScheme {
 // TAPL-SNIPPET-END: ch22-algorithm-w-support
 
 // TAPL-SNIPPET-BEGIN: ch22-algorithm-w
-/// Infers a principal type incrementally, in the style of Algorithm W.
+/// 依照算法 W 的思路逐步推断主类型。
 ///
-/// Each recursive call returns both the type of the subterm and the most
-/// general substitution learned while checking it.  Later subterms are
-/// checked in a context to which that substitution has already been applied.
+/// 每次递归调用同时返回子项的类型，以及检查该子项时求得的最一般替换；
+/// 检查后续子项前，先把这个替换应用于上下文。
 #[allow(clippy::too_many_lines)]
 pub fn infer_incremental(
     context: &SchemeContext,
@@ -563,7 +603,7 @@ fn is_syntactic_value(term: &Term) -> bool {
 // TAPL-SNIPPET-END: ch22-algorithm-w-value-support
 
 // TAPL-SNIPPET-BEGIN: ch22-let-principal-type
-/// Reconstructs a principal type with ML-style let-generalization.
+/// 使用 ML 风格的 `let` 泛化重构主类型。
 pub fn let_principal_type(context: &SchemeContext, term: &Term) -> Result<Type, TypeError> {
     let mut fresh = FreshVariables::default();
     for scheme in context.values() {

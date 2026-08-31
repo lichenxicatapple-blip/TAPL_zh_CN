@@ -27,13 +27,7 @@
 f = lambda x:{a:Nat}. x;
 ? f : {a:Nat} -> {a:Nat}
 \end{lstlisting}
-若 \(r_a\) 只有一个 \(a\) 字段，\footnote{本章主要研究纯
-\(F_{<:}\)（\taplnamedref{fig:26-1}{图}）；示例还使用记录
-（\taplnamedref{fig:11-7}{图}）和自然数
-（\taplnamedref{fig:8-2}{图}）。原书对应的 OCaml 实现是
-\texttt{fullfsub} 和 \texttt{fullfomsub}。多数示例用 \texttt{fullfsub}
-即可；涉及带参数的类型缩写（例如 \texttt{Pair}）时，需要
-\texttt{fullfomsub}。}
+若 \(r_a\) 只有一个 \(a\) 字段，
 \begin{lstlisting}
 ra = {a=0};
 f ra;
@@ -98,7 +92,13 @@ f2poly = lambda X. lambda x:X. {orig=x, asucc=succ(x.a)};
 X\to\{\taplterm{orig}:X,\taplterm{asucc}:\tapltype{Nat}\}
 \]
 量词上的上界既保证函数体可以安全使用 \(a\)，又保留实参的精确类型 \(X\)。
-这种在量词上附加子类型约束的形式，就是 System \(F_{<:}\) 的标志性特征。
+这种在量词上附加子类型约束的形式，就是 System \(F_{<:}\) 的标志性特征。\footnote{本章主要研究纯
+\(F_{<:}\)（\taplnamedref{fig:26-1}{图}）；示例还使用记录
+（\taplnamedref{fig:11-7}{图}）和自然数
+（\taplnamedref{fig:8-2}{图}）。原书对应的 OCaml 实现是
+\texttt{fullfsub} 和 \texttt{fullfomsub}。多数示例用 \texttt{fullfsub}
+即可；涉及带参数的类型缩写（例如 \texttt{Pair}）时，需要
+\texttt{fullfomsub}。}
 
 \section{定义}
 \label{sec:26.2}
@@ -162,14 +162,18 @@ Mitchell，1989b），常见于面向对象语言的类型研究，也用于 GJ 
 
 \subsection*{子类型}
 
-上下文中的类型变量绑定现在写作 \(X<:T\)。变量可以使用其上界：
+正如普通项变量关联着类型，\(F_{<:}\) 中的类型变量关联着上界；在子类型检查
+和类型检查期间都必须跟踪这些上界。为此，上下文中的类型变量绑定改写为
+\(X<:T\)。子类型推导可以用这样的绑定证明“类型变量 \(X\) 是 \(T\) 的
+子类型，因为上下文中作了这一假设”：
 \[
 \inferrule*[right=S-TVar]
  {X<:T\in\Gamma}
  {\Gamma\vdash X<:T}
 \]
-子类型判断因此成为三元关系
-\(\Gamma\vdash S<:T\)。
+加入这条规则后，子类型判断成为三元关系
+\(\Gamma\vdash S<:T\)，读作“在假设 \(\Gamma\) 下，\(S\) 是 \(T\) 的
+子类型”。相应地，其余子类型规则也都要带上上下文。
 
 除了新的变量规则，还需要一条比较有界全称类型的规则。核 S-All 要求两边量词
 使用完全相同的上界，只在这个共同上界下比较量词体。“核”这一名称来自
@@ -452,8 +456,11 @@ t_l,&\mathit{label\mbox{-}with\mbox{-}index}(i)=l\in L,\\
 就是元组投影 \(t.i\)。
 \end{definition}
 
-该编码验证记录的宽度、深度和排列子类型规则以及构造、投影赋型规则。它主要
-具有理论意义：所有模块必须共享标签的全局编号，不利于独立编译。
+该编码验证了记录预期应有的赋型与子类型规则，即
+\taplnamedref{fig:15-2}{图}和\taplnamedref{fig:15-3}{图}中的
+S-RcdWidth、S-RcdDepth、S-RcdPerm、T-Rcd 与 T-Proj。不过，它的意义主要
+在理论方面；从实践角度看，对所有字段标签采用全局次序是严重缺点。在支持
+独立编译的语言中，不能逐个模块给标签分配编号，而必须在链接时一次性完成。
 
 \subsection*{带子类型的 Church 编码}
 
@@ -555,9 +562,10 @@ spluspp = lambda n:SPos. lambda m:SPos.
 \label{ex:26.3.5}
 仿照 \(\tapltype{SNat}\)，把 Church 布尔值精化为
 \(\tapltype{SBool}\) 及其子类型 \(\tapltype{STrue}\)、
-\(\tapltype{SFalse}\)，并写出类型为
-\(\tapltype{SFalse}\to\tapltype{STrue}\) 和
-\(\tapltype{STrue}\to\tapltype{SFalse}\) 的否定函数。
+\(\tapltype{SFalse}\)，并写出函数 \(\taplterm{notft}\)，使其类型为
+\(\tapltype{SFalse}\to\tapltype{STrue}\)；再写出类似的函数
+\(\taplterm{nottf}\)，使其类型为
+\(\tapltype{STrue}\to\tapltype{SFalse}\)。
 \end{exercise}
 \taplauthorsolutionlink{sol:author:26.3.5}{26.3.5}
 
@@ -876,8 +884,10 @@ t_1:\forall Z<:T_{11}.T_{12}
 \label{lem:26.4.14}
 \taplstatementlistbreak
 \begin{enumerate}
-  \item 闭的箭头类型值必为项抽象；
-  \item 闭的全称类型值必为类型抽象。
+  \item 若 \(v\) 是类型 \(T_1\to T_2\) 的闭值，则 \(v\) 具有形式
+        \(\lambda x:S_1.t_2\)；
+  \item 若 \(v\) 是类型 \(\forall X<:T_1.T_2\) 的闭值，则 \(v\) 具有形式
+        \(\lambda X<:T_1.t_2\)。
 \end{enumerate}
 \end{lemma}
 
@@ -1060,8 +1070,8 @@ c = {*{x:Nat, private:Bool},
 
 \begin{exercise}[\(\star\star\)]
 \label{ex:26.5.4}
-把\taplsecref{24.3}{sec:24.3}的编码推广为：用有界全称类型编码有界存在类型，并验证
-S-Some 可由编码后的子类型规则推出。
+把\taplsecref{24.3}{sec:24.3}的编码推广为：用有界全称类型编码有界存在类型。
+检查 S-Some 是否可由这一编码以及有界全称类型的子类型规则推出。
 \end{exercise}
 \taplauthorsolutionlink{sol:author:26.5.4}{26.5.4}
 
@@ -1076,8 +1086,8 @@ Cardelli 与 Wegner（1985）在 Fun 语言中提出了本章采用的有界量�
 其 Kernel Fun 对应核 \(F_{<:}\)。Fun 建立在 Cardelli 早期的非形式思想上，
 并用 Mitchell（1984b）的技术加以形式化；它把 Girard--Reynolds 多态
 （Girard，1972；Reynolds，1974）与 Cardelli（1984）的一阶子类型演算结合
-起来。Bruce 与 Longo（1990）、Curien 与 Ghelli（1992）
-又作了简化和推广，得到本书所称的完全 \(F_{<:}\)。Cardelli、Martini、
+起来。Bruce 与 Longo（1990）先对原来的 Fun 作了简化和小幅推广，Curien 与
+Ghelli（1992）随后又作了一次，得到本书所称的完全 \(F_{<:}\)。Cardelli、Martini、
 Mitchell 与 Scedrov（1994）的综述对有界量化作了最全面的讨论。
 
 程序语言理论与设计领域对 \(F_{<:}\) 及其近亲作了大量研究。Cardelli 与
@@ -1100,5 +1110,5 @@ Wadler，1998）、Pict（Pierce 与 Turner，2000）和 Funnel（Odersky，2000
 Ghelli（1990）以及 Cardelli、Martini、Mitchell 与 Scedrov（1994）研究了
 有界量化对\taplsecref{26.3}{sec:26.3}中代数数据类型 Church 编码的影响。
 Pierce（1991b，1997b）研究了加入交类型的 \(F_{<:}\)；Compagnoni 与 Pierce
-（1996）还用带高阶种类的变体刻画多重继承，其元理论由 Compagnoni（1994）
-分析。
+（1996）还用带高阶种类的变体刻画带多重继承的面向对象语言，其元理论由
+Compagnoni（1994）分析。

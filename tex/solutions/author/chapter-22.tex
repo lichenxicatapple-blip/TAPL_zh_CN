@@ -42,7 +42,7 @@
 \(\Gamma\vdash_Ft:T\mid_{F'}C\)，那么 \(T\) 或 \(C\) 中出现的每个类型变量，
 都出现在 \(\Gamma,t\) 中，或属于 \(F\setminus F'\)。完备性的应用情形
 使用以下事实：若
-\(\Gamma\vdash_Ft:T\mid_{F'}C\)，且 \(G\) 是一列全新的变量名，则
+\(\Gamma\vdash_Ft:T\mid_{F'}C\)，且 \(G\) 是一列新鲜变量名，则
 \(\Gamma\vdash_{F,G}t:T\mid_{F',G}C\)。
 
 \taplsolutionbacklink{ex:22.3.9}{返回练习22.3.9}
@@ -91,13 +91,14 @@ let rec recon ctx nextuvar t = match t with
       (tyT3,nextuvar3,
        List.concat [newconstr; constr1; constr2; constr3])
 \end{taplocamlcode}
-\taplrustcounterpartflowchunkfirst{ch22-constraints}{1}{30}
-\taplrustcounterpartflowchunk{ch22-constraints}{31}{49}
-\taplrustcounterpartflowchunk{ch22-constraints}{50}{71}
-\taplrustcounterpartflowchunk{ch22-constraints}{72}{95}
-\taplrustsupportflowchunkfirst{ch22-inference-support}{1}{24}
-\taplrustsupportflowchunk{ch22-inference-support}{25}{48}
-\taplrustsupportflowchunk{ch22-inference-support}{49}{60}
+\taplocamlgroupedcounterpart{ch22-inference-support}
+Rust 对照复用\hyperref[ex:22.3.10]{练习22.3.10}题干后已经展示的
+\texttt{Type} 与 \texttt{FreshVariables}。这里的 \texttt{Context} 是变量名到
+类型的映射，\texttt{Constraints} 是待求解的类型等式列表。核心约束生成函数如下：
+\taplrustcounterpartflowchunkfirst{ch22-inference-support}{2}{3}
+\taplrustcounterpartflowchunk{ch22-constraints}{1}{29}
+\taplrustcounterpartflowchunk{ch22-constraints}{30}{48}
+\taplrustcounterpartflowchunk{ch22-constraints}{49}{64}
 
 \taplsolutionbacklink{ex:22.3.10}{返回练习22.3.10}
 \end{taplauthorsolutionentrybox}
@@ -115,7 +116,7 @@ let rec recon ctx nextuvar t = match t with
  {\Gamma\vdash\taplterm{fix}\ t_1:X\mid_{X_1\cup\{X\}}
   C_1\cup\{T_1=X\to X\}}
 \]
-它先重构 \(t_1\) 的类型 \(T_1\)，再以新变量 \(X\) 要求
+它先重构 \(t_1\) 的类型 \(T_1\)，再以新鲜类型变量 \(X\) 要求
 \(T_1=X\to X\)，最终把 \(X\) 作为 \(\taplterm{fix}\ t_1\) 的类型。
 \texttt{letrec} 的规则可由此规则和 \texttt{letrec} 的派生形式定义得到。
 
@@ -151,10 +152,10 @@ let rec recon ctx nextuvar t = match t with
 
 本题首先需要一种替换的表示。可选的表示有很多；一种简单方案是复用
 \hyperref[sol:author:22.3.10]{解答22.3.10}中的 \texttt{constr} 数据类型：替换就是一个约束集，
-但要求每个数对的左侧都是合一变量。下面依次给出五个定义：\texttt{substinty}
+但要求其中每个类型对的左侧都是待求解的类型变量。下面依次给出五个定义：\texttt{substinty}
 用一个类型替换单个类型变量；\texttt{applysubst} 把整个替换作用于类型；
 \texttt{substinconstr} 把一项替换作用于约束集中的所有类型；\texttt{occursin}
-执行防止循环依赖的“出现检查”；最后，\texttt{unify} 按\cref{def:22.4.4}的
+执行防止循环依赖的“出现检查”；最后，\texttt{unify} 按\cref{fig:22-2}的
 伪代码求解约束。像往常一样，\texttt{unify} 还接收文件位置 \texttt{fi} 和
 字符串 \texttt{msg}，用于在合一失败时打印错误信息。
 \begin{taplocamlcode}
@@ -165,7 +166,10 @@ let substinty tyX tyT tyS =
     | TyBool -> TyBool
     | TyId(s) -> if s=tyX then tyT else TyId(s)
   in f tyS
+\end{taplocamlcode}
+\taplocamlgroupedcounterpart{ch22-unifier-implementation}
 
+\begin{taplocamlcode}
 let applysubst constr tyT =
   List.fold_left
     (fun tyS (TyId(tyX),tyC2) -> substinty tyX tyC2 tyS)
@@ -184,7 +188,10 @@ let occursin tyX tyT =
     | TyBool -> false
     | TyId(s) -> s=tyX
   in o tyT
+\end{taplocamlcode}
+\taplocamlgroupedcounterpart{ch22-unifier-implementation}
 
+\begin{taplocamlcode}
 let unify fi ctx msg constr =
   let rec u constr = match constr with
       [] -> []
@@ -205,7 +212,11 @@ let unify fi ctx msg constr =
     | (tyS,tyT)::rest -> error fi "Unsolvable constraints"
   in u constr
 \end{taplocamlcode}
-\taplrustcounterpart{ch22-unify}
+\taplocamlgroupedcounterpart{ch22-unifier-implementation}
+Rust 对照继续复用\hyperref[ex:22.3.10]{练习22.3.10}题干后展示的
+\texttt{Type}。下面先给出合一器依赖的替换、错误类型及四个辅助函数，再给出
+\texttt{unify} 本身。
+\taplrustcounterpart[breakable]{ch22-unifier-implementation}
 
 这个教学版合一器没有投入太多工作改善错误信息。实际编译器中，清楚解释类型
 错误往往是实现类型重构语言时最困难的工程问题之一；可参见 Wand（1986）。
@@ -213,6 +224,7 @@ let unify fi ctx msg constr =
 \taplsolutionbacklink{ex:22.4.6}{返回练习22.4.6}
 \end{taplauthorsolutionentrybox}
 
+\Needspace{30\baselineskip}
 \begin{taplauthorsolutionentrybox}
 \phantomsection
 \label{sol:author:22.5.6}
@@ -235,11 +247,11 @@ Rémy（1989, 1990）等人进一步发展。其做法是增加一类
 \(\oplus\) 合并字段互不相交的两行，则投影可生成约束
 \[
 \inferrule*[right=CT-Proj]
- {\Gamma\vdash t_0:T\mid_{\mathcal X}C}
- {\Gamma\vdash t_0.l_i:X\mid_{\mathcal X\cup\{X,\sigma,\rho\}}
+ {\Gamma\vdash t:T\mid_{\mathcal X}C}
+ {\Gamma\vdash t.l_i:X\mid_{\mathcal X\cup\{X,\sigma,\rho\}}
   C\cup\{T=\{\rho\},\rho=(l_i:X)\oplus\sigma\}}
 \]
-含义是：只要 \(t_0\) 的记录行 \(\rho\) 包含 \(l_i:X\)，其余字段由 \(\sigma\)
+含义是：只要 \(t\) 的记录行 \(\rho\) 包含 \(l_i:X\)，其余字段由 \(\sigma\)
 表示，投影结果就具有类型 \(X\)。新的约束含有满足结合律和交换律的
 \(\oplus\)，已经不再是普通类型等式；求解时需要一种等式合一算法。
 

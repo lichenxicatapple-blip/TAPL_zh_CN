@@ -47,16 +47,17 @@ f = lambda X<:Nat->Nat. lambda y:X. y 5;
 \begin{figure}[!ht]
 \centering
 \begin{minipage}{0.92\linewidth}
+\taplfigureheaderplain{\(\to,\ \forall,\ <:\ \tapltype{Top}\)}{}
 \taplfigureheaderplain{\(\Gamma\algturnstile S\Uparrow T\)}
   {\tapltranslateditalic{暴露关系}}
 \[
-\inferrule*[right=Expose-NonVar]
- {S\text{ 不是类型变量}}
- {\Gamma\algturnstile S\Uparrow S}
-\qquad
-\inferrule*[right=Expose-Var]
+\inferrule*[right=XA-Promote]
  {X<:U\in\Gamma\\\Gamma\algturnstile U\Uparrow T}
  {\Gamma\algturnstile X\Uparrow T}
+\qquad
+\inferrule*[right=XA-Other]
+ {S\text{ 不是类型变量}}
+ {\Gamma\algturnstile S\Uparrow S}
 \]
 \end{minipage}
 \caption{\(F_{<:}\) 的暴露算法}
@@ -109,6 +110,8 @@ Z<:Y,\ W<:Z,
 \begin{figure}[!ht]
 \centering
 \begin{minipage}{0.96\linewidth}
+\taplfigureheader{\(\to,\ \forall,\ <:\ \tapltype{Top}\)}
+  {\(\lambda_{\to}\)（\taplnamedref{fig:16-3}{图}）}
 \taplfigureheaderplain{\(\Gamma\algturnstile t:T\)}
   {\tapltranslateditalic{算法赋型关系}}
 \[
@@ -275,9 +278,15 @@ TA-TApp 得到
 \section{核 \(F_{<:}\) 的子类型算法}
 \label{sec:28.3}
 
-声明式子类型规则不能直接作为算法：S-Refl 与其他规则重叠，S-Trans 还要求
-猜测结论中没有的中间类型。像\taplsecref{16.1}{sec:16.1}一样，应删除二者并把必要用法
-并入更具体的规则。
+\taplsecref{16.1}{sec:16.1}指出，带子类型简单类型 lambda 演算的声明式
+子类型关系不是语法定向的，有两个原因。第一，S-Refl 和 S-Trans 的结论与
+其他规则重叠；自下而上读取规则时，无法决定应试用哪一条。第二，S-Trans
+的前提含有未出现在结论中的元变量，朴素算法必须猜测它。简单类型系统可以
+删去这两条规则；不过在此之前，还要先把三条分立的记录子类型规则合并成
+一条。
+
+核 \(F_{<:}\) 的情况类似。有问题的仍是 S-Refl 和 S-Trans；删去它们之后，
+还需略微调整余下的规则，以保留这两条被删规则的必要用法。
 
 在带子类型的简单类型 lambda 演算中，删除 S-Refl 不会损失可导判断；这里却
 不同，\(\Gamma\vdash X<:X\) 只能由反身性得到。因此要保留一个只适用于类型
@@ -298,17 +307,23 @@ TA-TApp 得到
   \Gamma\vdash Y<:W}
  {\Gamma\vdash Z<:W}
 \]
-新的 SA-Trans-TVar 把这一模式合成一条规则。由此得到
-\taplnamedref{fig:28-3}{图}中的核 \(F_{<:}\) 算法子类型关系。
+幸好，这种形式的推导正是传递性的全部必要用法。新的 SA-Trans-TVar
+把“查找变量紧接着使用传递性”这一模式合成一条规则；稍后将证明，用它替换
+S-TVar 和 S-Trans，不会改变可导子类型判断的集合。
 \[
 \inferrule*[right=SA-Trans-TVar]
  {X<:U\in\Gamma\\\Gamma\algturnstile U<:T}
  {\Gamma\algturnstile X<:T}
 \]
+这些改动得到\taplnamedref{fig:28-3}{图}中的核 \(F_{<:}\) 算法子类型关系。
+我们在转门上加一个箭头，以便在同时讨论两种关系时，区分算法子类型判断
+和原始的声明式子类型判断。
 
 \begin{figure}[!ht]
 \centering
 \begin{minipage}{0.96\linewidth}
+\taplfigureheader{\(\to,\ \forall,\ <:\ \tapltype{Top}\)}
+  {\(\lambda_{\to}\)（\taplnamedref{fig:16-2}{图}）}
 \taplfigureheaderplain{\(\Gamma\algturnstile S<:T\)}
   {\tapltranslateditalic{算法子类型关系}}
 \[
@@ -411,14 +426,13 @@ SA-All，故 \(T=\forall X<:U_1.T_2\)。在共同上下文
 \begin{aligned}
 \operatorname{weight}_{\Gamma}(\tapltype{Top})&=1,\\
 \operatorname{weight}_{\Gamma}(X)
- &=1+\operatorname{weight}_{\Gamma}(U)
-   &&\text{若 }X<:U\in\Gamma,\\
+ &=1+\operatorname{weight}_{\Gamma_1}(U)
+   &&\text{若 }\Gamma=\Gamma_1,X<:U,\Gamma_2,\\
 \operatorname{weight}_{\Gamma}(S\to T)
  &=1+\operatorname{weight}_{\Gamma}(S)
       +\operatorname{weight}_{\Gamma}(T),\\
 \operatorname{weight}_{\Gamma}(\forall X<:S.T)
- &=1+\operatorname{weight}_{\Gamma}(S)
-      +\operatorname{weight}_{\Gamma,X<:S}(T).
+ &=1+\operatorname{weight}_{\Gamma,X<:S}(T).
 \end{aligned}
 \]
 子类型判断 \(\Gamma\algturnstile S<:T\) 的权重是
@@ -426,8 +440,8 @@ SA-All，故 \(T=\forall X<:U_1.T_2\)。在共同上下文
 \operatorname{weight}_{\Gamma}(S)
 +\operatorname{weight}_{\Gamma}(T).
 \]
-上下文良构保证变量上界只引用更早的类型变量，因此变量一项的递归定义良好。
-这里按作者勘误使用两边权重之和，而非原版的最大值。
+这项递归定义良好：每次递归调用时，上下文中所有类型的总大小，加上当前正在
+定义权重的类型大小，总会严格减小。
 \end{definition}
 
 \begin{theorem}
@@ -454,9 +468,28 @@ SA-Trans-TVar 沿变量的上界移动，而良构上下文中的上界只引用
 
 \begin{figure}[!ht]
 \centering
-\begin{minipage}{0.9\linewidth}
-\taplfigureheaderplain{完全 \(F_{<:}\)}
-  {\tapltranslateditalic{替换 SA-All 的规则}}
+\begin{minipage}{0.96\linewidth}
+\taplfigureheader{\(\to,\ \forall,\ <:\ \tapltype{Top}\ \textit{full}\)}
+  {\taplnamedref{fig:28-3}{图}}
+\taplfigureheaderplain{\(\Gamma\algturnstile S<:T\)}
+  {\tapltranslateditalic{算法子类型关系}}
+\[
+\inferrule*[right=SA-Refl-TVar]{ }
+ {\Gamma\algturnstile X<:X}
+\qquad
+\inferrule*[right=SA-Trans-TVar]
+ {X<:U\in\Gamma\\\Gamma\algturnstile U<:T}
+ {\Gamma\algturnstile X<:T}
+\]
+\[
+\inferrule*[right=SA-Top]{ }
+ {\Gamma\algturnstile S<:\tapltype{Top}}
+\qquad
+\inferrule*[right=SA-Arrow]
+ {\Gamma\algturnstile T_1<:S_1\\
+  \Gamma\algturnstile S_2<:T_2}
+ {\Gamma\algturnstile S_1\to S_2<:T_1\to T_2}
+\]
 \[
 \inferrule*[right=SA-All]
  {\Gamma\algturnstile T_1<:S_1\\
@@ -497,8 +530,10 @@ SA-Trans-TVar 沿变量的上界移动，而良构上下文中的上界只引用
 \chapref{26}的收窄性质提供了对齐上下文的办法。由
 \(\Gamma\algturnstile T_1<:Q_1\)，可把第一份量词体推导收窄为
 \(\Gamma,X<:T_1\algturnstile S_2<:Q_2\)，再与第二份组合。但这里不能直接
-引用声明式系统的收窄引理：它构造的新推导可能比原推导更大，还可能插入新的
-传递步骤，而当前目的正是证明没有 S-Trans 的算法关系仍具有传递性。因此，
+引用声明式系统的收窄引理：它只保证构造出结论经收窄的新推导，不保证新推导与
+原推导一样大。实际上，每当 S-TVar 查找被收窄的变量时，证明都要接入一份可能
+任意大的推导，所以结果通常更大；这项拼接还会创建新的 S-Trans，而当前目的
+正是证明没有 S-Trans 的算法关系仍具有传递性。因此，
 必须把算法关系的传递性和收窄性放在同一个归纳中证明。
 
 \taplstatementliststart
@@ -648,7 +683,7 @@ X_0<:T,X_1<:X_0
 &\vdots&
 \end{array}
 \]
-这里默默完成了加入新变量时为保持上下文良构所需的重命名，并特意选择名称来
+这里默默完成了加入新鲜类型变量时为保持上下文良构所需的重命名，并特意选择名称来
 显示循环模式。关键步骤是第二行到第三行发生的“重新定界”：左侧 \(X_1\) 的
 上界从 \(\tapltype{Top}\) 改成 \(X_0\)。而第二行的整个左侧又恰好是
 \(X_0\) 的上界，于是产生循环；每轮都要穿过上下文中更长的变量链。这个例子
@@ -830,6 +865,7 @@ U=\neg(\forall Y_0<:\tapltype{Top}.
 \centering
 \small
 \begin{minipage}{0.94\linewidth}
+\taplfigureheaderplain{\(\to,\ \forall,\ <:\ \tapltype{Top}\)}{}
 \[
 \Gamma\vdash S\lor T=
 \begin{cases}

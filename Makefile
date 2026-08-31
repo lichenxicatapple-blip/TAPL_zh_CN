@@ -1,7 +1,8 @@
 PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 PYGMENTS_PATH := $(abspath .venv/bin)
+PDF_OUTPUT := TAPL_zh_CN.pdf
 
-.PHONY: setup pdf preface-figures split verify-splits preface-assets init-review rust-snippets rust-check ocaml-check check-terms check-links clean
+.PHONY: setup pdf preface-figures split verify-splits preface-assets rust-snippets rust-check ocaml-check check-terms check-links clean distclean
 
 setup:
 	python3 -m venv .venv
@@ -9,7 +10,7 @@ setup:
 	.venv/bin/python -m pip install -r requirements.txt
 
 pdf: check-terms check-links rust-snippets rust-check ocaml-check preface-figures
-	mkdir -p build output/pdf
+	mkdir -p build
 	@if command -v latexmk >/dev/null && command -v xelatex >/dev/null; then \
 		cd tex && PATH="$(PYGMENTS_PATH):$$PATH" latexmk -xelatex -shell-escape \
 			-interaction=nonstopmode -halt-on-error \
@@ -24,11 +25,11 @@ pdf: check-terms check-links rust-snippets rust-check ocaml-check preface-figure
 		echo "A XeLaTeX toolchain (latexmk + xelatex) or tectonic is required"; \
 		exit 1; \
 	fi
-	cp build/main.pdf output/pdf/tapl-zh.pdf
+	cp build/main.pdf $(PDF_OUTPUT)
 
 preface-figures:
 	$(PYTHON) scripts/verify_preface_dependency_figure.py
-	mkdir -p build/figures/preface figures/redrawn/preface
+	mkdir -p build/figures/preface
 	@if command -v xelatex >/dev/null; then \
 		SOURCE_DATE_EPOCH=1012521600 xelatex \
 			-interaction=nonstopmode -halt-on-error \
@@ -42,8 +43,6 @@ preface-figures:
 		echo "XeLaTeX or tectonic is required to build the redrawn figures"; \
 		exit 1; \
 	fi
-	cp build/figures/preface/chapter-dependencies.pdf \
-		figures/redrawn/preface/chapter-dependencies.pdf
 
 split:
 	$(PYTHON) scripts/split_pdf.py
@@ -88,20 +87,12 @@ check-links:
 preface-assets:
 	$(PYTHON) scripts/extract_preface_assets.py
 
-init-review:
-	@test -n "$(TARGET)" || { echo "TARGET is required"; exit 1; }
-	@if test -n "$(UNIT)"; then \
-		$(PYTHON) scripts/init_review.py --unit "$(UNIT)" --target "$(TARGET)"; \
-	elif test -n "$(CHAPTER)"; then \
-		$(PYTHON) scripts/init_review.py --chapter "$(CHAPTER)" --target "$(TARGET)"; \
-	else \
-		echo "UNIT or CHAPTER is required"; \
-		exit 1; \
-	fi
-
 clean:
-	@if command -v latexmk >/dev/null; then \
-		cd tex && latexmk -C -outdir=../build main.tex; \
-	else \
-		echo "latexmk not installed; nothing cleaned"; \
-	fi
+	rm -rf build tmp scripts/__pycache__
+	rm -f tex/*.aux tex/*.bbl tex/*.bcf tex/*.blg tex/*.fdb_latexmk \
+		tex/*.fls tex/*.idx tex/*.ilg tex/*.ind tex/*.lof tex/*.log \
+		tex/*.lot tex/*.out tex/*.run.xml tex/*.synctex.gz tex/*.toc \
+		tex/*.xdv
+
+distclean: clean
+	rm -rf code/target

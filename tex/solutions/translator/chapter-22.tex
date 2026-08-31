@@ -23,7 +23,9 @@ Y\mapsto\tapltype{Bool}\to\tapltype{Nat},Z\mapsto\tapltype{Bool}],\\
 \[
 (Z\to A\to B)\to(Z\to A)\to Z\to B.
 \]
-第三组保留了 \(Z,A,B\)，因此也覆盖前两组的进一步实例。
+第三组保留了 \(Z,A,B\)，因而比前两组更一般：再令
+\((Z,A,B)=(\tapltype{Nat},\tapltype{Bool},\tapltype{Nat})\)，就得到第一组；
+再令 \((Z,A,B)=(\tapltype{Bool},\tapltype{Nat},\tapltype{Bool})\)，就得到第二组。
 
 \taplsolutionbacklink{ex:22.2.3}{返回练习22.2.3}
 \end{taplsolutionentrybox}
@@ -33,13 +35,20 @@ Y\mapsto\tapltype{Bool}\to\tapltype{Nat},Z\mapsto\tapltype{Bool}],\\
 \label{sol:translator:22.3.3}
 \textbf{22.3.3 解答}
 
-从三个绑定变量开始，(x: X)、(y:Y)、(z:Z)。分别处理三个应用：
+先在上下文 \(x:X,y:Y,z:Z\) 中处理最内层的三个应用：
 \begin{enumerate}
-  \item \(x\,z\) 引入新变量 \(A\)，生成约束 \(X=Z\to A\)，结果类型为 \(A\)；
-  \item \(y\,z\) 引入新变量 \(B\)，生成约束 \(Y=Z\to B\)，结果类型为 \(B\)；
-  \item \((x\,z)(y\,z)\) 引入新变量 \(C\)，生成约束 \(A=B\to C\)，结果类型为 \(C\)。
+  \item \(x\,z\) 引入新鲜变量 \(A\)，生成约束 \(X=Z\to A\)，结果类型为 \(A\)；
+  \item \(y\,z\) 引入新鲜变量 \(B\)，生成约束 \(Y=Z\to B\)，结果类型为 \(B\)；
+  \item \((x\,z)(y\,z)\) 引入新鲜变量 \(C\)，生成约束 \(A=B\to C\)，结果类型为 \(C\)。
 \end{enumerate}
-于是可以取
+因此，函数体 \((x\,z)(y\,z)\) 的暂定类型为 \(C\)。再由内向外应用
+三次 CT-Abs，依次得到
+\[
+Z\to C,
+\qquad Y\to Z\to C,
+\qquad X\to Y\to Z\to C.
+\]
+于是整个项的暂定结果类型以及生成的新鲜变量集合和约束集可以取为
 \[
 \begin{aligned}
 S&=X\to Y\to Z\to C,\\
@@ -47,7 +56,8 @@ S&=X\to Y\to Z\to C,\\
 C_0&=\{X=Z\to A,\ Y=Z\to B,\ A=B\to C\}.
 \end{aligned}
 \]
-由 CT-Var 得到三个变量叶子，再依次应用三次 CT-App 和三次 CT-Abs，就得到
+推导树中 \(x,z,y,z\) 四个变量出现分别由四次 CT-Var 得到；随后应用三次
+CT-App 构造三个应用，再应用三次 CT-Abs 包回三层 lambda 抽象，最终得到
 结论 \(\vdash t:S\mid_{\mathcal X}C_0\)。
 
 \taplsolutionbacklink{ex:22.3.3}{返回练习22.3.3}
@@ -80,7 +90,7 @@ C_0&=\{X=Z\to A,\ Y=Z\to B,\ A=B\to C\}.
 \textbf{22.5.5 解答}
 
 实现分为三层。第一层按\cref{fig:22-1}遍历项，返回暂定结果类型和约束；第二层
-调用\cref{def:22.4.4}的合一算法；第三层把主合一子作用于暂定结果类型。关键
+调用\cref{fig:22-2}的合一算法；第三层把主合一子作用于暂定结果类型。关键
 不变量是：每次为应用或无标注抽象创建的类型变量都不曾出现过。
 
 书内已经依次给出实际 Rust 实现：\hyperref[fig:22-1]{图22-1后的类型与项定义}、
@@ -155,8 +165,8 @@ let 变量。处理变量时，每次查询类型方案都以全新的类型变�
 中分别用于自然数和布尔值；环境中自由类型变量不得被误泛化；包含引用分配的
 危险示例必须被拒绝；未使用的 let 右侧仍须接受类型检查。
 
-官方的 \texttt{letexercise} 是特意留有断言占位的练习骨架，不能把未补完版本
-当作通过实现；本项目保存该快照只用于核对接口和题意。
+原书配套的 \texttt{letexercise} 只是留有断言占位的练习骨架；完成本题时，
+不能把这份尚未补完的初始骨架当作已经通过验证的实现。
 
 \taplsolutionbacklink{ex:22.7.1}{返回练习22.7.1}
 \end{taplsolutionentrybox}

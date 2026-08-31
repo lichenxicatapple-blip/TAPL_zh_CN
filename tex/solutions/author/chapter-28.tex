@@ -14,14 +14,15 @@ N_1=\forall X<:N_{11}.N_{12},
 \quad
 \Gamma,X<:T_{11}\vdash N_{12}<:T_{12}.
 \]
-由原来的 \(\Gamma\vdash T_2<:T_{11}\) 和传递性可满足 TA-TApp 的实参上界
-检查，从而得到算法赋型判断
+由原来的 \(\Gamma\vdash T_2<:T_{11}\) 和传递性得到
+\(\Gamma\vdash T_2<:N_{11}\)，这证成了 TA-TApp 的实参上界前提，从而得到
+算法赋型判断
 \[
 \Gamma\algturnstile t_1[T_2]:[X\mapsto T_2]N_{12}
 \]
 最后仍用类型替换保持子类型，得到
 \[
-\Gamma\vdash[X\mapsto T_2]N_{12}<:[X\mapsto T_2]T_{12}.
+\Gamma\vdash[X\mapsto T_2]N_{12}<:[X\mapsto T_2]T_{12}=T.
 \]
 \taplsolutionbacklink{ex:28.2.3}{返回练习28.2.3}
 \end{taplauthorsolutionentrybox}
@@ -208,13 +209,12 @@ L(\tapltype{Top})&=&\tapltype{Top}
 =\llbracket\Gamma\rrbracket\vdash
  \llbracket S\rrbracket<:\llbracket T\rrbracket.
 \]
-对推导归纳即可证明
+这个翻译满足
 \[
 \Gamma\vdash S<:T
 \quad\Longleftrightarrow\quad
 \llbracket\Gamma\rrbracket\vdash
 \llbracket S\rrbracket<:\llbracket T\rrbracket.
 \]
-若只有存在量词的系统可判定，便可据此判定完全 \(F_{<:}\)，矛盾。
 \taplsolutionbacklink{ex:28.7.2}{返回练习28.7.2}
 \end{taplauthorsolutionentrybox}

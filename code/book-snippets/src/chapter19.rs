@@ -477,8 +477,8 @@ impl ClassTable {
 
 pub type Store = HashMap<usize, Term>;
 
-/// Implements the essential check in E-CastStore: a location's static name is
-/// not enough; the cast must inspect the runtime class of the stored object.
+/// 实现 E-CastStore 的关键检查：位置的静态类名不足以决定转换结果；
+/// 转换还必须检查该位置所存对象的运行时类。
 pub fn eval_location_cast(
     table: &ClassTable,
     store: &Store,
@@ -591,8 +591,8 @@ fn substitute_type(ty: &GType, substitution: &HashMap<String, GType>) -> GType {
 // TAPL-SNIPPET-END: ch19-gj-type-substitution
 
 fn normalized_method_signature(method: &GMethod) -> (Vec<GType>, GType, Vec<GType>) {
-    // These internal names cannot be confused with source-level identifiers in
-    // the comparison below. They give both signatures the same alpha-renaming.
+    // 这些内部名称不会与下面比较中的源语言标识符混淆；
+    // 它们为两份方法签名采用相同的 alpha 重命名。
     let substitution: HashMap<_, _> = method
         .type_parameters
         .iter()
@@ -1089,8 +1089,8 @@ impl GenericTable {
         }
     }
 
-    /// Erases a well-typed GJ term and inserts the FJ casts required when a
-    /// generic field or method result has a more general erased declaration.
+    /// 擦除一个良类型 GJ 项；若泛型字段或方法结果的擦除声明更一般，
+    /// 则插入 FJ 所需的类型转换。
     fn erase_typed_term(
         &self,
         bounds: &HashMap<String, GType>,
@@ -1176,8 +1176,8 @@ impl GenericTable {
         })
     }
 
-    /// Erases every generic declaration, including method bodies, into the FJ
-    /// class table consumed by the executable evaluator above.
+    /// 把包括方法体在内的全部泛型声明擦除为 FJ 类表，
+    /// 供上面的可执行求值器使用。
     pub fn erase_table(&self) -> Result<ClassTable, GjError> {
         let mut erased = Vec::new();
         for class in self.classes.values() {
@@ -1216,8 +1216,8 @@ impl GenericTable {
         ClassTable::new(erased).map_err(GjError::ErasedProgram)
     }
 
-    /// Type-checks the generic term, erases it, and executes the result with
-    /// the FJ evaluator. This is the runtime implementation of the GJ layer.
+    /// 对泛型项进行类型检查和擦除，再用 FJ 求值器执行所得项；
+    /// 这就是 GJ 层的运行时实现。
     pub fn eval_erased(
         &self,
         bounds: &HashMap<String, GType>,

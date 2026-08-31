@@ -51,8 +51,8 @@ fn shifted_index(index: usize, distance: isize) -> Result<usize, Error> {
 // TAPL-SNIPPET-END: ch25-binding-error-support
 
 // TAPL-SNIPPET-BEGIN: ch25-type-shift
-/// Shifts every free type variable by 'distance', leaving variables below
-/// 'cutoff' untouched. The stored context length is shifted for every leaf.
+/// 将每个自由类型变量移动 `distance`，但不改变索引小于 `cutoff` 的变量；
+/// 每个变量节点中记录的上下文长度也要相应移动。
 pub fn type_shift_above(distance: isize, cutoff: usize, ty: &Type) -> Result<Type, Error> {
     fn walk(distance: isize, cutoff: usize, ty: &Type) -> Result<Type, Error> {
         Ok(match ty {
@@ -85,8 +85,8 @@ pub fn type_shift(distance: isize, ty: &Type) -> Result<Type, Error> {
 // TAPL-SNIPPET-END: ch25-type-shift
 
 // TAPL-SNIPPET-BEGIN: ch25-type-substitution
-/// Replaces type variable 'variable' by 'replacement'. When traversal passes
-/// under a quantifier, the target and replacement are lifted together.
+/// 用 `replacement` 替换类型变量 `variable`；遍历进入量词时，
+/// 目标变量与替换类型一同上移。
 pub fn type_substitute(replacement: &Type, variable: usize, ty: &Type) -> Result<Type, Error> {
     fn walk(replacement: &Type, variable: usize, cutoff: usize, ty: &Type) -> Result<Type, Error> {
         Ok(match ty {
@@ -112,16 +112,15 @@ pub fn type_substitute(replacement: &Type, variable: usize, ty: &Type) -> Result
     walk(replacement, variable, 0, ty)
 }
 
-/// Opens one type binder: lift the replacement, substitute variable zero,
-/// then remove the binder from all remaining indices.
+/// 打开最外层的类型绑定：先上移替换类型，再替换变量 0，
+/// 最后从其余索引中移除这层绑定。
 pub fn type_substitute_top(replacement: &Type, body: &Type) -> Result<Type, Error> {
     type_shift(-1, &type_substitute(&type_shift(1, replacement)?, 0, body)?)
 }
 // TAPL-SNIPPET-END: ch25-type-substitution
 
 // TAPL-SNIPPET-BEGIN: ch25-term-operations
-/// Shifts both term variables and type variables embedded in annotations,
-/// because the implementation stores both kinds of binding in one context.
+/// 同时移动项变量和类型标注中的类型变量，因为本实现把两类绑定存放在同一上下文中。
 pub fn term_shift_above(distance: isize, cutoff: usize, term: &Term) -> Result<Term, Error> {
     fn walk(distance: isize, cutoff: usize, term: &Term) -> Result<Term, Error> {
         Ok(match term {
@@ -169,8 +168,8 @@ pub fn term_shift(distance: isize, term: &Term) -> Result<Term, Error> {
     term_shift_above(distance, 0, term)
 }
 
-/// Replaces one free term variable while lifting the replacement whenever the
-/// traversal enters a term or type binder, so no free variable is captured.
+/// 替换一个自由项变量；每当遍历进入项绑定或类型绑定时，先上移替换项，
+/// 以免其中的自由变量被捕获。
 pub fn term_substitute(replacement: &Term, variable: usize, term: &Term) -> Result<Term, Error> {
     fn walk(
         replacement: &Term,
@@ -221,8 +220,8 @@ pub fn term_substitute_top(replacement: &Term, body: &Term) -> Result<Term, Erro
     term_shift(-1, &term_substitute(&term_shift(1, replacement)?, 0, body)?)
 }
 
-/// Replaces a type variable throughout every type annotation embedded in a
-/// term. Term variables are left unchanged; type binders increase the cutoff.
+/// 在项包含的所有类型标注中替换类型变量。项变量保持不变；
+/// 进入类型绑定时增加 `cutoff`。
 pub fn type_term_substitute(
     replacement: &Type,
     variable: usize,
@@ -288,7 +287,7 @@ fn is_value(term: &Term) -> bool {
 // TAPL-SNIPPET-END: ch25-evaluation-support
 
 // TAPL-SNIPPET-BEGIN: ch25-evaluation
-/// Performs one call-by-value evaluation step for the System F constructs.
+/// 按值调用，对 System F 构造执行一次单步求值。
 pub fn evaluate_one(term: &Term) -> Result<Term, Error> {
     Ok(match term {
         Term::App(function, argument) if is_value(function) && is_value(argument) => {
@@ -314,9 +313,8 @@ pub fn evaluate_one(term: &Term) -> Result<Term, Error> {
         Term::Unpack(type_name, name, package, body) => {
             if let Term::Pack(hidden, value, _) = package.as_ref() {
                 if is_value(value) {
-                    // The value originally lives outside the two binders X,x.
-                    // Lift it once before substituting for x; opening X then
-                    // removes the remaining type-binder slot.
+                    // 这个值原本位于 X、x 两层绑定之外。替换 x 前先将它上移一层；
+                    // 随后打开 X 时，再移除余下的类型绑定位置。
                     let with_value = term_substitute_top(&term_shift(1, value)?, body)?;
                     type_term_substitute_top(hidden, &with_value)?
                 } else {
@@ -364,8 +362,8 @@ fn binding_type(context: &[Binding], index: usize) -> Result<Type, Error> {
 // TAPL-SNIPPET-END: ch25-typechecking-support
 
 // TAPL-SNIPPET-BEGIN: ch25-typechecking
-/// Implements all typing rules for the chapter's System F constructs.
-/// The final shift in T-Unpack rejects a result type containing hidden X.
+/// 实现本章 System F 构造的全部类型规则。
+/// T-Unpack 最后的下移会拒绝仍含有隐藏类型 X 的结果类型。
 pub fn type_of(context: &[Binding], term: &Term) -> Result<Type, Error> {
     match term {
         Term::Var(index, _) => binding_type(context, *index),
