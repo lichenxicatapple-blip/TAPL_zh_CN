@@ -91,17 +91,20 @@ CT-App 构造三个应用，再应用三次 CT-Abs 包回三层 lambda 抽象，
 
 实现分为三层。第一层按\cref{fig:22-1}遍历项，返回暂定结果类型和约束；第二层
 调用\cref{fig:22-2}的合一算法；第三层把主合一子作用于暂定结果类型。关键
-不变量是：每次为应用或无标注抽象创建的类型变量都不曾出现过。
+不变量是：每次处理应用时，为其结果创建的类型变量都不曾出现过。无标注抽象要到
+\taplsecref{22.6}{sec:22.6}才加入语言，本题仍沿用显式标注的 lambda 抽象。
 
 书内已经依次给出实际 Rust 实现：\hyperref[fig:22-1]{图22-1后的类型与项定义}、
 \hyperref[sol:author:22.3.10]{解答22.3.10中的约束生成器}和
-\hyperref[sol:author:22.4.6]{解答22.4.6中的合一器}；主类型入口紧随
-\taplnamedref{thm:22.5.3}{定理}展示。合在一起即构成题目要求的三层实现，
-无需在本解答中重复刊载同一源码。
+\hyperref[sol:author:22.4.6]{解答22.4.6中的合一器}。把约束生成与合一串联起来、
+再把所得替换作用于暂定结果类型的主类型入口如下：
+\taplrustsupport{ch22-principal-type}
 
-同一份源码中的端到端测试覆盖恒等函数、把未知函数用于自然数、自应用的
-出现检查失败、多步替换的传递应用、显式标注与自动生成变量同名时的回归情形，
-以及布尔值、自然数和条件项的约束生成。
+这三层合在一起，即构成题目要求的完整实现；这里不再重复刊载前两层源码。
+
+同一份源码中的端到端测试覆盖题目给出的三组典型交互、自应用的出现检查失败、
+多步替换的传递应用、显式标注与自动生成变量同名时的回归情形，以及布尔值、
+自然数和条件项的约束生成。
 
 \taplsolutionbacklink{ex:22.5.5}{返回练习22.5.5}
 \end{taplsolutionentrybox}
@@ -111,37 +114,50 @@ CT-App 构造三个应用，再应用三次 CT-Abs 包回三层 lambda 抽象，
 \label{sol:translator:22.5.7}
 \textbf{22.5.7 解答}
 
-增量版本在离开每个语法构造时立即合一当前新产生的约束，并把所得替换作用于
-上下文和后续子项。应用 \(t_1\,t_2\) 可按以下顺序处理：先重构 \(t_1\)，把
-所得替换作用于上下文；在更新后的上下文中重构 \(t_2\)；创建新结果变量 \(X\)，
-再合一“函数类型 \(=\) 实参类型 \(\to X\)”。最后复合三步替换，并把复合替换
-作用于 \(X\)。
+本题只修改\cref{ex:22.5.5}的
+\texttt{reconbase} 检查器，因此处理的仍是带显式形参类型标注的简单语言；
+无标注抽象和 let 多态分别到\taplsecref{22.6}{sec:22.6}和
+\taplsecref{22.7}{sec:22.7}再加入。
 
-每一步返回的都是当前信息下最一般的类型；因此后续发现新约束时只需继续实例化，
-无需回头重新遍历已经处理的子项。这正是算法 W 的基本组织方式。
+增量版本不再先收集整棵语法树的约束、最后统一求解，而是在处理每个语法构造时
+立即合一新产生的约束。对外的入口仍返回整个项的主类型；递归辅助函数
+\(\mathit{infer}\) 则返回一对 \((\sigma,T)\)：\(\sigma\) 是处理当前子项时
+求得的替换，\(T\) 是在当前已知约束下得到的最一般类型；这里约定，返回的
+\(T\) 已经应用了同一次调用求出的 \(\sigma\)。处理后续子项前，必须先把
+\(\sigma\) 作用于上下文，使后续步骤能够使用刚刚获得的类型信息。
 
-下面的实现把“替换与类型一起返回”这一流程写成可执行程序。
-\Needspace{24\baselineskip}
-\taplrustsupportflowchunkfirstshort{ch22-algorithm-w-support}{1}{16}
-\Needspace{19\baselineskip}
-\taplrustsupportflowchunk{ch22-algorithm-w-support}{18}{33}
-\Needspace{21\baselineskip}
-\taplrustsupportflowchunk{ch22-algorithm-w-support}{35}{52}
-\Needspace{20\baselineskip}
-\taplrustsupportflowchunk{ch22-algorithm-w-support}{54}{70}
-\Needspace{20\baselineskip}
-\taplrustsupportflowchunk{ch22-algorithm-w-value-support}{1}{16}
-\taplrustsupportflowchunkfirstshort{ch22-algorithm-w}{1}{19}
-\Needspace{23\baselineskip}
-\taplrustsupportflowchunk{ch22-algorithm-w}{20}{39}
-\Needspace{20\baselineskip}
-\taplrustsupportflowchunk{ch22-algorithm-w}{40}{56}
-\Needspace{16\baselineskip}
-\taplrustsupportflowchunk{ch22-algorithm-w}{57}{69}
-\Needspace{38\baselineskip}
-\taplrustsupportflowchunk{ch22-algorithm-w}{70}{104}
-\Needspace{42\baselineskip}
-\taplrustsupportflowchunk{ch22-algorithm-w}{105}{143}
+以应用 \(t_1\,t_2\) 为例，处理顺序可以明确写成：
+\[
+\begin{aligned}
+  \mathit{infer}(\Gamma,t_1)&=(\sigma_1,T_1),\\
+  \mathit{infer}(\sigma_1\Gamma,t_2)&=(\sigma_2,T_2).
+\end{aligned}
+\]
+接着创建全新的结果类型变量 \(X\)，并求下列等式的最一般合一子 \(\sigma_3\)：
+\[
+  \sigma_2(T_1)=T_2\to X.
+\]
+左侧先应用 \(\sigma_2\)，是因为重构 \(t_2\) 时得到的新信息也可能约束
+\(t_1\) 的类型。整个应用最终返回
+\[
+  (\sigma_3\circ\sigma_2\circ\sigma_1,\;\sigma_3(X)).
+\]
+复合顺序记录了信息产生的先后次序：后求得的替换必须作用于此前替换的结果。
+
+这里的中间类型只是当前已处理约束下的最一般类型，后续约束仍可能使它更具体。
+最一般性得以保留，是因为每次合一都选取最一般合一子：任何满足新约束的其他
+替换，都可以写成这个最一般合一子与另一替换的复合。因此，把它复合到已有替换
+时，只会施加满足新约束所必需的限制；处理到根节点时，所有约束都已纳入，所得
+类型便是整个项的主类型。例如，
+\((\lambda x:Y.x)\ 0\) 先为函数得到 \(Y\to Y\)，再由应用产生
+\(Y\to Y=\tapltype{Nat}\to X\)；最一般合一子只令
+\(Y=X=\tapltype{Nat}\)，于是整个应用的类型为 \(\tapltype{Nat}\)，无需重新
+遍历函数体。
+
+下面给出 \texttt{reconbase} 全部语法分支的增量实现。递归辅助函数负责逐层
+处理项，并把替换返回给上一层，用来更新后续子项所处的上下文。最外层没有后续
+子项，\texttt{principal\_type\_incremental} 因而只返回已经更新完毕的类型。
+\taplrustsupport[breakable]{ch22-incremental-reconbase}
 
 \taplsolutionbacklink{ex:22.5.7}{返回练习22.5.7}
 \end{taplsolutionentrybox}
@@ -157,16 +173,9 @@ CT-App 构造三个应用，再应用三次 CT-Abs 包回三层 lambda 抽象，
 let 变量。处理变量时，每次查询类型方案都以全新的类型变量实例化所有量化变量。
 
 若语言包含引用等副作用，泛化步骤还必须实行值限制：只有右侧是句法值时才泛化；
-其他右侧以不量化的单态方案加入上下文。下面的入口调用前述增量算法；
-\texttt{infer\_incremental} 的 let 分支已实现泛化、实例化和值限制。
-\taplrustsupport{ch22-let-principal-type}
-
-端到端测试包括：同一恒等函数在一次 let
-中分别用于自然数和布尔值；环境中自由类型变量不得被误泛化；包含引用分配的
-危险示例必须被拒绝；未使用的 let 右侧仍须接受类型检查。
-
-原书配套的 \texttt{letexercise} 只是留有断言占位的练习骨架；完成本题时，
-不能把这份尚未补完的初始骨架当作已经通过验证的实现。
+其他右侧以不量化的单态方案加入上下文。下面先给出在本节中新增加的类型方案、
+泛化、实例化和 let 分支等完整实现，再给出计算主类型的入口。
+\taplrustsupport[breakable]{ch22-algorithm-w-complete}
 
 \taplsolutionbacklink{ex:22.7.1}{返回练习22.7.1}
 \end{taplsolutionentrybox}

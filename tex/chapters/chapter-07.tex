@@ -80,9 +80,7 @@ type term =
   | TmAbs of info * string * term
   | TmApp of info * term * term
 \end{taplocamlcode}
-\taplrustcounterpart{ch07-term-name-hint}
-
-\taplrustsupport{ch07-eval-error}
+\taplrustcounterpart[breakable]{ch07-term-name-hint-complete}
 
 项上的基本操作，特别是替换，不会对这些字符串做任何复杂处理：它们只会原样
 随项传递，不检查名字冲突、变量捕获等问题。打印过程需要为受约束变量确定一个

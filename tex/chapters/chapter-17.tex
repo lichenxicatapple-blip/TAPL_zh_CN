@@ -27,8 +27,7 @@ type term =
   | TmAbs of info * string * ty * term
   | TmApp of info * term * term
 \end{taplocamlcode}
-\taplrustcounterpart{ch17-syntax}
-\taplrustsupport{ch17-support}
+\taplrustcounterpart[breakable]{ch17-syntax-complete}
 
 与纯粹的简单类型 lambda 演算相比，这里新增了类型
 \texttt{TyTop}、类型构造子 \texttt{TyRecord}，以及项构造子

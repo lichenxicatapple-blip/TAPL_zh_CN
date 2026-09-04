@@ -189,13 +189,11 @@
 % Source-only marker: the named Rust counterpart is displayed later in the
 % same continuous solution so that each host language can be read as a group.
 \newcommand{\taplocamlgroupedcounterpart}[1]{}
-% Give every rendered source line its own full-width background.  Unlike
-% minted's bgcolor/frame wrapper, this leaves page breaks available between
-% lines while retaining the book's code background.
-\newcommand{\taplbreakablecodeline}[1]{%
-  \colorbox{TAPLCodeBackground}{%
-    \makebox[\dimexpr\linewidth-2\fboxsep\relax][l]{\strut#1}%
-  }%
+% All minted listings use the same page-breakable per-line background and
+% fancyvrb frame configured in packages.tex.  This helper only adds the source
+% file and optional line range; it does not introduce a second visual style.
+\newcommand{\taplinputbreakablecode}[3][]{%
+  \inputminted[#1]{#2}{#3}%
 }
 \newcommand{\authornote}[1]{%
   \begin{taplauthornotebox}
@@ -204,19 +202,15 @@
 }
 \newcommand{\taplrustcounterpart}[2][]{%
   \ifstrequal{#1}{break}{\tcbbreak}{}%
-  \ifstrequal{#1}{page}{\tcbbreak\newpage}{}%
-  \par\Needspace{8\baselineskip}\smallskip
+  \par
+  \ifstrequal{#1}{breakable}{}{\Needspace{8\baselineskip}}%
+  \smallskip
   \begingroup
     \noindent
     {\footnotesize\bfseries Rust 对照实现（译者增补）\par}
     \nobreak\smallskip
     \ifstrequal{#1}{breakable}{%
-      % Per-line padding would be added above and below every source line,
-      % making a long listing look double-spaced.  Keep the background but
-      % let the normal verbatim strut determine the line height.
-      \setlength{\fboxsep}{0pt}%
-      \let\FancyVerbFormatLine\taplbreakablecodeline
-      \inputminted[bgcolor={},frame=none]{rust}{../build/code-snippets/#2.rs}%
+      \taplinputbreakablecode{rust}{../build/code-snippets/#2.rs}%
     }{%
       \inputminted{rust}{../build/code-snippets/#2.rs}%
     }%
@@ -226,9 +220,10 @@
 \newcommand{\taplrustsupport}[2][]{%
   \ifstrequal{#1}{break}{\tcbbreak}{}%
   \ifstrequal{#1}{implementation-break}{\tcbbreak}{}%
-  \ifstrequal{#1}{page}{\tcbbreak\newpage}{}%
   \par
-  \ifstrequal{#1}{compact}{\Needspace{17\baselineskip}}{\Needspace{8\baselineskip}}%
+  \ifstrequal{#1}{breakable}{}{%
+    \ifstrequal{#1}{compact}{\Needspace{17\baselineskip}}{\Needspace{8\baselineskip}}%
+  }%
   \smallskip
   \begingroup
     \noindent
@@ -239,10 +234,14 @@
       }{Rust 实现（译者增补）}{Rust 辅助实现（译者增补）}%
       \par}
     \nobreak\smallskip
-    \ifstrequal{#1}{compact}{%
-      \inputminted[fontsize=\footnotesize]{rust}{../build/code-snippets/#2.rs}%
+    \ifstrequal{#1}{breakable}{%
+      \taplinputbreakablecode{rust}{../build/code-snippets/#2.rs}%
     }{%
-      \inputminted{rust}{../build/code-snippets/#2.rs}%
+      \ifstrequal{#1}{compact}{%
+        \inputminted[fontsize=\footnotesize]{rust}{../build/code-snippets/#2.rs}%
+      }{%
+        \inputminted{rust}{../build/code-snippets/#2.rs}%
+      }%
     }%
   \endgroup
   \par\medskip
@@ -253,7 +252,6 @@
 \newcommand{\taplrustsupportreuse}[2][]{%
   \ifstrequal{#1}{break}{\tcbbreak}{}%
   \ifstrequal{#1}{implementation-break}{\tcbbreak}{}%
-  \ifstrequal{#1}{page}{\tcbbreak\newpage}{}%
   \par\Needspace{8\baselineskip}\smallskip
   \begingroup
     \noindent
@@ -297,70 +295,6 @@
   \endgroup
   \par\medskip
 }
-% Flowing variants for long implementations inside a breakable solution box.
-% Each source fragment remains short enough to paginate safely, but does not
-% force a new box segment (and hence a mostly empty page) before every chunk.
-\newcommand{\taplrustsupportflowchunk}[3]{%
-  \par\smallskip
-  \begingroup
-    \inputminted[firstline=#2,lastline=#3]{rust}{../build/code-snippets/#1.rs}%
-  \endgroup
-  \par\medskip
-}
-\newcommand{\taplrustsupportflowchunkfirst}[3]{%
-  \par\Needspace{30\baselineskip}\smallskip
-  \begingroup
-    \noindent
-    {\footnotesize\bfseries Rust 实现（译者增补）\par}
-    \nobreak\smallskip
-    \inputminted[firstline=#2,lastline=#3]{rust}{../build/code-snippets/#1.rs}%
-  \endgroup
-  \par\medskip
-}
-% Compact first fragment for solutions where a short code segment can use the
-% remainder of the current page without separating its heading from the code.
-\newcommand{\taplrustsupportflowchunkfirstcompact}[3]{%
-  \par\Needspace{20\baselineskip}\smallskip
-  \begingroup
-    \noindent
-    {\footnotesize\bfseries Rust 实现（译者增补）\par}
-    \nobreak\smallskip
-    \inputminted[firstline=#2,lastline=#3]{rust}{../build/code-snippets/#1.rs}%
-  \endgroup
-  \par\medskip
-}
-% Short-first flowing variant for a long implementation that should use the
-% remaining page without separating its heading from the first source lines.
-\newcommand{\taplrustsupportflowchunkfirstshort}[3]{%
-  \par\Needspace{8\baselineskip}\smallskip
-  \begingroup
-    \noindent
-    {\footnotesize\bfseries Rust 实现（译者增补）\par}
-    \nobreak\smallskip
-    \inputminted[firstline=#2,lastline=#3]{rust}{../build/code-snippets/#1.rs}%
-  \endgroup
-  \par\medskip
-}
-% Flowing chunks for one Rust counterpart to a preceding OCaml block.  The
-% first chunk carries the counterpart heading; later chunks continue it
-% without creating isolated headings or unbreakable page-sized boxes.
-\newcommand{\taplrustcounterpartflowchunkfirst}[3]{%
-  \par\Needspace{8\baselineskip}\smallskip
-  \begingroup
-    \noindent
-    {\footnotesize\bfseries Rust 对照实现（译者增补）\par}
-    \nobreak\smallskip
-    \inputminted[firstline=#2,lastline=#3]{rust}{../build/code-snippets/#1.rs}%
-  \endgroup
-  \par\medskip
-}
-\newcommand{\taplrustcounterpartflowchunk}[3]{%
-  \par\smallskip
-  \begingroup
-    \inputminted[firstline=#2,lastline=#3]{rust}{../build/code-snippets/#1.rs}%
-  \endgroup
-  \par\medskip
-}
 \newcommand{\taplocamlfilechunk}[3]{%
   \tcbbreak
   \par\smallskip
@@ -382,19 +316,15 @@
 }
 \newcommand{\taplocamlfileflowchunk}[3]{%
   \par\smallskip
-  \begingroup
-    \inputminted[firstline=#2,lastline=#3]{ocaml}{#1}%
-  \endgroup
+  \taplinputbreakablecode[firstline=#2,lastline=#3]{ocaml}{#1}%
   \par\medskip
 }
 \newcommand{\taplocamlfileflowchunkfirst}[3]{%
-  \par\Needspace{30\baselineskip}\smallskip
-  \begingroup
-    \noindent
-    {\footnotesize\bfseries OCaml 实现\par}
-    \nobreak\smallskip
-    \inputminted[firstline=#2,lastline=#3]{ocaml}{#1}%
-  \endgroup
+  \par\Needspace{8\baselineskip}\smallskip
+  \noindent
+  {\footnotesize\bfseries OCaml 实现\par}
+  \nobreak\smallskip
+  \taplinputbreakablecode[firstline=#2,lastline=#3]{ocaml}{#1}%
   \par\medskip
 }
 \newcommand{\taplsolutionlink}[2]{%

@@ -100,8 +100,7 @@ let typeShiftAbove d c tyT =
 
 let typeShift d tyT = typeShiftAbove d 0 tyT
 \end{taplocamlcode}
-\taplrustcounterpartflowchunkfirst{ch25-type-shift}{1}{27}
-\taplrustcounterpartflowchunk{ch25-type-shift}{29}{31}
+\taplrustcounterpart[breakable]{ch25-type-shift}
 
 \begin{taplocamlcode}
 let typeSubst tyS j tyT =
@@ -197,15 +196,7 @@ let tytermSubstTop tyS t =
   termShift (-1) (tytermSubst (typeShift 1 tyS) 0 t)
 \end{taplocamlcode}
 \taplocamlgroupedcounterpart{ch25-term-operations}
-\taplrustcounterpartflowchunkfirst{ch25-term-operations}{1}{13}
-\taplrustcounterpartflowchunk{ch25-term-operations}{14}{29}
-\taplrustcounterpartflowchunk{ch25-term-operations}{30}{48}
-\taplrustcounterpartflowchunk{ch25-term-operations}{50}{64}
-\taplrustcounterpartflowchunk{ch25-term-operations}{65}{81}
-\taplrustcounterpartflowchunk{ch25-term-operations}{82}{100}
-\taplrustcounterpartflowchunk{ch25-term-operations}{102}{120}
-\taplrustcounterpartflowchunk{ch25-term-operations}{121}{138}
-\taplrustcounterpartflowchunk{ch25-term-operations}{139}{155}
+\taplrustcounterpart[breakable]{ch25-term-operations}
 
 在 \texttt{termShiftAbove} 的项变量分支中，程序像
 \texttt{typeShiftAbove} 一样检查截止位置，再构造新的变量；在类型标注处，
@@ -252,12 +243,8 @@ let rec eval1 ctx t = match t with
       TmPack(fi,tyT1,t2',tyT3)
     (* ... *)
 \end{taplocamlcode}
-\taplocamlgroupedcounterpart{ch25-evaluation}
-\taplrustsupport{ch25-evaluation-support}
-\taplrustcounterpartflowchunkfirst{ch25-evaluation}{1}{16}
-\taplrustcounterpartflowchunk{ch25-evaluation}{17}{23}
-\taplrustcounterpartflowchunk{ch25-evaluation}{24}{48}
-\taplrustcounterpartflowchunk{ch25-evaluation}{49}{56}
+\taplocamlgroupedcounterpart{ch25-evaluation-complete}
+\taplrustcounterpart[breakable]{ch25-evaluation-complete}
 
 \begin{exercise}[\(\star\)]
 \label{ex:25.4.1}
@@ -313,12 +300,8 @@ let rec typeof ctx t = match t with
            typeShift (-2) tyT2
        | _ -> error fi "existential type expected")
 \end{taplocamlcode}
-\taplocamlgroupedcounterpart{ch25-typechecking}
-\taplrustsupport[compact]{ch25-typechecking-support}
-\taplrustcounterpartflowchunkfirst{ch25-typechecking}{1}{24}
-\taplrustcounterpartflowchunk{ch25-typechecking}{25}{34}
-\taplrustcounterpartflowchunk{ch25-typechecking}{35}{46}
-\taplrustcounterpartflowchunk{ch25-typechecking}{47}{57}
+\taplocamlgroupedcounterpart{ch25-typechecking-complete}
+\taplrustcounterpart[breakable]{ch25-typechecking-complete}
 
 最值得注意的新分支是 \texttt{TmUnpack}。它依次完成以下步骤：
 \begin{enumerate}

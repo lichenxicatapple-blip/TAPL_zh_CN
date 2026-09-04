@@ -326,8 +326,7 @@ GJ 风格扩展的核心，是让类、方法和类型都可以带有受上界�
 转换也携带相应的类型实参。上界 \(N\) 可以提到先前声明的类型变量，从而表达
 F-有界约束，例如 \(X\subtype\mathit{Comparable}\langle X\rangle\)。
 
-\taplrustsupportflowchunkfirstcompact{ch19-gj-syntax}{1}{20}
-\taplrustsupportflowchunk{ch19-gj-syntax}{21}{38}
+\taplrustsupport[breakable]{ch19-gj-syntax}
 
 \textbf{环境。}
 在变量环境 \(\Gamma\) 之外增加类型变量环境 \(\Delta\)，记录每个类型变量的
@@ -336,7 +335,7 @@ F-有界约束，例如 \(X\subtype\mathit{Comparable}\langle X\rangle\)。
 
 类或方法的形式类型变量换成实际类型实参时，递归使用下面的类型替换函数。
 
-\taplrustsupportflowchunkfirstcompact{ch19-gj-type-substitution}{1}{15}
+\taplrustsupport[breakable]{ch19-gj-type-substitution}
 
 \textbf{子类型。}
 增加变量规则
@@ -361,9 +360,7 @@ F-有界约束，例如 \(X\subtype\mathit{Comparable}\langle X\rangle\)。
 下面的实现同时处理类型变量的上界、沿继承链进行的子类型查询，以及类类型实参
 是否满足声明上界的检查。
 
-\taplrustsupportflowchunkfirstcompact{ch19-gj-subtyping}{1}{25}
-\taplrustsupportflowchunk{ch19-gj-subtyping}{26}{55}
-\taplrustsupportflowchunk{ch19-gj-subtyping}{56}{84}
+\taplrustsupport[breakable]{ch19-gj-subtyping}
 
 \textbf{字段与方法查询。}
 \(\mathit{fields}\)、\(\mathit{mtype}\) 和 \(\mathit{mbody}\) 沿继承链查找
@@ -393,8 +390,7 @@ F-有界约束，例如 \(X\subtype\mathit{Comparable}\langle X\rangle\)。
 擦除后的继承链查找声明，前文已经说明其算法，故不再重复列出。对象创建和原有转换
 只需递归擦除类型参数。
 
-\taplrustsupportflowchunkfirstcompact{ch19-gj-erasure-term}{1}{30}
-\taplrustsupportflowchunk{ch19-gj-erasure-term}{31}{58}
+\taplrustsupport[breakable]{ch19-gj-erasure-term}
 
 \Needspace{14\baselineskip}
 \textbf{验证顺序。}

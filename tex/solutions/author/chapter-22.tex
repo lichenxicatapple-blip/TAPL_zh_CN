@@ -91,14 +91,11 @@ let rec recon ctx nextuvar t = match t with
       (tyT3,nextuvar3,
        List.concat [newconstr; constr1; constr2; constr3])
 \end{taplocamlcode}
-\taplocamlgroupedcounterpart{ch22-inference-support}
+\taplocamlgroupedcounterpart{ch22-constraint-generator}
 Rust 对照复用\hyperref[ex:22.3.10]{练习22.3.10}题干后已经展示的
 \texttt{Type} 与 \texttt{FreshVariables}。这里的 \texttt{Context} 是变量名到
 类型的映射，\texttt{Constraints} 是待求解的类型等式列表。核心约束生成函数如下：
-\taplrustcounterpartflowchunkfirst{ch22-inference-support}{2}{3}
-\taplrustcounterpartflowchunk{ch22-constraints}{1}{29}
-\taplrustcounterpartflowchunk{ch22-constraints}{30}{48}
-\taplrustcounterpartflowchunk{ch22-constraints}{49}{64}
+\taplrustcounterpart[breakable]{ch22-constraint-generator}
 
 \taplsolutionbacklink{ex:22.3.10}{返回练习22.3.10}
 \end{taplauthorsolutionentrybox}
@@ -166,10 +163,7 @@ let substinty tyX tyT tyS =
     | TyBool -> TyBool
     | TyId(s) -> if s=tyX then tyT else TyId(s)
   in f tyS
-\end{taplocamlcode}
-\taplocamlgroupedcounterpart{ch22-unifier-implementation}
 
-\begin{taplocamlcode}
 let applysubst constr tyT =
   List.fold_left
     (fun tyS (TyId(tyX),tyC2) -> substinty tyX tyC2 tyS)
@@ -188,10 +182,7 @@ let occursin tyX tyT =
     | TyBool -> false
     | TyId(s) -> s=tyX
   in o tyT
-\end{taplocamlcode}
-\taplocamlgroupedcounterpart{ch22-unifier-implementation}
 
-\begin{taplocamlcode}
 let unify fi ctx msg constr =
   let rec u constr = match constr with
       [] -> []
@@ -239,7 +230,7 @@ Rust 对照继续复用\hyperref[ex:22.3.10]{练习22.3.10}题干后展示的
   C\cup\{T=\{l_i:X\}\}}
 \]
 这条规则要求 \(t.l_i\) 的接收者恰好具有单字段记录类型
-\(\{l_i:X\}\)，因而错误地排除含其他字段的记录。
+\(\{l_i:X\}\)，因而会错误地拒绝含有额外字段的记录。
 
 Wand（1987）提出的办法后来由 Wand（1988, 1989b）、
 Rémy（1989, 1990）等人进一步发展。其做法是增加一类

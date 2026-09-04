@@ -18,21 +18,16 @@
 分支也报告缺失字段、越界索引及上下文长度。错误消息会打印出错路径，以及实际
 类型和预期类型。完整源码还实现错误消息格式化，并用测试覆盖成功检查、嵌套字段
 缺失、类型构造不匹配、变量越界、投影缺少字段、投影非记录项和应用非函数项。
-下面省略本章正文已经展示过的项、类型和上下文定义，以及结构未变的类型检查
-分支，只列出错误数据、带路径的子类型检查和应用分支。
+下面省略本章正文已经展示过的项与类型定义，连续列出错误数据、带路径的子类型
+检查和完整类型检查器：
 
-\taplocamlfileflowchunkfirst{../code/ocaml/chapter17/diagnostics.ml}{13}{26}
-\taplocamlfileflowchunk{../code/ocaml/chapter17/diagnostics.ml}{28}{48}
-\taplocamlfileflowchunk{../code/ocaml/chapter17/diagnostics.ml}{69}{79}
+\taplocamlfileflowchunkfirst{../code/ocaml/chapter17/diagnostics.ml}{13}{79}
 
 Rust 对照实现沿用本章正文的 \texttt{Type}、\texttt{Term} 和
-\texttt{Context}。三个代码段分别给出诊断数据、带路径的子类型检查，以及把
-诊断接入函数应用类型检查的入口。
+\texttt{Context}，同样把诊断数据、带路径的子类型检查和类型检查器放在一份
+连续实现中。
 
-\taplrustsupportflowchunkfirst{sol-translator-17-diagnostic-error}{1}{30}
-\taplrustsupportflowchunk{sol-translator-17-diagnostic-subtype}{1}{20}
-\taplrustsupportflowchunk{sol-translator-17-diagnostic-subtype}{21}{36}
-\taplrustsupportflowchunk{sol-translator-17-diagnostic-app}{1}{20}
+\taplrustsupport[breakable]{sol-translator-17-diagnostics}
 
 \taplsolutionbacklink{ex:17.3.3}{返回练习17.3.3}
 \end{taplsolutionentrybox}
@@ -81,30 +76,22 @@ Rust 对照实现沿用本章正文的 \texttt{Type}、\texttt{Term} 和
 强制转换构造及项翻译。目标语言的移位、替换与求值沿用\chapref{7}的算法，
 完整配套源码中保留这些实现和端到端测试。
 
-\tcbbreak\newpage
-\taplocamlfileflowchunkfirst{../code/ocaml/chapter17/coercion.ml}{1}{28}
-\taplocamlfileflowchunk{../code/ocaml/chapter17/coercion.ml}{29}{56}
-\taplocamlfileflowchunk{../code/ocaml/chapter17/coercion.ml}{57}{73}
-\taplocamlfileflowchunk{../code/ocaml/chapter17/coercion.ml}{100}{120}
-\taplocamlfileflowchunk{../code/ocaml/chapter17/coercion.ml}{121}{139}
+\taplocamlfileflowchunkfirst{../code/ocaml/chapter17/coercion.ml}{1}{73}
+
+完整源码随后还有一个普通的源语言类型检查函数 \texttt{typeof}；它不参与强制
+转换构造，且结构与本章正文的类型检查器相同，因而在这里略去。接下来完整列出
+项翻译函数：
+
+\taplocamlfileflowchunk{../code/ocaml/chapter17/coercion.ml}{100}{139}
 
 Rust 对照实现采用相同结构：
 
-\tcbbreak\newpage
-\taplrustsupportflowchunkfirst{sol-translator-17-coercion-support}{1}{25}
-\taplrustsupportflowchunk{sol-translator-17-coercion-support}{26}{47}
-\taplrustsupportflowchunk{sol-translator-17-coercion}{1}{19}
-\taplrustsupportflowchunk{sol-translator-17-coercion}{20}{38}
-\taplrustsupportflowchunk{sol-translator-17-coercion}{39}{55}
-\taplrustsupportflowchunk{sol-translator-17-coercion}{56}{78}
-\taplrustsupportflowchunk{sol-translator-17-coercion}{79}{103}
-\taplrustsupportflowchunk{sol-translator-17-translate}{1}{18}
-\taplrustsupportflowchunk{sol-translator-17-translate}{19}{33}
+\taplrustsupport[breakable]{sol-translator-17-coercion-complete}
 
 端到端测试构造上述宽记录应用，检查翻译后的项仍为良类型，并最终求值为
 \texttt{unit}：
 
-\taplrustsupportflowchunk{sol-translator-17-example}{1}{20}
+\taplrustsupport[breakable]{sol-translator-17-example}
 
 \taplsolutionbacklink{ex:17.3.4}{返回练习17.3.4}
 \end{taplsolutionentrybox}

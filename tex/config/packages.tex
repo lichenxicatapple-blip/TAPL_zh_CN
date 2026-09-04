@@ -45,6 +45,7 @@
 
 \definecolor{TAPLLink}{HTML}{1F4E79}
 \definecolor{TAPLCodeBackground}{HTML}{F5F5F5}
+\definecolor{TAPLCodeBorder}{HTML}{737373}
 \definecolor{TAPLTranslatorNoteBackground}{HTML}{F2F2F2}
 \definecolor{TAPLTranslatorNoteBorder}{HTML}{D8D8D8}
 \definecolor{TAPLAuthorNoteRule}{HTML}{B8B8B8}
@@ -56,6 +57,15 @@
 \definecolor{TAPLSolutionBorder}{HTML}{8194A3}
 \definecolor{TAPLAuthorSolutionBackground}{HTML}{FFFFFF}
 \definecolor{TAPLAuthorSolutionBorder}{HTML}{B8C1C8}
+
+% fvextra's physical-line highlighting already accounts for the left/right
+% frame rules and frame separation, remains breakable, and does not affect
+% long-line measurement.  Reuse it as the common background implementation
+% for every minted listing.
+\colorlet{FancyVerbHighlightColor}{TAPLCodeBackground}
+\newcommand{\taplcodeformat}{%
+  \let\FancyVerbHighlightLine\FancyVerbHighlightLineFirst
+}
 
 \pagestyle{fancy}
 \fancyhf{}
@@ -93,12 +103,17 @@
 
 \setminted{
   style=friendly,
-  bgcolor=TAPLCodeBackground,
+  bgcolor={},
   breaklines,
+  breakautoindent=true,
+  breaksymbolleft={\tiny\ensuremath{\hookrightarrow}},
+  breaksymbolindentleftnchars=4,
+  breaksymbolsepleftnchars=2,
+  formatcom=\taplcodeformat,
   fontsize=\small,
   frame=single,
   framesep=3pt,
-  rulecolor=\color{black!55},
+  rulecolor=\color{TAPLCodeBorder},
   tabsize=2,
   encoding=utf8
 }

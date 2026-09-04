@@ -30,10 +30,7 @@ let rec join tyS tyT =
       TyRecord(commonFields)
   | _ ->
       TyTop
-\end{taplocamlcode}
-\taplocamlgroupedcounterpart{sol-author-17-join}
 
-\begin{taplocamlcode}
 and meet tyS tyT =
   match (tyS,tyT) with
     (_,TyTop) -> tyS
@@ -65,7 +62,7 @@ and meet tyS tyT =
   | _ ->
       raise Not_found
 \end{taplocamlcode}
-\taplocamlgroupedcounterpart{sol-author-17-meet}
+\taplocamlgroupedcounterpart{sol-author-17-join-complete}
 
 再为条件式补上类型检查分支：
 
@@ -80,14 +77,11 @@ and meet tyS tyT =
     else
       error fi "guard of conditional not a boolean"
 \end{taplocamlcode}
-\taplocamlgroupedcounterpart{sol-author-17-conditional-type}
+\taplocamlgroupedcounterpart{sol-author-17-join-complete}
 
 相应的 Rust 对照实现如下。为使代码能够独立阅读，先给出所需的类型定义：
 
-\taplrustsupport{sol-author-17-join-support}
-\taplrustcounterpart[page]{sol-author-17-join}
-\taplrustcounterpart[page]{sol-author-17-meet}
-\taplrustcounterpart[page]{sol-author-17-conditional-type}
+\taplrustcounterpart[breakable]{sol-author-17-join-complete}
 
 \taplsolutionbacklink{ex:17.3.1}{返回练习17.3.1}
 \end{taplauthorsolutionentrybox}

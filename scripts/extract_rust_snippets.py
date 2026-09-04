@@ -20,7 +20,69 @@ TEX_ROOT = ROOT / "tex"
 # regions to appear as one continuous listing.  Compose those display files
 # from the already extracted and tested regions instead of duplicating source.
 COMPOSITES: dict[str, tuple[str, ...]] = {
+    "ch07-term-name-hint-complete": (
+        "ch07-term-name-hint",
+        "ch07-eval-error",
+    ),
+    "sol-author-11-let-complete": (
+        "sol-author-11-let-types",
+        "sol-author-11-let-eval1",
+        "sol-author-11-let-shift",
+        "sol-author-11-let-substitution",
+        "sol-author-11-let-typeof",
+    ),
+    "ch17-syntax-complete": (
+        "ch17-syntax",
+        "ch17-support",
+    ),
+    "sol-author-17-join-complete": (
+        "sol-author-17-join-support",
+        "sol-author-17-join",
+        "sol-author-17-meet",
+        "sol-author-17-conditional-type",
+    ),
+    "sol-translator-17-diagnostics": (
+        "sol-translator-17-diagnostic-error",
+        "sol-translator-17-diagnostic-subtype",
+        "sol-translator-17-diagnostic-app",
+    ),
+    "sol-translator-17-coercion-complete": (
+        "sol-translator-17-coercion-support",
+        "sol-translator-17-coercion",
+        "sol-translator-17-translate",
+    ),
     "ch22-unifier-implementation": ("ch22-inference-support", "ch22-unify"),
+    "ch22-algorithm-w-complete": (
+        "ch22-algorithm-w-support",
+        "ch22-algorithm-w-value-support",
+        "ch22-algorithm-w",
+        "ch22-let-principal-type",
+    ),
+    "ch25-evaluation-complete": (
+        "ch25-evaluation-support",
+        "ch25-evaluation",
+    ),
+    "ch25-typechecking-complete": (
+        "ch25-typechecking-support",
+        "ch25-typechecking",
+    ),
+}
+
+# Some continuous book listings need selected lines from one tested snippet
+# followed by another complete snippet.  Keep these display views in the
+# extractor so that LaTeX never acquires a hand-copied source variant.
+RANGED_COMPOSITES: dict[
+    str, tuple[tuple[str, int | None, int | None], ...]
+] = {
+    "ch22-types-and-fresh-generator": (
+        ("ch22-types-generator", 1, 11),
+        ("ch22-inference-support", 2, 2),
+        ("ch22-types-generator", 41, 57),
+    ),
+    "ch22-constraint-generator": (
+        ("ch22-inference-support", 2, 3),
+        ("ch22-constraints", None, None),
+    ),
 }
 
 BEGIN = re.compile(r"^\s*// TAPL-SNIPPET-BEGIN: ([a-z0-9][a-z0-9-]*)\s*$")
@@ -240,11 +302,48 @@ def main() -> int:
                 file=sys.stderr,
             )
             return 1
-        body = "\n".join(source_snippets[member][1].rstrip() for member in members) + "\n"
+        body = "\n\n".join(
+            source_snippets[member][1].rstrip() for member in members
+        ) + "\n"
+        snippets[name] = (Path("composite") / name, body)
+    for name, parts in RANGED_COMPOSITES.items():
+        missing_members = [
+            member for member, _, _ in parts if member not in source_snippets
+        ]
+        if missing_members:
+            print(
+                f"composite {name} has missing members: "
+                f"{', '.join(missing_members)}",
+                file=sys.stderr,
+            )
+            return 1
+        selected_parts: list[str] = []
+        for member, first_line, last_line in parts:
+            member_lines = source_snippets[member][1].rstrip().splitlines()
+            first_index = 0 if first_line is None else first_line - 1
+            last_index = len(member_lines) if last_line is None else last_line
+            if (
+                first_index < 0
+                or last_index > len(member_lines)
+                or first_index >= last_index
+            ):
+                print(
+                    f"composite {name} has invalid range for {member}: "
+                    f"{first_line or 1}-{last_line or len(member_lines)}",
+                    file=sys.stderr,
+                )
+                return 1
+            selected_parts.append("\n".join(member_lines[first_index:last_index]))
+        body = "\n\n".join(selected_parts) + "\n"
         snippets[name] = (Path("composite") / name, body)
     referenced = references()
     missing = referenced - snippets.keys()
     composite_members = {member for members in COMPOSITES.values() for member in members}
+    composite_members.update(
+        member
+        for parts in RANGED_COMPOSITES.values()
+        for member, _, _ in parts
+    )
     unused = source_snippets.keys() - (referenced | composite_members)
     if missing or unused:
         if missing:

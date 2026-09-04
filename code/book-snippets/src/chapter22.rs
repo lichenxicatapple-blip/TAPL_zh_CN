@@ -57,7 +57,9 @@ impl FreshVariables {
             }
         }
     }
+}
 
+impl FreshVariables {
     fn reserve_type(&mut self, ty: &Type) {
         match ty {
             Type::Variable(name) => {
@@ -72,6 +74,10 @@ impl FreshVariables {
         }
     }
 
+    /// 预扫描整棵项，只登记显式类型标注中已经出现的类型变量名。
+    ///
+    /// 必须在推断开始前完成扫描，否则先处理的子项可能生成一个与后续标注
+    /// 同名的 `?Xn`，把两个本应无关的类型变量错误地视为同一个。
     fn reserve_term_annotations(&mut self, term: &Term) {
         match term {
             Term::Abstraction {
@@ -120,6 +126,7 @@ pub enum TypeError {
     UnknownVariable(String),
     CannotUnify(Type, Type),
     OccursCheck { variable: String, within: Type },
+    UnsupportedInReconbase(&'static str),
 }
 
 /// 收集类型中出现的所有类型变量。
@@ -365,7 +372,136 @@ pub fn principal_type(context: &Context, term: &Term) -> Result<Type, TypeError>
 }
 // TAPL-SNIPPET-END: ch22-principal-type
 
+// TAPL-SNIPPET-BEGIN: ch22-incremental-reconbase
+/// 把替换作用于单态类型上下文中的每个绑定。
+fn apply_monomorphic_context(substitution: &Substitution, context: &Context) -> Context {
+    context
+        .iter()
+        .map(|(name, ty)| (name.clone(), apply(substitution, ty)))
+        .collect()
+}
+
+/// 为 `reconbase` 的项增量求解约束，并返回替换与当前主类型。
+///
+/// 后处理的子项总是在前面所得替换更新过的上下文中检查。本函数只处理
+/// 第 22.5 节 `reconbase` 支持的语法；遇到无标注抽象、`let` 等本题尚未
+/// 处理的形式时，会明确报告不支持。
+#[allow(clippy::too_many_lines)]
+fn infer_reconbase_incremental(
+    context: &Context,
+    term: &Term,
+    fresh: &mut FreshVariables,
+) -> Result<(Substitution, Type), TypeError> {
+    match term {
+        Term::True | Term::False => Ok((Substitution::new(), Type::Bool)),
+        Term::Zero => Ok((Substitution::new(), Type::Nat)),
+        Term::Variable(name) => context
+            .get(name)
+            .cloned()
+            .map(|ty| (Substitution::new(), ty))
+            .ok_or_else(|| TypeError::UnknownVariable(name.clone())),
+        Term::Abstraction {
+            parameter,
+            annotation: Some(parameter_type),
+            body,
+        } => {
+            let mut body_context = context.clone();
+            body_context.insert(parameter.clone(), parameter_type.clone());
+            let (substitution, body_type) =
+                infer_reconbase_incremental(&body_context, body, fresh)?;
+            Ok((
+                substitution.clone(),
+                Type::Arrow(
+                    Box::new(apply(&substitution, parameter_type)),
+                    Box::new(apply(&substitution, &body_type)),
+                ),
+            ))
+        }
+        Term::Application(function, argument) => {
+            let (function_substitution, function_type) =
+                infer_reconbase_incremental(context, function, fresh)?;
+            let argument_context = apply_monomorphic_context(&function_substitution, context);
+            let (argument_substitution, argument_type) =
+                infer_reconbase_incremental(&argument_context, argument, fresh)?;
+
+            let result_type = fresh.fresh();
+            let application_substitution = unify(vec![(
+                apply(&argument_substitution, &function_type),
+                Type::Arrow(Box::new(argument_type), Box::new(result_type.clone())),
+            )])?;
+            let substitution = compose(
+                &application_substitution,
+                &compose(&argument_substitution, &function_substitution),
+            );
+            // result_type 是本分支刚创建的新鲜变量，前两个替换不可能约束它；
+            // 只需应用当前合一所得的替换，就能得到整个应用的结果类型。
+            Ok((substitution, apply(&application_substitution, &result_type)))
+        }
+        Term::Successor(argument) | Term::Predecessor(argument) => {
+            let (substitution, argument_type) =
+                infer_reconbase_incremental(context, argument, fresh)?;
+            let numeric = unify(vec![(argument_type, Type::Nat)])?;
+            Ok((compose(&numeric, &substitution), Type::Nat))
+        }
+        Term::IsZero(argument) => {
+            let (substitution, argument_type) =
+                infer_reconbase_incremental(context, argument, fresh)?;
+            let numeric = unify(vec![(argument_type, Type::Nat)])?;
+            Ok((compose(&numeric, &substitution), Type::Bool))
+        }
+        Term::If(guard, then_term, else_term) => {
+            let (guard_substitution, guard_type) =
+                infer_reconbase_incremental(context, guard, fresh)?;
+            let guard_check = unify(vec![(guard_type, Type::Bool)])?;
+            let before_then = compose(&guard_check, &guard_substitution);
+
+            let then_context = apply_monomorphic_context(&before_then, context);
+            let (then_substitution, then_type) =
+                infer_reconbase_incremental(&then_context, then_term, fresh)?;
+            let before_else = compose(&then_substitution, &before_then);
+
+            let else_context = apply_monomorphic_context(&before_else, context);
+            let (else_substitution, else_type) =
+                infer_reconbase_incremental(&else_context, else_term, fresh)?;
+            let branch_check = unify(vec![(
+                apply(&else_substitution, &then_type),
+                else_type.clone(),
+            )])?;
+            let substitution = compose(&branch_check, &compose(&else_substitution, &before_else));
+            Ok((substitution, apply(&branch_check, &else_type)))
+        }
+        Term::Abstraction {
+            annotation: None, ..
+        } => Err(TypeError::UnsupportedInReconbase(
+            "unannotated lambda abstraction",
+        )),
+        Term::Unit
+        | Term::Reference(_)
+        | Term::Dereference(_)
+        | Term::Assignment(_, _)
+        | Term::Sequence(_, _)
+        | Term::Let { .. } => Err(TypeError::UnsupportedInReconbase(
+            "construct introduced after Section 22.5",
+        )),
+    }
+}
+
+/// 增量重构 `reconbase` 项的主类型。
+pub fn principal_type_incremental(context: &Context, term: &Term) -> Result<Type, TypeError> {
+    let mut fresh = FreshVariables::default();
+    // 生成新变量前，先登记上下文以及整棵项的标注中已经使用的变量名。
+    for ty in context.values() {
+        fresh.reserve_type(ty);
+    }
+    fresh.reserve_term_annotations(term);
+    // 辅助函数已经把累计替换应用于返回类型；最外层不再需要该替换。
+    let (_, ty) = infer_reconbase_incremental(context, term, &mut fresh)?;
+    Ok(ty)
+}
+// TAPL-SNIPPET-END: ch22-incremental-reconbase
+
 // TAPL-SNIPPET-BEGIN: ch22-algorithm-w-support
+/// 一个类型方案由受全称量化的类型变量集合及其类型体组成。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TypeScheme {
     quantified: BTreeSet<String>,
@@ -401,6 +537,9 @@ fn context_variables(context: &SchemeContext) -> BTreeSet<String> {
 }
 
 fn apply_scheme(substitution: &Substitution, scheme: &TypeScheme) -> TypeScheme {
+    // 只替换类型方案中的自由变量。若方案是 forall X. X -> Y，而外部替换为
+    // {X := Nat, Y := Bool}，就必须忽略 X := Nat，因为 X 已由 forall X 绑定；
+    // 最终结果应是 forall X. X -> Bool。
     let filtered = substitution
         .iter()
         .filter(|(name, _)| !scheme.quantified.contains(*name))
@@ -420,6 +559,7 @@ fn apply_context(substitution: &Substitution, context: &SchemeContext) -> Scheme
 }
 
 fn instantiate(scheme: &TypeScheme, fresh: &mut FreshVariables) -> Type {
+    // 每次使用多态变量时，都以一组全新的类型变量替换量化变量。
     let substitution = scheme
         .quantified
         .iter()
@@ -429,6 +569,7 @@ fn instantiate(scheme: &TypeScheme, fresh: &mut FreshVariables) -> Type {
 }
 
 fn generalize(context: &SchemeContext, ty: Type) -> TypeScheme {
+    // 只量化类型中自由、但上下文中不自由的变量，避免捕获环境施加的约束。
     let context_variables = context_variables(context);
     let quantified = type_variables(&ty)
         .difference(&context_variables)
@@ -439,7 +580,7 @@ fn generalize(context: &SchemeContext, ty: Type) -> TypeScheme {
 // TAPL-SNIPPET-END: ch22-algorithm-w-support
 
 // TAPL-SNIPPET-BEGIN: ch22-algorithm-w
-/// 依照算法 W 的思路逐步推断主类型。
+/// 依照本节概述的 let 多态算法逐步推断主类型。
 ///
 /// 每次递归调用同时返回子项的类型，以及检查该子项时求得的最一般替换；
 /// 检查后续子项前，先把这个替换应用于上下文。
@@ -453,6 +594,7 @@ pub fn infer_incremental(
         Term::True | Term::False => Ok((Substitution::new(), Type::Bool)),
         Term::Zero => Ok((Substitution::new(), Type::Nat)),
         Term::Unit => Ok((Substitution::new(), Type::Unit)),
+        // 查询多态变量时实例化其类型方案；不同的查询得到彼此独立的新变量。
         Term::Variable(name) => context
             .get(name)
             .map(|scheme| (Substitution::new(), instantiate(scheme, fresh)))
@@ -462,6 +604,7 @@ pub fn infer_incremental(
             annotation,
             body,
         } => {
+            // 无标注形参先取得新类型变量；函数体返回的替换也必须作用于形参类型。
             let parameter_type = annotation.clone().unwrap_or_else(|| fresh.fresh());
             let mut body_context = context.clone();
             body_context.insert(
@@ -478,20 +621,28 @@ pub fn infer_incremental(
             ))
         }
         Term::Application(function, argument) => {
+            // 先处理函数，并把所得替换作用于上下文后再处理实参。
             let (function_substitution, function_type) =
                 infer_incremental(context, function, fresh)?;
             let argument_context = apply_context(&function_substitution, context);
             let (argument_substitution, argument_type) =
                 infer_incremental(&argument_context, argument, fresh)?;
+
+            // X 表示整个应用的结果。实参阶段可能进一步约束函数类型，所以先把
+            // argument_substitution 作用于 function_type，再执行合一。
             let result_type = fresh.fresh();
             let application_substitution = unify(vec![(
                 apply(&argument_substitution, &function_type),
                 Type::Arrow(Box::new(argument_type), Box::new(result_type.clone())),
             )])?;
+
+            // 后得到的替换作用在外层，依次吸收实参和函数阶段获得的信息。
             let substitution = compose(
                 &application_substitution,
                 &compose(&argument_substitution, &function_substitution),
             );
+            // result_type 是本分支刚创建的新鲜变量，前两个替换不可能约束它；
+            // 只需应用当前合一所得的替换，就能得到整个应用的结果类型。
             Ok((substitution, apply(&application_substitution, &result_type)))
         }
         Term::Reference(argument) => {
@@ -500,6 +651,7 @@ pub fn infer_incremental(
         }
         Term::Dereference(argument) => {
             let (substitution, ty) = infer_incremental(context, argument, fresh)?;
+            // 解引用要求实参具有 Ref X；合一同时求出所指元素的类型 X。
             let result = fresh.fresh();
             let dereference = unify(vec![(ty, Type::Reference(Box::new(result.clone())))])?;
             Ok((
@@ -508,9 +660,12 @@ pub fn infer_incremental(
             ))
         }
         Term::Assignment(target, value) => {
+            // 先处理赋值目标；处理右值前，必须用目标产生的替换更新上下文。
             let (target_substitution, target_type) = infer_incremental(context, target, fresh)?;
             let value_context = apply_context(&target_substitution, context);
             let (value_substitution, value_type) = infer_incremental(&value_context, value, fresh)?;
+
+            // 右值阶段也可能约束目标类型，因此先更新 target_type，再要求它为 Ref T。
             let assignment = unify(vec![(
                 apply(&value_substitution, &target_type),
                 Type::Reference(Box::new(value_type)),
@@ -524,6 +679,7 @@ pub fn infer_incremental(
             ))
         }
         Term::Sequence(first, second) => {
+            // 序列的第一项必须为 Unit；确认后再在更新后的上下文中处理第二项。
             let (first_substitution, first_type) = infer_incremental(context, first, fresh)?;
             let unit = unify(vec![(first_type, Type::Unit)])?;
             let before_second = compose(&unit, &first_substitution);
@@ -543,12 +699,15 @@ pub fn infer_incremental(
             Ok((compose(&numeric, &substitution), Type::Bool))
         }
         Term::If(guard, then_term, else_term) => {
+            // 守卫必须为 Bool；这一检查产生的替换对两个分支都可见。
             let (guard_substitution, guard_type) = infer_incremental(context, guard, fresh)?;
             let guard_check = unify(vec![(guard_type, Type::Bool)])?;
             let after_guard = compose(&guard_check, &guard_substitution);
             let branch_context = apply_context(&after_guard, context);
             let (then_substitution, then_type) =
                 infer_incremental(&branch_context, then_term, fresh)?;
+
+            // 后一分支在前一分支更新过的上下文中检查，最后再合一两个分支类型。
             let else_context = apply_context(&then_substitution, &branch_context);
             let (else_substitution, else_type) =
                 infer_incremental(&else_context, else_term, fresh)?;
@@ -566,9 +725,12 @@ pub fn infer_incremental(
             Ok((substitution, apply(&branch_check, &else_type)))
         }
         Term::Let { name, value, body } => {
+            // 先把绑定项产生的替换作用于上下文和它自己的类型。
             let (value_substitution, value_type) = infer_incremental(context, value, fresh)?;
             let value_context = apply_context(&value_substitution, context);
             let value_type = apply(&value_substitution, &value_type);
+
+            // 有引用时采用值限制：只有句法值可以泛化，其他项保持单态。
             let scheme = if is_syntactic_value(value) {
                 generalize(&value_context, value_type)
             } else {
@@ -606,12 +768,14 @@ fn is_syntactic_value(term: &Term) -> bool {
 /// 使用 ML 风格的 `let` 泛化重构主类型。
 pub fn let_principal_type(context: &SchemeContext, term: &Term) -> Result<Type, TypeError> {
     let mut fresh = FreshVariables::default();
+    // 生成新变量前，先登记上下文以及整棵项的标注中已经使用的变量名。
     for scheme in context.values() {
         fresh.reserve_type(&scheme.ty);
     }
     fresh.reserve_term_annotations(term);
-    let (substitution, ty) = infer_incremental(context, term, &mut fresh)?;
-    Ok(apply(&substitution, &ty))
+    // 辅助函数已经把累计替换应用于返回类型；最外层不再需要该替换。
+    let (_, ty) = infer_incremental(context, term, &mut fresh)?;
+    Ok(ty)
 }
 // TAPL-SNIPPET-END: ch22-let-principal-type
 
@@ -627,7 +791,7 @@ mod tests {
     fn reconstructs_identity() {
         let identity = Term::Abstraction {
             parameter: "x".into(),
-            annotation: None,
+            annotation: Some(Type::Variable("X".into())),
             body: Box::new(variable("x")),
         };
         let ty = principal_type(&Context::new(), &identity).unwrap();
@@ -638,7 +802,7 @@ mod tests {
     fn reconstructs_application() {
         let apply_to_zero = Term::Abstraction {
             parameter: "f".into(),
-            annotation: None,
+            annotation: Some(Type::Variable("F".into())),
             body: Box::new(Term::Application(
                 Box::new(variable("f")),
                 Box::new(Term::Zero),
@@ -705,7 +869,126 @@ mod tests {
     }
 
     #[test]
-    fn incremental_inference_returns_a_principal_type() {
+    fn incremental_reconbase_matches_the_exercise_examples() {
+        let identity = Term::Abstraction {
+            parameter: "x".into(),
+            annotation: Some(Type::Variable("X".into())),
+            body: Box::new(variable("x")),
+        };
+        assert_eq!(
+            principal_type_incremental(&Context::new(), &identity).unwrap(),
+            Type::Arrow(
+                Box::new(Type::Variable("X".into())),
+                Box::new(Type::Variable("X".into())),
+            )
+        );
+
+        let nested_application = Term::Abstraction {
+            parameter: "z".into(),
+            annotation: Some(Type::Variable("ZZ".into())),
+            body: Box::new(Term::Abstraction {
+                parameter: "y".into(),
+                annotation: Some(Type::Variable("YY".into())),
+                body: Box::new(Term::Application(
+                    Box::new(variable("z")),
+                    Box::new(Term::Application(
+                        Box::new(variable("y")),
+                        Box::new(Term::True),
+                    )),
+                )),
+            }),
+        };
+        assert_eq!(
+            principal_type_incremental(&Context::new(), &nested_application).unwrap(),
+            Type::Arrow(
+                Box::new(Type::Arrow(
+                    Box::new(Type::Variable("?X0".into())),
+                    Box::new(Type::Variable("?X1".into())),
+                )),
+                Box::new(Type::Arrow(
+                    Box::new(Type::Arrow(
+                        Box::new(Type::Bool),
+                        Box::new(Type::Variable("?X0".into())),
+                    )),
+                    Box::new(Type::Variable("?X1".into())),
+                )),
+            )
+        );
+
+        let conditional = Term::Abstraction {
+            parameter: "w".into(),
+            annotation: Some(Type::Variable("W".into())),
+            body: Box::new(Term::If(
+                Box::new(Term::True),
+                Box::new(Term::False),
+                Box::new(Term::Application(
+                    Box::new(variable("w")),
+                    Box::new(Term::False),
+                )),
+            )),
+        };
+        assert_eq!(
+            principal_type_incremental(&Context::new(), &conditional).unwrap(),
+            Type::Arrow(
+                Box::new(Type::Arrow(Box::new(Type::Bool), Box::new(Type::Bool))),
+                Box::new(Type::Bool),
+            )
+        );
+    }
+
+    #[test]
+    fn incremental_reconbase_does_not_accept_later_syntax() {
+        let unannotated = Term::Abstraction {
+            parameter: "x".into(),
+            annotation: None,
+            body: Box::new(variable("x")),
+        };
+        assert!(matches!(
+            principal_type_incremental(&Context::new(), &unannotated),
+            Err(TypeError::UnsupportedInReconbase(_))
+        ));
+    }
+
+    #[test]
+    fn incremental_helpers_return_types_with_their_substitutions_applied() {
+        let annotated_application = Term::Application(
+            Box::new(Term::Abstraction {
+                parameter: "x".into(),
+                annotation: Some(Type::Variable("Y".into())),
+                body: Box::new(variable("x")),
+            }),
+            Box::new(Term::Zero),
+        );
+        let mut fresh = FreshVariables::default();
+        fresh.reserve_term_annotations(&annotated_application);
+        let (substitution, ty) =
+            infer_reconbase_incremental(&Context::new(), &annotated_application, &mut fresh)
+                .unwrap();
+        assert_eq!(ty, Type::Nat);
+        assert_eq!(apply(&substitution, &ty), ty);
+
+        let let_application = Term::Let {
+            name: "id".into(),
+            value: Box::new(Term::Abstraction {
+                parameter: "x".into(),
+                annotation: None,
+                body: Box::new(variable("x")),
+            }),
+            body: Box::new(Term::Application(
+                Box::new(variable("id")),
+                Box::new(Term::Zero),
+            )),
+        };
+        let mut fresh = FreshVariables::default();
+        fresh.reserve_term_annotations(&let_application);
+        let (substitution, ty) =
+            infer_incremental(&SchemeContext::new(), &let_application, &mut fresh).unwrap();
+        assert_eq!(ty, Type::Nat);
+        assert_eq!(apply(&substitution, &ty), ty);
+    }
+
+    #[test]
+    fn let_inference_returns_a_principal_type() {
         let apply_to_zero = Term::Abstraction {
             parameter: "f".into(),
             annotation: None,
